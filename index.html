@@ -79,7 +79,9 @@ body {
 .opg-field input, .opg-field select, .opg-field textarea {
   width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid var(--sage-line);
   background: #fff; font-size: 16px; font-family: 'Inter'; color: var(--ink);
+  -webkit-appearance: none; appearance: none; min-width: 0;
 }
+.opg-field input[type="date"] { -webkit-min-logical-width: 0; }
 .opg-field input:focus, .opg-field select:focus, .opg-field textarea:focus { outline: none; border-color: var(--forest); }
 .opg-row2 { display: flex; gap: 10px; }
 .opg-row2 > div { flex: 1; min-width: 0; }
