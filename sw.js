@@ -1,4 +1,4 @@
-const CACHE_NAME = 'opg-evidencija-v1';
+const CACHE_NAME = 'opg-evidencija-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -21,15 +21,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Network-first: uvijek pokušaj dohvatiti najnoviju verziju kad ima interneta;
+// keširana verzija koristi se samo kao rezerva kad nema signala (offline rad).
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request).then((networkResp) => {
+    fetch(event.request)
+      .then((networkResp) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResp.clone()));
         return networkResp;
-      }).catch(() => cached);
-      return cached || fetchPromise;
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });

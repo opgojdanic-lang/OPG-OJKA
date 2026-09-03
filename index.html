@@ -121,6 +121,13 @@ body {
 .opg-sum-bar { height: 100%; background: var(--forest); border-radius: 4px; }
 .opg-sum-val { font-family: 'Fraunces'; font-weight: 600; font-size: 14px; white-space: nowrap; }
 
+#sum-by-kupac .opg-sum-row { border-bottom: none; padding-bottom: 2px; }
+.opg-sum-subrows { padding: 0 0 8px; margin-bottom: 6px; border-bottom: 1px solid var(--sage-line); }
+.opg-sum-subrows:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.opg-sum-subrow { display: flex; justify-content: space-between; padding: 2px 0 2px 14px; }
+.opg-sum-subname { font-size: 12.5px; color: var(--ink-soft); }
+.opg-sum-subval { font-size: 12.5px; color: var(--ink-soft); font-family: 'Fraunces'; white-space: nowrap; }
+
 .opg-filter-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
 .opg-chip { border: 1.5px solid var(--sage-line); background: #fff; padding: 7px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; cursor: pointer; }
 .opg-chip.active { background: var(--forest); border-color: var(--forest); color: #fff; }
@@ -131,6 +138,8 @@ body {
 .opg-loading { text-align: center; padding: 60px 20px; color: var(--sage); font-size: 14px; }
 
 .opg-toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: var(--forest); color: #fff; padding: 10px 18px; border-radius: 30px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 100; max-width: 90%; text-align: center; }
+.opg-pull-indicator { position: fixed; top: 0; left: 50%; transform: translateX(-50%) translateY(-100%); background: var(--forest); color: #fff; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 0 0 14px 14px; z-index: 200; transition: transform 0.15s; }
+.opg-pull-indicator.visible { transform: translateX(-50%) translateY(0); }
 .opg-toast.show { opacity: 1; }
 
 .opg-report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
@@ -379,6 +388,10 @@ body {
       <div id="sub-prskanje" class="opg-subview">
         <div class="opg-card">
           <div class="opg-section-title" style="margin-top:0;">Kalkulator omjera</div>
+          <div class="opg-field">
+            <label>Sredstvo (opcionalno — pamti zadnju dozu koju ste koristili)</label>
+            <input type="text" id="calc-sredstvo" list="zalihe-list-dl" placeholder="npr. Bordoška juha">
+          </div>
           <div class="opg-row2">
             <div class="opg-field"><label>Prskalica (L)</label><input type="number" id="calc-spremnik" step="0.1" min="0" placeholder="npr. 15"></div>
             <div class="opg-field"><label>Doza</label><input type="number" id="calc-doza" step="0.01" min="0" placeholder="npr. 2"></div>
@@ -392,6 +405,7 @@ body {
             </select>
           </div>
           <div class="opg-neto-preview">Potrebno sredstva: <b id="calc-rezultat">0 ml</b></div>
+          <button class="opg-submit ghost" id="calc-prenesi">Prenesi u dnevnik tretiranja ↓</button>
         </div>
 
         <div class="opg-card">
@@ -454,6 +468,7 @@ body {
     <button class="opg-tab" data-tab="pregled"><span class="ic">📊</span>Pregled</button>
   </div>
 
+  <div class="opg-pull-indicator" id="opg-pull-indicator">↓ Pusti za osvježavanje</div>
   <div class="opg-toast" id="opg-toast"></div>
 </div>
 
@@ -787,16 +802,31 @@ body {
     const tFiltered = pregledFilter==='sve' ? troskovi : troskovi.filter(r=>(r.datum||'').startsWith(pregledFilter));
 
     const byKupac = {};
-    pFiltered.forEach(r=>{ byKupac[r.kupac] = (byKupac[r.kupac]||0) + (r.cijena_kg||0)*(r.kg||0); });
+    const byKupacProizvod = {};
+    pFiltered.forEach(r=>{
+      byKupac[r.kupac] = (byKupac[r.kupac]||0) + (r.cijena_kg||0)*(r.kg||0);
+      byKupacProizvod[r.kupac] = byKupacProizvod[r.kupac] || {};
+      const p = r.proizvod || '—';
+      byKupacProizvod[r.kupac][p] = (byKupacProizvod[r.kupac][p]||0) + (r.cijena_kg||0)*(r.kg||0);
+    });
     const totalPrihod = Object.values(byKupac).reduce((a,b)=>a+b,0) || 1;
     const kupacCard = document.getElementById('sum-by-kupac');
     const kupacKeys = Object.keys(byKupac).sort((a,b)=>byKupac[b]-byKupac[a]);
-    kupacCard.innerHTML = kupacKeys.length ? kupacKeys.map(k=>`
+    kupacCard.innerHTML = kupacKeys.length ? kupacKeys.map(k=>{
+      const proizvodi = Object.entries(byKupacProizvod[k]||{}).sort((a,b)=>b[1]-a[1]);
+      const subRows = proizvodi.map(([p,val])=>`
+        <div class="opg-sum-subrow">
+          <div class="opg-sum-subname">${p}</div>
+          <div class="opg-sum-subval">${fmt(val)}</div>
+        </div>`).join('');
+      return `
       <div class="opg-sum-row">
         <div class="opg-sum-name" style="min-width:88px;">${KUPAC_LABEL[k]||k}</div>
         <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKupac[k]/totalPrihod*100)}%"></div></div>
         <div class="opg-sum-val">${fmt(byKupac[k])}</div>
-      </div>`).join('') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
+      </div>
+      <div class="opg-sum-subrows">${subRows}</div>`;
+    }).join('') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
 
     const byKat = {};
     tFiltered.forEach(r=>{ byKat[r.kategorija] = (byKat[r.kategorija]||0) + (r.kolicina||0)*(r.cijena||0); });
@@ -898,7 +928,22 @@ body {
     }).join('');
   }
 
+  let lastCalcResult = { value: 0, label: 'ml' };
+  function loadSprayDose(name){
+    if (!name) return null;
+    try { const map = JSON.parse(localStorage.getItem('opg_spray_doses')||'{}'); return map[name.trim().toLowerCase()] || null; }
+    catch(e){ return null; }
+  }
+  function saveSprayDose(name, doza, jedinica){
+    if (!name) return;
+    try {
+      const map = JSON.parse(localStorage.getItem('opg_spray_doses')||'{}');
+      map[name.trim().toLowerCase()] = { doza, jedinica };
+      localStorage.setItem('opg_spray_doses', JSON.stringify(map));
+    } catch(e){}
+  }
   function renderCalculator(){
+    const sredstvo = document.getElementById('calc-sredstvo').value;
     const spremnik = parseFloat(document.getElementById('calc-spremnik').value)||0;
     const doza = parseFloat(document.getElementById('calc-doza').value)||0;
     const jed = document.getElementById('calc-jedinica').value;
@@ -906,7 +951,19 @@ body {
     if (jed === 'pct') { rezultat = spremnik*1000*(doza/100); label = 'ml'; }
     else if (jed === 'g_l') { rezultat = spremnik*doza; label = 'g'; }
     else { rezultat = spremnik*doza; label = 'ml'; }
-    document.getElementById('calc-rezultat').textContent = (Math.round(rezultat*100)/100).toLocaleString('hr-HR') + ' ' + label;
+    lastCalcResult = { value: Math.round(rezultat*100)/100, label, sredstvo };
+    document.getElementById('calc-rezultat').textContent = lastCalcResult.value.toLocaleString('hr-HR') + ' ' + label;
+    if (sredstvo && doza) saveSprayDose(sredstvo, doza, jed);
+  }
+  function applyRememberedDose(){
+    const sredstvo = document.getElementById('calc-sredstvo').value;
+    const remembered = loadSprayDose(sredstvo);
+    if (remembered) {
+      document.getElementById('calc-doza').value = remembered.doza;
+      document.getElementById('calc-jedinica').value = remembered.jedinica;
+      renderCalculator();
+      toast('Učitana zadnja doza za ' + sredstvo);
+    }
   }
 
   function renderPrskanjePreview(){
@@ -1139,6 +1196,15 @@ body {
     document.getElementById(id).addEventListener('input', renderCalculator);
     document.getElementById(id).addEventListener('change', renderCalculator);
   });
+  document.getElementById('calc-sredstvo').addEventListener('change', applyRememberedDose);
+  document.getElementById('calc-sredstvo').addEventListener('input', renderCalculator);
+  document.getElementById('calc-prenesi').addEventListener('click', ()=>{
+    if (!lastCalcResult.value){ toast('Prvo izračunaj količinu'); return; }
+    if (lastCalcResult.sredstvo) document.getElementById('pr-sredstvo').value = lastCalcResult.sredstvo;
+    document.getElementById('pr-kolicina').value = lastCalcResult.value;
+    renderPrskanjePreview();
+    toast('Preneseno — samo dodaj kulturu i karencu pa spremi');
+  });
   document.getElementById('pr-datum').addEventListener('change', renderPrskanjePreview);
   document.getElementById('pr-karenca').addEventListener('input', renderPrskanjePreview);
   document.getElementById('pr-submit').addEventListener('click', async ()=>{
@@ -1238,8 +1304,57 @@ body {
     openSetup(false);
   }
 
+  // ---- pull-to-refresh (instalirana PWA na iOS-u nema ugrađeno povlačenje-za-osvježavanje) ----
+  (function(){
+    const indicator = document.getElementById('opg-pull-indicator');
+    let startY = null, pulling = false;
+    const THRESHOLD = 70;
+    document.addEventListener('touchstart', (e)=>{
+      if (window.scrollY <= 0 && !document.querySelector('#opg-setup.show')) {
+        startY = e.touches[0].clientY;
+        pulling = true;
+      }
+    }, { passive: true });
+    document.addEventListener('touchmove', (e)=>{
+      if (!pulling || startY === null) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy > 10 && window.scrollY <= 0) {
+        indicator.classList.add('visible');
+        indicator.textContent = dy > THRESHOLD ? '↑ Pusti za osvježavanje' : '↓ Povuci za osvježavanje';
+      }
+    }, { passive: true });
+    document.addEventListener('touchend', (e)=>{
+      if (!pulling) return;
+      const dy = (e.changedTouches[0].clientY - startY);
+      indicator.classList.remove('visible');
+      if (dy > THRESHOLD && window.scrollY <= 0) {
+        indicator.textContent = 'Osvježavanje…';
+        indicator.classList.add('visible');
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg) reg.update().finally(()=> window.location.reload());
+            else window.location.reload();
+          }).catch(()=> window.location.reload());
+        } else {
+          window.location.reload();
+        }
+      }
+      pulling = false; startY = null;
+    }, { passive: true });
+  })();
+
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.update().catch(()=>{});
+      }).catch(()=>{});
+    });
+    let swRefreshed = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (swRefreshed) return;
+      swRefreshed = true;
+      window.location.reload();
+    });
   }
 })();
 </script>
