@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OPG Ojdanić</title>
+<meta name="theme-color" content="#1F3D2B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OPG Ojdanić">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" href="./icons/icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap');
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  --bg: #F2EEDC;
+  --card: #FBFAF3;
+  --ink: #1C2419;
+  --ink-soft: #4B5245;
+  --forest: #1F3D2B;
+  --forest-2: #294F37;
+  --paprika: #C1432B;
+  --squash: #E2963A;
+  --sage: #6B8266;
+  --sage-line: #D9D4B8;
+  --ok-bg: #E4EEE1;
+  --ok-ink: #2B5C34;
+  --warn-bg: #FBEADD;
+  --warn-ink: #9A4E15;
+  --plum: #7A2E4D;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+#opg-root { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 84px; }
+#opg-root h1, #opg-root h2, #opg-root .display { font-family: 'Fraunces', serif; }
+
+.opg-header { background: var(--forest); color: #F2EEDC; padding: calc(18px + env(safe-area-inset-top)) 20px 26px; border-radius: 0 0 22px 22px; position: relative; overflow: hidden; }
+.opg-header::after { content: ""; position: absolute; right: -30px; top: -30px; width: 140px; height: 140px; border-radius: 50%; background: rgba(226,150,58,0.14); }
+.opg-brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.opg-brand-logo { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; background: #fff; flex-shrink: 0; }
+.opg-brand-text { flex: 1; min-width: 0; }
+.opg-eyebrow { font-size: 12.5px; color: #C9D6C4; margin: 0 0 1px; }
+.opg-title { font-size: 21px; font-weight: 700; margin: 0; letter-spacing: -0.2px; }
+.opg-gear { border: none; background: rgba(255,255,255,0.1); color: #F2EEDC; width: 34px; height: 34px; border-radius: 10px; font-size: 16px; cursor: pointer; flex-shrink: 0; }
+.opg-sync-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #C9D6C4; margin-top: 2px; }
+.opg-sync-dot .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); }
+.opg-sync-dot.live .dot { background: #8FD19E; box-shadow: 0 0 0 3px rgba(143,209,158,0.25); }
+.opg-hero-row { display: flex; gap: 10px; }
+.opg-hero-card { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 12px 14px; }
+.opg-hero-card .lbl { font-size: 12px; color: #C9D6C4; margin-bottom: 4px; }
+.opg-hero-card .val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; }
+.opg-hero-card.profit .val { color: #EFD9AE; }
+
+.opg-tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--card); border-top: 1px solid var(--sage-line); display: flex; padding: 7px 6px calc(7px + env(safe-area-inset-bottom)); gap: 4px; z-index: 50; }
+.opg-tab { flex: 1; border: none; background: transparent; padding: 7px 2px; border-radius: 12px; font-size: 11.5px; font-weight: 600; color: var(--sage); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+.opg-tab .ic { font-size: 17px; }
+.opg-tab.active { background: var(--forest); color: #fff; }
+
+.opg-view { padding: 18px 16px 8px; display: none; }
+.opg-view.active { display: block; }
+
+.opg-section-title { font-size: 15px; font-weight: 700; margin: 22px 0 10px; color: var(--forest); }
+.opg-section-title:first-child { margin-top: 0; }
+
+.opg-card { background: var(--card); border: 1px solid var(--sage-line); border-radius: 16px; padding: 16px; }
+
+.opg-field { margin-bottom: 12px; }
+.opg-field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
+.opg-field input, .opg-field select, .opg-field textarea {
+  width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid var(--sage-line);
+  background: #fff; font-size: 15px; font-family: 'Inter'; color: var(--ink);
+}
+.opg-field input:focus, .opg-field select:focus, .opg-field textarea:focus { outline: none; border-color: var(--forest); }
+.opg-row2 { display: flex; gap: 10px; }
+.opg-row2 > div { flex: 1; }
+
+.opg-toggle-row { display: flex; gap: 8px; }
+.opg-toggle-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid var(--sage-line); background: #fff; font-weight: 700; font-size: 13.5px; cursor: pointer; color: var(--ink-soft); }
+.opg-toggle-btn.on-yes.selected { background: var(--ok-bg); border-color: var(--ok-ink); color: var(--ok-ink); }
+.opg-toggle-btn.on-no.selected { background: var(--warn-bg); border-color: var(--warn-ink); color: var(--warn-ink); }
+
+.opg-neto-preview { background: #F6F2DC; border: 1px dashed var(--squash); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; color: var(--ink-soft); margin-bottom: 12px; }
+.opg-neto-preview b { color: var(--forest); font-family: 'Fraunces'; font-size: 16px; }
+
+.opg-submit { width: 100%; padding: 13px; border-radius: 12px; border: none; background: var(--paprika); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 4px; }
+.opg-submit:active { opacity: 0.85; }
+.opg-submit.secondary { background: var(--forest); }
+.opg-submit.ghost { background: #fff; color: var(--forest); border: 1.5px solid var(--forest); }
+.opg-submit.plum { background: var(--plum); }
+
+.opg-entry { display: flex; align-items: center; gap: 10px; padding: 12px 4px; border-bottom: 1px solid var(--sage-line); }
+.opg-entry:last-child { border-bottom: none; }
+.opg-entry-main { flex: 1; min-width: 0; }
+.opg-entry-top { font-weight: 700; font-size: 14px; color: var(--forest); }
+.opg-entry-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+.opg-entry-amt { font-family: 'Fraunces'; font-weight: 600; font-size: 15px; white-space: nowrap; }
+.opg-badge { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 20px; white-space: nowrap; cursor: pointer; border: none; }
+.opg-badge.yes { background: var(--ok-bg); color: var(--ok-ink); }
+.opg-badge.no { background: var(--warn-bg); color: var(--warn-ink); }
+.opg-del { border: none; background: none; color: var(--sage); font-size: 17px; cursor: pointer; padding: 2px 4px; }
+
+.opg-empty { text-align: center; color: var(--sage); font-size: 13.5px; padding: 24px 10px; }
+
+.opg-sum-card { background: var(--card); border: 1px solid var(--sage-line); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+.opg-sum-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--sage-line); }
+.opg-sum-row:last-child { border-bottom: none; }
+.opg-sum-name { font-size: 14px; font-weight: 600; }
+.opg-sum-bar-wrap { flex: 1; height: 6px; background: var(--sage-line); border-radius: 4px; margin: 0 10px; overflow: hidden; }
+.opg-sum-bar { height: 100%; background: var(--forest); border-radius: 4px; }
+.opg-sum-val { font-family: 'Fraunces'; font-weight: 600; font-size: 14px; white-space: nowrap; }
+
+.opg-filter-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
+.opg-chip { border: 1.5px solid var(--sage-line); background: #fff; padding: 7px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; cursor: pointer; }
+.opg-chip.active { background: var(--forest); border-color: var(--forest); color: #fff; }
+
+.opg-inline-filters { display: flex; gap: 8px; margin-bottom: 14px; }
+.opg-inline-filters select { flex: 1; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--sage-line); background: #fff; font-size: 13px; font-family: 'Inter'; color: var(--ink-soft); }
+
+.opg-loading { text-align: center; padding: 60px 20px; color: var(--sage); font-size: 14px; }
+
+.opg-toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: var(--forest); color: #fff; padding: 10px 18px; border-radius: 30px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 100; max-width: 90%; text-align: center; }
+.opg-toast.show { opacity: 1; }
+
+.opg-report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.opg-hint { font-size: 12px; color: var(--sage); margin: 6px 2px 16px; line-height: 1.5; }
+#opg-import-input { display: none; }
+
+.opg-paul-status { text-align: center; padding: 18px 10px; border-radius: 14px; margin-bottom: 4px; }
+.opg-paul-status.ok { background: var(--ok-bg); }
+.opg-paul-status.warn { background: var(--warn-bg); }
+.opg-paul-status .big { font-family: 'Fraunces'; font-size: 24px; font-weight: 600; }
+.opg-paul-status.ok .big { color: var(--ok-ink); }
+.opg-paul-status.warn .big { color: var(--warn-ink); }
+.opg-paul-status .lbl { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+
+/* ---------- SETUP OVERLAY ---------- */
+#opg-setup { position: fixed; inset: 0; background: var(--bg); z-index: 200; overflow-y: auto; display: none; }
+#opg-setup.show { display: block; }
+.opg-setup-inner { max-width: 480px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top)) 20px 40px; }
+.opg-setup-inner h2 { color: var(--forest); font-size: 21px; margin: 14px 0 6px; }
+.opg-setup-inner p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+.opg-setup-steps { background: var(--card); border: 1px solid var(--sage-line); border-radius: 14px; padding: 14px 16px; margin: 14px 0; }
+.opg-setup-steps li { font-size: 13.5px; color: var(--ink-soft); line-height: 1.7; margin-bottom: 4px; }
+.opg-setup-steps a { color: var(--paprika); font-weight: 600; }
+#opg-setup textarea { min-height: 130px; font-family: monospace; font-size: 12.5px; }
+.opg-setup-close { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px; border: none; background: var(--sage-line); width: 32px; height: 32px; border-radius: 50%; font-size: 15px; cursor: pointer; color: var(--forest); }
+</style>
+</head>
+<body>
+<div id="opg-root">
+
+  <!-- SETUP OVERLAY -->
+  <div id="opg-setup">
+    <div class="opg-setup-inner">
+      <button class="opg-setup-close" id="setup-close" style="display:none;">✕</button>
+      <img src="./icons/logo-header.png" alt="OPG Ojdanić" style="width:100%; max-width:280px; display:block; margin:0 auto 6px;">
+      <h2>Poveži uređaje u stvarnom vremenu</h2>
+      <p>Da bi svi u obitelji odmah vidjeli unose jedni drugih, aplikacija treba besplatan Firebase (Google) projekt — jednom ga postavite, poveže se u par minuta.</p>
+      <div class="opg-setup-steps">
+        <ol style="margin:0; padding-left:18px;">
+          <li>Otvorite <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> i prijavite se Google računom.</li>
+          <li>"Add project" → upišite naziv (npr. <i>opg-ojdanic</i>) → Continue → Create project.</li>
+          <li>U lijevom izborniku: <b>Build → Firestore Database → Create database</b> → odaberite lokaciju (npr. europe-west) → Start in <b>test mode</b>.</li>
+          <li>U lijevom izborniku kliknite <b>⚙ Settings</b> (ispod "Project Overview") → odaberite <b>Project settings</b> → dolje pod "Your apps" kliknite ikonu <b>&lt;/&gt;</b> (Web) → nazovite je "OPG" → Register app.</li>
+          <li>Pojavit će se kod s <code>const firebaseConfig = &#123; ... &#125;</code> — kopirajte cijeli taj dio i zalijepite dolje.</li>
+        </ol>
+      </div>
+      <div class="opg-field">
+        <label>Zalijepi firebaseConfig ovdje</label>
+        <textarea id="setup-config" placeholder='const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  ...
+};'></textarea>
+      </div>
+      <button class="opg-submit" id="setup-connect">Spremi i poveži</button>
+      <button class="opg-submit ghost" id="setup-skip" style="margin-top:10px;">Nastavi bez sinkronizacije (samo ovaj uređaj)</button>
+      <p class="opg-hint" style="margin-top:16px;">Napomena: u test modu baza je otvorena svima tko ima ovaj config — sasvim dovoljno sigurno za obiteljsku evidenciju, ali izbjegavajte dijeliti config izvan obitelji.</p>
+    </div>
+  </div>
+
+  <div class="opg-header">
+    <div class="opg-brand-row">
+      <img class="opg-brand-logo" src="./icons/icon-192.png" alt="Logo">
+      <div class="opg-brand-text">
+        <p class="opg-eyebrow">OPG · sezona 2026</p>
+        <h1 class="opg-title">OPG Ojdanić</h1>
+        <div class="opg-sync-dot" id="sync-indicator"><span class="dot"></span><span id="sync-label">Lokalno (bez sinkronizacije)</span></div>
+      </div>
+      <button class="opg-gear" id="open-setup">⚙</button>
+    </div>
+    <div class="opg-hero-row">
+      <div class="opg-hero-card"><div class="lbl">Prihod</div><div class="val" id="hero-prihod">–</div></div>
+      <div class="opg-hero-card"><div class="lbl">Troškovi</div><div class="val" id="hero-troskovi">–</div></div>
+      <div class="opg-hero-card profit"><div class="lbl">Dobit</div><div class="val" id="hero-dobit">–</div></div>
+    </div>
+  </div>
+
+  <div id="opg-loading" class="opg-loading">Učitavanje podataka…</div>
+
+  <div id="opg-content" style="display:none;">
+    <!-- PRODAJA -->
+    <div class="opg-view active" data-view="prodaja">
+      <div class="opg-card">
+        <div class="opg-field">
+          <label>Kupac</label>
+          <select id="f-kupac">
+            <option value="RIBOLA">Ribola</option>
+            <option value="ĐAKULA">Mesnica Đakula</option>
+            <option value="BARIČEVIĆ">Mesnica Baričević</option>
+            <option value="VITIĆ">Mesnica Vitić</option>
+            <option value="BOKŠIĆ">Mesnica Bokšić</option>
+          </select>
+        </div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Datum</label><input type="date" id="f-datum"></div>
+          <div class="opg-field"><label>Proizvod</label><input type="text" id="f-proizvod" list="proizvod-list" placeholder="npr. Tikvica"><datalist id="proizvod-list"></datalist></div>
+        </div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Cijena / kg (€)</label><input type="number" id="f-cijena" step="0.01" min="0" placeholder="0.00"></div>
+          <div class="opg-field"><label>Isporučeno (kg)</label><input type="number" id="f-kg" step="0.1" min="0" placeholder="0"></div>
+        </div>
+        <div class="opg-field"><label>Broj gajbica / bananki (opcionalno)</label><input type="number" id="f-pak" min="0" placeholder="0"></div>
+        <div class="opg-neto-preview">Iznos: <b id="f-neto-preview">0,00 €</b></div>
+        <div class="opg-field">
+          <label>Plaćeno</label>
+          <div class="opg-toggle-row">
+            <button type="button" class="opg-toggle-btn on-yes selected" id="f-placeno-yes">DA</button>
+            <button type="button" class="opg-toggle-btn on-no" id="f-placeno-no">NE</button>
+          </div>
+        </div>
+        <button class="opg-submit" id="f-prodaja-submit">Spremi prodaju</button>
+      </div>
+
+      <div class="opg-section-title">Pregled unosa</div>
+      <div class="opg-inline-filters">
+        <select id="pf-kupac"><option value="sve">Svi kupci</option></select>
+        <select id="pf-mjesec"><option value="sve">Svi mjeseci</option></select>
+      </div>
+      <div class="opg-card" id="prodaja-list-card"></div>
+    </div>
+
+    <!-- TROSKOVI -->
+    <div class="opg-view" data-view="troskovi">
+      <div class="opg-card">
+        <div class="opg-field">
+          <label>Kategorija</label>
+          <select id="t-kategorija">
+            <option value="SJEME">Sjeme</option>
+            <option value="GNOJIVO">Gnojivo</option>
+            <option value="REPROMATERIJAL">Repromaterijal</option>
+            <option value="SREDSTVA ZA ZAŠTITU">Sredstva za zaštitu</option>
+            <option value="OSTALO">Ostalo</option>
+          </select>
+        </div>
+        <div class="opg-field"><label>Naziv / vrsta</label><input type="text" id="t-naziv" placeholder="npr. Sjeme tikvice, NPK gnojivo…"></div>
+        <div class="opg-field"><label>Kultura (opcionalno)</label><input type="text" id="t-kultura" placeholder="npr. Tikvica, Paprika…"></div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Količina</label><input type="number" id="t-kolicina" step="0.01" min="0" placeholder="0"></div>
+          <div class="opg-field"><label>Cijena po jedinici (€)</label><input type="number" id="t-cijena" step="0.01" min="0" placeholder="0.00"></div>
+        </div>
+        <div class="opg-field"><label>Datum</label><input type="date" id="t-datum"></div>
+        <div class="opg-neto-preview">Trošak: <b id="t-trosak-preview">0,00 €</b></div>
+        <button class="opg-submit" id="f-trosak-submit">Spremi trošak</button>
+      </div>
+
+      <div class="opg-section-title">Pregled troškova</div>
+      <div class="opg-inline-filters">
+        <select id="tf-kat"><option value="sve">Sve kategorije</option></select>
+        <select id="tf-mjesec"><option value="sve">Svi mjeseci</option></select>
+      </div>
+      <div class="opg-card" id="troskovi-list-card"></div>
+    </div>
+
+    <!-- PAUL -->
+    <div class="opg-view" data-view="paul">
+      <p class="opg-hint" style="margin-top:0;">Paul se vodi zasebno i <b>ne ulazi</b> u prihod niti u dobit gore — samo pratimo koliko mu je prodano i je li plaćeno.</p>
+      <div class="opg-card">
+        <div class="opg-row2">
+          <div class="opg-field"><label>Datum</label><input type="date" id="pa-datum"></div>
+          <div class="opg-field"><label>Proizvod</label><input type="text" id="pa-proizvod" list="proizvod-list" placeholder="npr. Tikvica"></div>
+        </div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Cijena / kg (€)</label><input type="number" id="pa-cijena" step="0.01" min="0" placeholder="0.00"></div>
+          <div class="opg-field"><label>Isporučeno (kg)</label><input type="number" id="pa-kg" step="0.1" min="0" placeholder="0"></div>
+        </div>
+        <div class="opg-neto-preview">Iznos: <b id="pa-neto-preview">0,00 €</b></div>
+        <div class="opg-field">
+          <label>Isplaćeno</label>
+          <div class="opg-toggle-row">
+            <button type="button" class="opg-toggle-btn on-yes selected" id="pa-placeno-yes">DA</button>
+            <button type="button" class="opg-toggle-btn on-no" id="pa-placeno-no">NE</button>
+          </div>
+        </div>
+        <button class="opg-submit plum" id="pa-submit">Spremi (Paul)</button>
+      </div>
+
+      <div class="opg-section-title">Stanje s Paulom</div>
+      <div id="paul-status"></div>
+
+      <div class="opg-section-title">Svi unosi — Paul</div>
+      <div class="opg-card" id="paul-list-card"></div>
+    </div>
+
+    <!-- PREGLED -->
+    <div class="opg-view" data-view="pregled">
+      <div class="opg-filter-row" id="pregled-filters"></div>
+
+      <div class="opg-section-title">Prihod po kupcu</div>
+      <div class="opg-sum-card" id="sum-by-kupac"></div>
+
+      <div class="opg-section-title">Troškovi po kategoriji</div>
+      <div class="opg-sum-card" id="sum-by-kat"></div>
+
+      <div class="opg-section-title">Neplaćeno potraživanje</div>
+      <div class="opg-sum-card" id="sum-neplaceno"></div>
+
+      <div class="opg-section-title">Izvještaji</div>
+      <div class="opg-card">
+        <div class="opg-report-grid">
+          <button class="opg-submit secondary" id="export-prodaja-csv">Prodaja → CSV</button>
+          <button class="opg-submit secondary" id="export-troskovi-csv">Troškovi → CSV</button>
+        </div>
+        <button class="opg-submit plum" id="export-paul-csv">Paul → CSV</button>
+        <p class="opg-hint">Izvoz prodaje/troškova poštuje odabrani mjesec iznad i ne uključuje Paula. Otvorite CSV u Excelu ili ga pošaljite knjigovođi.</p>
+        <div class="opg-report-grid">
+          <button class="opg-submit ghost" id="export-json">Sigurnosna kopija</button>
+          <button class="opg-submit ghost" id="import-json">Uvezi kopiju</button>
+        </div>
+        <input type="file" id="opg-import-input" accept="application/json">
+      </div>
+    </div>
+  </div>
+
+  <div class="opg-tabbar">
+    <button class="opg-tab active" data-tab="prodaja"><span class="ic">🥒</span>Prodaja</button>
+    <button class="opg-tab" data-tab="troskovi"><span class="ic">🧾</span>Troškovi</button>
+    <button class="opg-tab" data-tab="paul"><span class="ic">🤝</span>Paul</button>
+    <button class="opg-tab" data-tab="pregled"><span class="ic">📊</span>Pregled</button>
+  </div>
+
+  <div class="opg-toast" id="opg-toast"></div>
+</div>
+
+<script>
+(function(){
+  const KUPAC_LABEL = { RIBOLA: 'Ribola', 'ĐAKULA': 'Đakula', 'BARIČEVIĆ': 'Baričević', VITIĆ: 'Vitić', 'BOKŠIĆ': 'Bokšić', PAUL: 'Paul' };
+  const KAT_LABEL = { SJEME: 'Sjeme', GNOJIVO: 'Gnojivo', REPROMATERIJAL: 'Repromaterijal', 'SREDSTVA ZA ZAŠTITU': 'Sredstva za zaštitu', OSTALO: 'Ostalo' };
+
+  const SEED_PRODAJA = [{"id": "p1", "kupac": "RIBOLA", "datum": "2026-06-11", "proizvod": "TIKVICA", "cijena_kg": 0.7, "kg": 67, "placeno": true, "pak": 7}, {"id": "p2", "kupac": "RIBOLA", "datum": "2026-06-14", "proizvod": "TIKVICA", "cijena_kg": 0.7, "kg": 50, "placeno": true, "pak": 5}, {"id": "p3", "kupac": "RIBOLA", "datum": "2026-06-18", "proizvod": "TIKVICA", "cijena_kg": 0.5, "kg": 118, "placeno": true, "pak": 14}, {"id": "p4", "kupac": "RIBOLA", "datum": "2026-06-22", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 180, "placeno": true, "pak": 16}, {"id": "p5", "kupac": "RIBOLA", "datum": "2026-06-25", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 165, "placeno": true, "pak": 11}, {"id": "p6", "kupac": "RIBOLA", "datum": "2026-06-28", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 110, "placeno": true, "pak": 14}, {"id": "p7", "kupac": "RIBOLA", "datum": "2026-07-03", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 202, "placeno": true, "pak": 18}, {"id": "p8", "kupac": "RIBOLA", "datum": "2026-07-07", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 145, "placeno": true, "pak": 21}, {"id": "p9", "kupac": "RIBOLA", "datum": "2026-07-13", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 177, "placeno": true, "pak": 20}, {"id": "p10", "kupac": "RIBOLA", "datum": "2026-07-17", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 158, "placeno": true, "pak": 20}, {"id": "p11", "kupac": "RIBOLA", "datum": "2026-07-22", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 176, "placeno": true, "pak": 30}, {"id": "p12", "kupac": "RIBOLA", "datum": "2026-07-27", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 172, "placeno": true, "pak": 25}, {"id": "p13", "kupac": "RIBOLA", "datum": "2026-08-02", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 203, "placeno": false, "pak": 15}, {"id": "p14", "kupac": "RIBOLA", "datum": "2026-08-06", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 132, "placeno": false, "pak": 12}, {"id": "p15", "kupac": "RIBOLA", "datum": "2026-08-13", "proizvod": "TIKVICA", "cijena_kg": 0.65, "kg": 190, "placeno": false, "pak": 19}, {"id": "p16", "kupac": "RIBOLA", "datum": "2026-08-23", "proizvod": "TIKVICA", "cijena_kg": 0.8, "kg": 58, "placeno": false, "pak": 4}, {"id": "p17", "kupac": "RIBOLA", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 1737, "placeno": true, "pak": 164}, {"id": "p18", "kupac": "RIBOLA", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 1240, "placeno": true, "pak": 120}, {"id": "p19", "kupac": "RIBOLA", "datum": "2026-07-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 850, "placeno": true, "pak": 80}, {"id": "p20", "kupac": "RIBOLA", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 986, "placeno": false, "pak": 98}, {"id": "p21", "kupac": "RIBOLA", "datum": "2026-08-23", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 1792, "placeno": false, "pak": 164}, {"id": "p22", "kupac": "RIBOLA", "datum": "2026-07-27", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.8, "kg": 845, "placeno": true, "pak": null}, {"id": "p23", "kupac": "RIBOLA", "datum": "2026-08-19", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.7, "kg": 1193, "placeno": false, "pak": null}, {"id": "p24", "kupac": "BARIČEVIĆ", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p25", "kupac": "BARIČEVIĆ", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p26", "kupac": "BARIČEVIĆ", "datum": "2026-07-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p27", "kupac": "BARIČEVIĆ", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p28", "kupac": "BARIČEVIĆ", "datum": "2026-07-30", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p29", "kupac": "BARIČEVIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p30", "kupac": "BARIČEVIĆ", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p31", "kupac": "BARIČEVIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p32", "kupac": "BARIČEVIĆ", "datum": "2026-08-20", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p33", "kupac": "BARIČEVIĆ", "datum": "2026-08-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p34", "kupac": "BARIČEVIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p35", "kupac": "ĐAKULA", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": false, "pak": 3}, {"id": "p36", "kupac": "ĐAKULA", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p37", "kupac": "ĐAKULA", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p38", "kupac": "ĐAKULA", "datum": "2026-07-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p39", "kupac": "ĐAKULA", "datum": "2026-07-25", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p40", "kupac": "ĐAKULA", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 120, "placeno": false, "pak": 12}, {"id": "p41", "kupac": "ĐAKULA", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p42", "kupac": "ĐAKULA", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 120, "placeno": true, "pak": 12}, {"id": "p43", "kupac": "ĐAKULA", "datum": "2026-08-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p44", "kupac": "ĐAKULA", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p45", "kupac": "ĐAKULA", "datum": "2026-08-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p46", "kupac": "ĐAKULA", "datum": "2026-08-26", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p47", "kupac": "ĐAKULA", "datum": "2026-08-31", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p48", "kupac": "ĐAKULA", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p49", "kupac": "BOKŠIĆ", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 10, "placeno": true, "pak": 1}, {"id": "p50", "kupac": "BOKŠIĆ", "datum": "2026-07-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p51", "kupac": "BOKŠIĆ", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p52", "kupac": "BOKŠIĆ", "datum": "2026-08-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p53", "kupac": "BOKŠIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p54", "kupac": "BOKŠIĆ", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p55", "kupac": "BOKŠIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p56", "kupac": "BOKŠIĆ", "datum": "2026-08-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p57", "kupac": "BOKŠIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p58", "kupac": "VITIĆ", "datum": "2026-07-27", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p59", "kupac": "VITIĆ", "datum": "2026-07-29", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p60", "kupac": "VITIĆ", "datum": "2026-08-02", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p61", "kupac": "VITIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p62", "kupac": "VITIĆ", "datum": "2026-08-11", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p63", "kupac": "VITIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p64", "kupac": "VITIĆ", "datum": "2026-08-19", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p65", "kupac": "VITIĆ", "datum": "2026-08-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p66", "kupac": "VITIĆ", "datum": "2026-08-26", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p67", "kupac": "VITIĆ", "datum": "2026-08-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p68", "kupac": "VITIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p69", "kupac": "VITIĆ", "datum": "2026-07-27", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p70", "kupac": "VITIĆ", "datum": "2026-07-29", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p71", "kupac": "VITIĆ", "datum": "2026-08-02", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 10, "placeno": true, "pak": 2}, {"id": "p72", "kupac": "VITIĆ", "datum": "2026-08-11", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p73", "kupac": "VITIĆ", "datum": "2026-08-17", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p74", "kupac": "VITIĆ", "datum": "2026-08-19", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p75", "kupac": "VITIĆ", "datum": "2026-08-21", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p76", "kupac": "PAUL", "datum": "2026-06-28", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 200, "placeno": true, "pak": null}, {"id": "p77", "kupac": "PAUL", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 200, "placeno": true, "pak": null}, {"id": "p78", "kupac": "PAUL", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 300, "placeno": true, "pak": null}, {"id": "p79", "kupac": "PAUL", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 400, "placeno": true, "pak": null}, {"id": "p80", "kupac": "PAUL", "datum": "2026-08-06", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 400, "placeno": true, "pak": null}, {"id": "p81", "kupac": "PAUL", "datum": "2026-08-19", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.7, "kg": 250, "placeno": true, "pak": null}, {"id": "p82", "kupac": "PAUL", "datum": "2026-08-19", "proizvod": "TIKVICA", "cijena_kg": 0.8, "kg": 410, "placeno": true, "pak": null}];
+
+  let prodaja = [];       // includes PAUL entries too (kupac === 'PAUL'), excluded from financial totals
+  let troskovi = [];
+  let pregledFilter = 'sve';
+  let prodajaFilterKupac = 'sve';
+  let prodajaFilterMjesec = 'sve';
+  let troskoviFilterKat = 'sve';
+  let troskoviFilterMjesec = 'sve';
+
+  let mode = 'local';    // 'local' or 'cloud'
+  let fb = null;         // { db, collection, doc, setDoc, deleteDoc, onSnapshot, updateDoc, getDocs, writeBatch }
+
+  const fmt = (n) => (Math.round((n||0)*100)/100).toLocaleString('hr-HR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+  const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const todayStr = () => new Date().toISOString().slice(0,10);
+  const dfmt = (d) => { const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit', year:'2-digit'}); };
+  const monthLabel = (m) => new Date(m+'-01').toLocaleDateString('hr-HR',{month:'long', year:'numeric'});
+  const nonPaul = (r) => r.kupac !== 'PAUL';
+  const onlyPaul = (r) => r.kupac === 'PAUL';
+
+  function toast(msg){
+    const t = document.getElementById('opg-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 1600);
+  }
+
+  // ================= STORAGE LAYER =================
+  function loadLocal(){
+    try { const p = localStorage.getItem('opg_prodaja'); prodaja = p ? JSON.parse(p) : SEED_PRODAJA.slice(); if(!p) localStorage.setItem('opg_prodaja', JSON.stringify(prodaja)); }
+    catch(e){ prodaja = SEED_PRODAJA.slice(); }
+    try { const t = localStorage.getItem('opg_troskovi'); troskovi = t ? JSON.parse(t) : []; }
+    catch(e){ troskovi = []; }
+    // jednokratno nadopunjavanje: ako Paulovi povijesni podaci iz Excela još nisu tu, dodaj ih
+    if (!prodaja.some(r => r.kupac === 'PAUL')) {
+      const paulSeed = SEED_PRODAJA.filter(r => r.kupac === 'PAUL');
+      if (paulSeed.length) { prodaja = prodaja.concat(paulSeed); saveLocalProdaja(); }
+    }
+  }
+  function saveLocalProdaja(){ try { localStorage.setItem('opg_prodaja', JSON.stringify(prodaja)); } catch(e){ toast('Greška pri spremanju'); } }
+  function saveLocalTroskovi(){ try { localStorage.setItem('opg_troskovi', JSON.stringify(troskovi)); } catch(e){ toast('Greška pri spremanju'); } }
+
+  function setSyncStatus(state){
+    const dot = document.getElementById('sync-indicator');
+    const label = document.getElementById('sync-label');
+    dot.classList.toggle('live', state === 'live');
+    label.textContent = state === 'live' ? 'Uživo · svi vide isto' : (state === 'connecting' ? 'Povezivanje…' : 'Lokalno (bez sinkronizacije)');
+  }
+
+  async function initCloud(config){
+    try {
+      const [{ initializeApp }, fsMod] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
+      ]);
+      const app = initializeApp(config);
+      const db = fsMod.getFirestore(app);
+      try { await fsMod.enableIndexedDbPersistence(db); } catch(e) {}
+      fb = { db, ...fsMod };
+
+      // seed if empty
+      const prodajaSnap = await fb.getDocs(fb.collection(db, 'prodaja'));
+      if (prodajaSnap.empty) {
+        const batch = fb.writeBatch(db);
+        SEED_PRODAJA.forEach(r => batch.set(fb.doc(db, 'prodaja', r.id), r));
+        await batch.commit();
+      } else {
+        // jednokratno nadopunjavanje: ako Paulovi povijesni podaci iz Excela još nisu u bazi, dodaj ih
+        const hasPaul = prodajaSnap.docs.some(d => d.data().kupac === 'PAUL');
+        if (!hasPaul) {
+          const paulSeed = SEED_PRODAJA.filter(r => r.kupac === 'PAUL');
+          if (paulSeed.length) {
+            const batch = fb.writeBatch(db);
+            paulSeed.forEach(r => batch.set(fb.doc(db, 'prodaja', r.id), r));
+            await batch.commit();
+          }
+        }
+      }
+
+      fb.onSnapshot(fb.collection(db, 'prodaja'), (snap) => {
+        prodaja = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setSyncStatus('live');
+        renderAll();
+      }, () => setSyncStatus('local'));
+
+      fb.onSnapshot(fb.collection(db, 'troskovi'), (snap) => {
+        troskovi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAll();
+      });
+
+      mode = 'cloud';
+      localStorage.setItem('opg_fb_config', JSON.stringify(config));
+      setSyncStatus('connecting');
+      return true;
+    } catch(e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  async function addProdaja(entry){
+    if (mode === 'cloud') { await fb.setDoc(fb.doc(fb.db, 'prodaja', entry.id), entry); }
+    else { prodaja.push(entry); saveLocalProdaja(); }
+  }
+  async function toggleProdajaPlaceno(id){
+    const row = prodaja.find(r=>r.id===id);
+    if (!row) return;
+    row.placeno = !row.placeno;
+    if (mode === 'cloud') { await fb.setDoc(fb.doc(fb.db, 'prodaja', id), row); }
+    else { saveLocalProdaja(); renderAll(); }
+  }
+  async function deleteProdaja(id){
+    if (mode === 'cloud') { await fb.deleteDoc(fb.doc(fb.db, 'prodaja', id)); }
+    else { prodaja = prodaja.filter(r=>r.id!==id); saveLocalProdaja(); renderAll(); }
+  }
+  async function addTrosak(entry){
+    if (mode === 'cloud') { await fb.setDoc(fb.doc(fb.db, 'troskovi', entry.id), entry); }
+    else { troskovi.push(entry); saveLocalTroskovi(); renderAll(); }
+  }
+  async function deleteTrosak(id){
+    if (mode === 'cloud') { await fb.deleteDoc(fb.doc(fb.db, 'troskovi', id)); }
+    else { troskovi = troskovi.filter(r=>r.id!==id); saveLocalTroskovi(); renderAll(); }
+  }
+
+  // ================= RENDER =================
+  function renderHero(){
+    const prihod = prodaja.filter(nonPaul).reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
+    const trosak = troskovi.reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0);
+    document.getElementById('hero-prihod').textContent = fmt(prihod);
+    document.getElementById('hero-troskovi').textContent = fmt(trosak);
+    document.getElementById('hero-dobit').textContent = fmt(prihod-trosak);
+  }
+
+  function renderProizvodList(){
+    const set = new Set(prodaja.map(r=>r.proizvod).filter(Boolean));
+    document.getElementById('proizvod-list').innerHTML = [...set].map(p=>`<option value="${p}">`).join('');
+  }
+
+  function populateFilterOptions(){
+    const kupci = [...new Set(prodaja.filter(nonPaul).map(r=>r.kupac))].sort();
+    const pMonths = [...new Set(prodaja.filter(nonPaul).map(r=>(r.datum||'').slice(0,7)).filter(Boolean))].sort().reverse();
+    const kats = [...new Set(troskovi.map(r=>r.kategorija))];
+    const tMonths = [...new Set(troskovi.map(r=>(r.datum||'').slice(0,7)).filter(Boolean))].sort().reverse();
+
+    const pfKupac = document.getElementById('pf-kupac');
+    pfKupac.innerHTML = '<option value="sve">Svi kupci</option>' + kupci.map(k=>`<option value="${k}">${KUPAC_LABEL[k]||k}</option>`).join('');
+    pfKupac.value = prodajaFilterKupac;
+
+    const pfMjesec = document.getElementById('pf-mjesec');
+    pfMjesec.innerHTML = '<option value="sve">Svi mjeseci</option>' + pMonths.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
+    pfMjesec.value = prodajaFilterMjesec;
+
+    const tfKat = document.getElementById('tf-kat');
+    tfKat.innerHTML = '<option value="sve">Sve kategorije</option>' + kats.map(k=>`<option value="${k}">${KAT_LABEL[k]||k}</option>`).join('');
+    tfKat.value = troskoviFilterKat;
+
+    const tfMjesec = document.getElementById('tf-mjesec');
+    tfMjesec.innerHTML = '<option value="sve">Svi mjeseci</option>' + tMonths.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
+    tfMjesec.value = troskoviFilterMjesec;
+  }
+
+  function getFilteredProdaja(){
+    return prodaja.filter(nonPaul).filter(r =>
+      (prodajaFilterKupac==='sve' || r.kupac===prodajaFilterKupac) &&
+      (prodajaFilterMjesec==='sve' || (r.datum||'').startsWith(prodajaFilterMjesec))
+    );
+  }
+  function getFilteredTroskovi(){
+    return troskovi.filter(r =>
+      (troskoviFilterKat==='sve' || r.kategorija===troskoviFilterKat) &&
+      (troskoviFilterMjesec==='sve' || (r.datum||'').startsWith(troskoviFilterMjesec))
+    );
+  }
+
+  function entryRow(r, kind){
+    const neto = (r.cijena_kg||0)*(r.kg||0);
+    const del = kind==='prodaja' ? `data-del-prodaja="${r.id}"` : `data-del-paul="${r.id}"`;
+    const toggle = kind==='prodaja' ? `data-toggle-id="${r.id}"` : `data-toggle-paul="${r.id}"`;
+    const title = kind==='prodaja' ? `${KUPAC_LABEL[r.kupac]||r.kupac} · ${r.proizvod||''}` : (r.proizvod||'');
+    return `<div class="opg-entry">
+      <div class="opg-entry-main">
+        <div class="opg-entry-top">${title}</div>
+        <div class="opg-entry-sub">${dfmt(r.datum)} · ${r.kg||0} kg × ${(r.cijena_kg||0).toLocaleString('hr-HR',{minimumFractionDigits:2})} €</div>
+      </div>
+      <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+        <div class="opg-entry-amt">${fmt(neto)}</div>
+        <button class="opg-badge ${r.placeno?'yes':'no'}" ${toggle}>${r.placeno?'PLAĆENO':'DUGUJE'}</button>
+      </div>
+      <button class="opg-del" ${del}>✕</button>
+    </div>`;
+  }
+
+  function renderProdajaList(){
+    const card = document.getElementById('prodaja-list-card');
+    const sorted = getFilteredProdaja().sort((a,b)=> (b.datum||'').localeCompare(a.datum||''));
+    card.innerHTML = sorted.length ? sorted.slice(0,60).map(r=>entryRow(r,'prodaja')).join('') : '<div class="opg-empty">Nema unosa za odabrani filter.</div>';
+  }
+
+  function renderTroskoviList(){
+    const card = document.getElementById('troskovi-list-card');
+    const sorted = getFilteredTroskovi().sort((a,b)=> (b.datum||'').localeCompare(a.datum||''));
+    if (!sorted.length){ card.innerHTML = '<div class="opg-empty">Nema troškova za odabrani filter.</div>'; return; }
+    card.innerHTML = sorted.slice(0,60).map(r=>{
+      const trosak = (r.kolicina||0)*(r.cijena||0);
+      return `<div class="opg-entry">
+        <div class="opg-entry-main">
+          <div class="opg-entry-top">${r.naziv||KAT_LABEL[r.kategorija]}</div>
+          <div class="opg-entry-sub">${KAT_LABEL[r.kategorija]||r.kategorija}${r.kultura?' · '+r.kultura:''} · ${dfmt(r.datum)}</div>
+        </div>
+        <div class="opg-entry-amt">${fmt(trosak)}</div>
+        <button class="opg-del" data-del-trosak="${r.id}">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderPaul(){
+    const rows = prodaja.filter(onlyPaul).sort((a,b)=>(b.datum||'').localeCompare(a.datum||''));
+    const totalKg = rows.reduce((s,r)=>s+(r.kg||0),0);
+    const totalVal = rows.reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
+    const dugVal = rows.filter(r=>!r.placeno).reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
+
+    const statusDiv = document.getElementById('paul-status');
+    statusDiv.innerHTML = `
+      <div class="opg-paul-status ${dugVal>0?'warn':'ok'}">
+        <div class="big">${dugVal>0 ? fmt(dugVal)+' duguje' : 'Sve isplaćeno'}</div>
+        <div class="lbl">Ukupno prodano Paulu: ${totalKg.toLocaleString('hr-HR')} kg · ${fmt(totalVal)}</div>
+      </div>`;
+
+    const list = document.getElementById('paul-list-card');
+    list.innerHTML = rows.length ? rows.slice(0,60).map(r=>entryRow(r,'paul')).join('') : '<div class="opg-empty">Još nema unosa za Paula.</div>';
+  }
+
+  function renderPregled(){
+    const months = [...new Set(prodaja.filter(nonPaul).map(r=>(r.datum||'').slice(0,7)).filter(Boolean))].sort();
+    const fWrap = document.getElementById('pregled-filters');
+    fWrap.innerHTML = '<button class="opg-chip ' + (pregledFilter==='sve'?'active':'') + '" data-filter="sve">Sve</button>' +
+      months.map(m=>`<button class="opg-chip ${pregledFilter===m?'active':''}" data-filter="${m}">${monthLabel(m)}</button>`).join('');
+
+    const pFiltered = (pregledFilter==='sve' ? prodaja : prodaja.filter(r=>(r.datum||'').startsWith(pregledFilter))).filter(nonPaul);
+    const tFiltered = pregledFilter==='sve' ? troskovi : troskovi.filter(r=>(r.datum||'').startsWith(pregledFilter));
+
+    const byKupac = {};
+    pFiltered.forEach(r=>{ byKupac[r.kupac] = (byKupac[r.kupac]||0) + (r.cijena_kg||0)*(r.kg||0); });
+    const totalPrihod = Object.values(byKupac).reduce((a,b)=>a+b,0) || 1;
+    const kupacCard = document.getElementById('sum-by-kupac');
+    const kupacKeys = Object.keys(byKupac).sort((a,b)=>byKupac[b]-byKupac[a]);
+    kupacCard.innerHTML = kupacKeys.length ? kupacKeys.map(k=>`
+      <div class="opg-sum-row">
+        <div class="opg-sum-name" style="min-width:88px;">${KUPAC_LABEL[k]||k}</div>
+        <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKupac[k]/totalPrihod*100)}%"></div></div>
+        <div class="opg-sum-val">${fmt(byKupac[k])}</div>
+      </div>`).join('') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
+
+    const byKat = {};
+    tFiltered.forEach(r=>{ byKat[r.kategorija] = (byKat[r.kategorija]||0) + (r.kolicina||0)*(r.cijena||0); });
+    const totalTrosak = Object.values(byKat).reduce((a,b)=>a+b,0) || 1;
+    const katCard = document.getElementById('sum-by-kat');
+    const katKeys = Object.keys(byKat).sort((a,b)=>byKat[b]-byKat[a]);
+    katCard.innerHTML = katKeys.length ? katKeys.map(k=>`
+      <div class="opg-sum-row">
+        <div class="opg-sum-name" style="min-width:120px;">${KAT_LABEL[k]||k}</div>
+        <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKat[k]/totalTrosak*100)}%; background:var(--paprika);"></div></div>
+        <div class="opg-sum-val">${fmt(byKat[k])}</div>
+      </div>`).join('') : '<div class="opg-empty">Još nema troškova za odabrano razdoblje.</div>';
+
+    const dugovi = {};
+    pFiltered.filter(r=>!r.placeno).forEach(r=>{ dugovi[r.kupac] = (dugovi[r.kupac]||0) + (r.cijena_kg||0)*(r.kg||0); });
+    const dugKeys = Object.keys(dugovi).sort((a,b)=>dugovi[b]-dugovi[a]);
+    const dugCard = document.getElementById('sum-neplaceno');
+    const ukupnoDug = Object.values(dugovi).reduce((a,b)=>a+b,0);
+    dugCard.innerHTML = dugKeys.length ? dugKeys.map(k=>`
+      <div class="opg-sum-row"><div class="opg-sum-name">${KUPAC_LABEL[k]||k}</div><div class="opg-sum-val" style="color:var(--warn-ink);">${fmt(dugovi[k])}</div></div>`).join('')
+      + `<div class="opg-sum-row"><div class="opg-sum-name">Ukupno</div><div class="opg-sum-val">${fmt(ukupnoDug)}</div></div>`
+      : '<div class="opg-empty">Sve je plaćeno 🎉</div>';
+  }
+
+  function renderNetoPreview(){
+    const c = parseFloat(document.getElementById('f-cijena').value)||0;
+    const kg = parseFloat(document.getElementById('f-kg').value)||0;
+    document.getElementById('f-neto-preview').textContent = fmt(c*kg);
+  }
+  function renderTrosakPreview(){
+    const k = parseFloat(document.getElementById('t-kolicina').value)||0;
+    const c = parseFloat(document.getElementById('t-cijena').value)||0;
+    document.getElementById('t-trosak-preview').textContent = fmt(k*c);
+  }
+  function renderPaulPreview(){
+    const c = parseFloat(document.getElementById('pa-cijena').value)||0;
+    const kg = parseFloat(document.getElementById('pa-kg').value)||0;
+    document.getElementById('pa-neto-preview').textContent = fmt(c*kg);
+  }
+
+  function renderAll(){
+    renderHero();
+    renderProizvodList();
+    populateFilterOptions();
+    renderProdajaList();
+    renderTroskoviList();
+    renderPaul();
+    renderPregled();
+  }
+
+  // ================= CSV / JSON =================
+  function downloadBlob(content, filename, type){
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+  }
+  function csvEscape(v){ const s = String(v==null?'':v); return /[",;\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+
+  function exportRowsCSV(rows, filename, includeKupac){
+    const header = includeKupac
+      ? ['Datum','Kupac','Proizvod','Cijena/kg (EUR)','Kolicina (kg)','Iznos (EUR)','Placeno','Broj pakiranja']
+      : ['Datum','Proizvod','Cijena/kg (EUR)','Kolicina (kg)','Iznos (EUR)','Isplaceno'];
+    const lines = [header.join(';')];
+    rows.forEach(r=>{
+      const iznos = (r.cijena_kg||0)*(r.kg||0);
+      const line = includeKupac
+        ? [r.datum, KUPAC_LABEL[r.kupac]||r.kupac, r.proizvod, r.cijena_kg, r.kg, iznos.toFixed(2), r.placeno?'DA':'NE', r.pak??'']
+        : [r.datum, r.proizvod, r.cijena_kg, r.kg, iznos.toFixed(2), r.placeno?'DA':'NE'];
+      lines.push(line.map(csvEscape).join(';'));
+    });
+    const total = rows.reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0).toFixed(2);
+    lines.push((includeKupac ? ['','','','','UKUPNO', total, '', ''] : ['','','','UKUPNO', total, '']).join(';'));
+    downloadBlob('\uFEFF'+lines.join('\n'), filename, 'text/csv;charset=utf-8');
+    toast('Izvještaj spremljen');
+  }
+  function exportTroskoviCSV(){
+    const rows = getFilteredTroskovi().sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+    const header = ['Datum','Kategorija','Naziv','Kultura','Kolicina','Cijena po jedinici (EUR)','Trosak (EUR)'];
+    const lines = [header.join(';')];
+    rows.forEach(r=>{
+      const trosak = (r.kolicina||0)*(r.cijena||0);
+      lines.push([r.datum, KAT_LABEL[r.kategorija]||r.kategorija, r.naziv, r.kultura||'', r.kolicina, r.cijena, trosak.toFixed(2)].map(csvEscape).join(';'));
+    });
+    lines.push(['','','','','','UKUPNO', rows.reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0).toFixed(2)].join(';'));
+    downloadBlob('\uFEFF'+lines.join('\n'), `troskovi_${pregledFilter}.csv`, 'text/csv;charset=utf-8');
+    toast('Izvještaj troškova spremljen');
+  }
+  function exportJSON(){
+    const payload = JSON.stringify({ prodaja, troskovi, exported: new Date().toISOString() }, null, 2);
+    downloadBlob(payload, `opg_sigurnosna_kopija_${todayStr()}.json`, 'application/json');
+    toast('Sigurnosna kopija spremljena');
+  }
+  function importJSON(file){
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data.prodaja) || !Array.isArray(data.troskovi)) throw new Error('bad format');
+        if (!confirm('Ovo će zamijeniti sve trenutne podatke podacima iz kopije. Nastaviti?')) return;
+        if (mode === 'cloud') {
+          const batch = fb.writeBatch(fb.db);
+          data.prodaja.forEach(r => batch.set(fb.doc(fb.db, 'prodaja', r.id), r));
+          data.troskovi.forEach(r => batch.set(fb.doc(fb.db, 'troskovi', r.id), r));
+          await batch.commit();
+        } else {
+          prodaja = data.prodaja; troskovi = data.troskovi;
+          saveLocalProdaja(); saveLocalTroskovi(); renderAll();
+        }
+        toast('Podaci uvezeni');
+      } catch(e) { toast('Datoteka nije valjana sigurnosna kopija'); }
+    };
+    reader.readAsText(file);
+  }
+
+  // ================= EVENTS =================
+  document.querySelectorAll('.opg-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.opg-tab').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.opg-view').forEach(v=>v.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector(`.opg-view[data-view="${btn.dataset.tab}"]`).classList.add('active');
+    });
+  });
+
+  let placenoVal = true;
+  document.getElementById('f-placeno-yes').addEventListener('click', ()=>{ placenoVal = true; document.getElementById('f-placeno-yes').classList.add('selected'); document.getElementById('f-placeno-no').classList.remove('selected'); });
+  document.getElementById('f-placeno-no').addEventListener('click', ()=>{ placenoVal = false; document.getElementById('f-placeno-no').classList.add('selected'); document.getElementById('f-placeno-yes').classList.remove('selected'); });
+
+  let paulPlacenoVal = true;
+  document.getElementById('pa-placeno-yes').addEventListener('click', ()=>{ paulPlacenoVal = true; document.getElementById('pa-placeno-yes').classList.add('selected'); document.getElementById('pa-placeno-no').classList.remove('selected'); });
+  document.getElementById('pa-placeno-no').addEventListener('click', ()=>{ paulPlacenoVal = false; document.getElementById('pa-placeno-no').classList.add('selected'); document.getElementById('pa-placeno-yes').classList.remove('selected'); });
+
+  document.getElementById('f-cijena').addEventListener('input', renderNetoPreview);
+  document.getElementById('f-kg').addEventListener('input', renderNetoPreview);
+  document.getElementById('t-kolicina').addEventListener('input', renderTrosakPreview);
+  document.getElementById('t-cijena').addEventListener('input', renderTrosakPreview);
+  document.getElementById('pa-cijena').addEventListener('input', renderPaulPreview);
+  document.getElementById('pa-kg').addEventListener('input', renderPaulPreview);
+
+  document.getElementById('f-prodaja-submit').addEventListener('click', async ()=>{
+    const kupac = document.getElementById('f-kupac').value;
+    const datum = document.getElementById('f-datum').value || todayStr();
+    const proizvod = document.getElementById('f-proizvod').value.trim();
+    const cijena_kg = parseFloat(document.getElementById('f-cijena').value)||0;
+    const kg = parseFloat(document.getElementById('f-kg').value)||0;
+    const pak = parseFloat(document.getElementById('f-pak').value)||null;
+    if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
+    await addProdaja({ id: uid('p'), kupac, datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: placenoVal, pak });
+    document.getElementById('f-proizvod').value = ''; document.getElementById('f-cijena').value = ''; document.getElementById('f-kg').value = ''; document.getElementById('f-pak').value = '';
+    renderNetoPreview();
+    if (mode==='local') renderAll();
+    toast('Prodaja spremljena');
+  });
+
+  document.getElementById('f-trosak-submit').addEventListener('click', async ()=>{
+    const kategorija = document.getElementById('t-kategorija').value;
+    const naziv = document.getElementById('t-naziv').value.trim();
+    const kultura = document.getElementById('t-kultura').value.trim();
+    const kolicina = parseFloat(document.getElementById('t-kolicina').value)||0;
+    const cijena = parseFloat(document.getElementById('t-cijena').value)||0;
+    const datum = document.getElementById('t-datum').value || todayStr();
+    if (!naziv || !cijena){ toast('Upiši naziv i cijenu'); return; }
+    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, kolicina, cijena, datum });
+    document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
+    renderTrosakPreview();
+    if (mode==='local') renderAll();
+    toast('Trošak spremljen');
+  });
+
+  document.getElementById('pa-submit').addEventListener('click', async ()=>{
+    const datum = document.getElementById('pa-datum').value || todayStr();
+    const proizvod = document.getElementById('pa-proizvod').value.trim();
+    const cijena_kg = parseFloat(document.getElementById('pa-cijena').value)||0;
+    const kg = parseFloat(document.getElementById('pa-kg').value)||0;
+    if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
+    await addProdaja({ id: uid('pa'), kupac: 'PAUL', datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: paulPlacenoVal, pak: null });
+    document.getElementById('pa-proizvod').value = ''; document.getElementById('pa-cijena').value = ''; document.getElementById('pa-kg').value = '';
+    renderPaulPreview();
+    if (mode==='local') renderAll();
+    toast('Spremljeno (Paul)');
+  });
+
+  document.getElementById('prodaja-list-card').addEventListener('click', async (e)=>{
+    const toggleId = e.target.dataset.toggleId, delId = e.target.dataset.delProdaja;
+    if (toggleId) await toggleProdajaPlaceno(toggleId);
+    else if (delId && confirm('Obrisati ovaj unos?')) await deleteProdaja(delId);
+  });
+  document.getElementById('paul-list-card').addEventListener('click', async (e)=>{
+    const toggleId = e.target.dataset.togglePaul, delId = e.target.dataset.delPaul;
+    if (toggleId) await toggleProdajaPlaceno(toggleId);
+    else if (delId && confirm('Obrisati ovaj unos?')) await deleteProdaja(delId);
+  });
+  document.getElementById('troskovi-list-card').addEventListener('click', async (e)=>{
+    const delId = e.target.dataset.delTrosak;
+    if (delId && confirm('Obrisati ovaj trošak?')) await deleteTrosak(delId);
+  });
+
+  document.getElementById('pf-kupac').addEventListener('change', (e)=>{ prodajaFilterKupac = e.target.value; renderProdajaList(); });
+  document.getElementById('pf-mjesec').addEventListener('change', (e)=>{ prodajaFilterMjesec = e.target.value; renderProdajaList(); });
+  document.getElementById('tf-kat').addEventListener('change', (e)=>{ troskoviFilterKat = e.target.value; renderTroskoviList(); });
+  document.getElementById('tf-mjesec').addEventListener('change', (e)=>{ troskoviFilterMjesec = e.target.value; renderTroskoviList(); });
+  document.getElementById('pregled-filters').addEventListener('click', (e)=>{ const f = e.target.dataset.filter; if (f){ pregledFilter = f; renderPregled(); } });
+
+  document.getElementById('export-prodaja-csv').addEventListener('click', ()=> exportRowsCSV(getFilteredProdaja().sort((a,b)=>(a.datum||'').localeCompare(b.datum||'')), `prodaja_${pregledFilter}.csv`, true));
+  document.getElementById('export-paul-csv').addEventListener('click', ()=> exportRowsCSV(prodaja.filter(onlyPaul).sort((a,b)=>(a.datum||'').localeCompare(b.datum||'')), `paul.csv`, false));
+  document.getElementById('export-troskovi-csv').addEventListener('click', exportTroskoviCSV);
+  document.getElementById('export-json').addEventListener('click', exportJSON);
+  document.getElementById('import-json').addEventListener('click', ()=> document.getElementById('opg-import-input').click());
+  document.getElementById('opg-import-input').addEventListener('change', (e)=>{ if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
+
+  // ---- setup overlay ----
+  const setupEl = document.getElementById('opg-setup');
+  function openSetup(allowClose){
+    setupEl.classList.add('show');
+    document.getElementById('setup-close').style.display = allowClose ? 'block' : 'none';
+  }
+  function closeSetup(){ setupEl.classList.remove('show'); }
+  document.getElementById('open-setup').addEventListener('click', ()=> openSetup(true));
+  document.getElementById('setup-close').addEventListener('click', closeSetup);
+  document.getElementById('setup-skip').addEventListener('click', ()=>{ closeSetup(); toast('Radiš lokalno na ovom uređaju'); });
+  document.getElementById('setup-connect').addEventListener('click', async ()=>{
+    const raw = document.getElementById('setup-config').value.trim();
+    if (!raw){ toast('Zalijepi firebaseConfig kod'); return; }
+    let jsSrc = raw.replace(/^\s*(export\s+)?(const|let|var)\s+firebaseConfig\s*=\s*/, '').replace(/;?\s*$/, '');
+    let cfg;
+    try { cfg = new Function('return (' + jsSrc + ')')(); }
+    catch(e){ toast('Nije prepoznat format — provjeri da si zalijepio cijeli objekt'); return; }
+    setSyncStatus('connecting');
+    const ok = await initCloud(cfg);
+    if (ok){ closeSetup(); toast('Povezano! Sinkronizacija uživo aktivna.'); }
+    else { setSyncStatus('local'); toast('Povezivanje nije uspjelo — provjeri config i pokušaj ponovno'); }
+  });
+
+  // ================= INIT =================
+  document.getElementById('f-datum').value = todayStr();
+  document.getElementById('t-datum').value = todayStr();
+  document.getElementById('pa-datum').value = todayStr();
+
+  loadLocal();
+  document.getElementById('opg-loading').style.display = 'none';
+  document.getElementById('opg-content').style.display = 'block';
+  renderAll();
+
+  const savedConfig = localStorage.getItem('opg_fb_config');
+  if (savedConfig) {
+    try {
+      setSyncStatus('connecting');
+      initCloud(JSON.parse(savedConfig)).then(ok => { if (!ok) setSyncStatus('local'); });
+    } catch(e) { openSetup(false); }
+  } else {
+    openSetup(false);
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
+  }
+})();
+</script>
+</body>
+</html>
