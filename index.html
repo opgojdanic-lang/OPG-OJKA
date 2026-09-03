@@ -497,6 +497,7 @@ body {
   let mode = 'local';    // 'local' or 'cloud'
   let fb = null;         // { db, collection, doc, setDoc, deleteDoc, onSnapshot, updateDoc, getDocs, writeBatch }
   let currentUser = localStorage.getItem('opg_user_name') || '';
+  let sharedSettings = {};
 
   function updateUserChip(){
     document.getElementById('user-name-label').textContent = currentUser || 'Postavi ime';
@@ -601,6 +602,11 @@ body {
       fb.onSnapshot(fb.collection(db, 'prskanje'), (snap) => {
         prskanje = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         scheduleRenderAll();
+      });
+
+      fb.onSnapshot(fb.doc(db, 'settings', 'app'), (snap) => {
+        sharedSettings = snap.exists() ? snap.data() : {};
+        if (sharedSettings.ai_url) localStorage.setItem('opg_ai_url', sharedSettings.ai_url);
       });
 
       mode = 'cloud';
@@ -1236,11 +1242,21 @@ body {
     toast('Preneseno — samo dodaj kulturu i karencu pa spremi');
   });
 
-  function getAiUrl(){ return localStorage.getItem('opg_ai_url') || ''; }
+  function getAiUrl(){
+    if (mode === 'cloud' && sharedSettings.ai_url) return sharedSettings.ai_url;
+    return localStorage.getItem('opg_ai_url') || '';
+  }
   function askAiUrl(){
     const current = getAiUrl();
     const url = prompt('Zalijepi adresu fisPhotoLookup funkcije (iz README-FIS.md, izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/fisPhotoLookup):', current);
-    if (url && url.trim()) { localStorage.setItem('opg_ai_url', url.trim()); return url.trim(); }
+    if (url && url.trim()) {
+      const trimmed = url.trim();
+      localStorage.setItem('opg_ai_url', trimmed);
+      if (mode === 'cloud') {
+        try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { ai_url: trimmed }, { merge: true }); } catch(e) {}
+      }
+      return trimmed;
+    }
     return null;
   }
   document.getElementById('calc-photo-btn').addEventListener('click', ()=>{
