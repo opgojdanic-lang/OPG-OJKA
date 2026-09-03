@@ -175,6 +175,7 @@ body {
 .opg-phi-badge.ok { background: var(--ok-bg); color: var(--ok-ink); }
 
 .opg-fis-link { display: block; text-align: center; text-decoration: none; box-sizing: border-box; margin-top: 4px; }
+.opg-fis-result { white-space: pre-wrap; font-size: 11.5px; line-height: 1.5; max-height: 280px; overflow-y: auto; background: #fff; border: 1px solid var(--sage-line); border-radius: 10px; padding: 10px; display: none; color: var(--ink-soft); }
 
 /* ---------- SETUP OVERLAY ---------- */
 #opg-setup { position: fixed; inset: 0; background: var(--bg); z-index: 200; overflow-y: auto; display: none; }
@@ -277,7 +278,7 @@ body {
         <button class="opg-submit" id="f-prodaja-submit">Spremi prodaju</button>
       </div>
 
-      <div class="opg-section-title">Pregled unosa</div>
+      <div class="opg-section-title">Pregled unosa <span id="prodaja-count" style="font-weight:400; color:var(--sage); font-size:12px;"></span></div>
       <div class="opg-inline-filters">
         <select id="pf-kupac"><option value="sve">Svi kupci</option></select>
         <select id="pf-mjesec"><option value="sve">Svi mjeseci</option></select>
@@ -394,18 +395,41 @@ body {
           </div>
           <div class="opg-row2">
             <div class="opg-field"><label>Prskalica (L)</label><input type="number" id="calc-spremnik" step="0.1" min="0" placeholder="npr. 15"></div>
-            <div class="opg-field"><label>Doza</label><input type="number" id="calc-doza" step="0.01" min="0" placeholder="npr. 2"></div>
+            <div class="opg-field" id="calc-doza-wrap"><label>Doza</label><input type="number" id="calc-doza" step="0.01" min="0" placeholder="npr. 2"></div>
           </div>
           <div class="opg-field">
-            <label>Jedinica doze</label>
+            <label>Način unosa doze</label>
             <select id="calc-jedinica">
               <option value="ml_l">ml po litri</option>
               <option value="g_l">g po litri</option>
               <option value="pct">% otopine</option>
+              <option value="ha">doza po hektaru (s FIS-a)</option>
             </select>
+          </div>
+          <div id="calc-ha-wrap" style="display:none;">
+            <p class="opg-hint" style="margin-top:0;">Prepišite brojeve točno kako pišu na FIS stranici za taj proizvod/štetnika/kulturu.</p>
+            <div class="opg-row2">
+              <div class="opg-field"><label>Doza po ha — od</label><input type="number" id="calc-ha-doza-min" step="0.001" min="0" placeholder="npr. 0.075"></div>
+              <div class="opg-field"><label>Doza po ha — do</label><input type="number" id="calc-ha-doza-max" step="0.001" min="0" placeholder="npr. 0.175"></div>
+            </div>
+            <div class="opg-row2">
+              <div class="opg-field"><label>Voda po ha (L) — od</label><input type="number" id="calc-ha-voda-min" step="1" min="0" placeholder="npr. 600"></div>
+              <div class="opg-field"><label>Voda po ha (L) — do</label><input type="number" id="calc-ha-voda-max" step="1" min="0" placeholder="npr. 1400"></div>
+            </div>
           </div>
           <div class="opg-neto-preview">Potrebno sredstva: <b id="calc-rezultat">0 ml</b></div>
           <button class="opg-submit ghost" id="calc-prenesi">Prenesi u dnevnik tretiranja ↓</button>
+        </div>
+
+        <div class="opg-card">
+          <div class="opg-section-title" style="margin-top:0;">FIS pretraga (beta)</div>
+          <p class="opg-hint" style="margin-top:0;">Zahtijeva postavljenu Cloud Function (vidi README-FIS.md). Broj proizvoda pronađite na kraju FIS URL-a kad otvorite stranicu proizvoda, npr. za Decis 100 EC je 946.</p>
+          <div class="opg-row2">
+            <div class="opg-field"><label>ID proizvoda</label><input type="number" id="fis-id" placeholder="npr. 946"></div>
+            <div class="opg-field"><label>&nbsp;</label><button class="opg-submit secondary" id="fis-fetch" style="margin-top:0;">Dohvati s FIS-a</button></div>
+          </div>
+          <div id="fis-result" class="opg-fis-result"></div>
+          <button class="opg-submit ghost" id="fis-change-url" style="margin-top:8px;">Promijeni adresu servisa</button>
         </div>
 
         <div class="opg-card">
@@ -696,27 +720,35 @@ body {
     document.getElementById('proizvod-list').innerHTML = [...set].map(p=>`<option value="${p}">`).join('');
   }
 
+  const _selectSig = {};
+  function setSelectOptions(select, id, options, currentValue){
+    // options: [[value,label], ...] bez "sve" opcije — ta se uvijek doda ispred
+    const sig = options.map(o=>o[0]).join('|');
+    if (_selectSig[id] !== sig) {
+      _selectSig[id] = sig;
+      const allLabel = select.__allLabel || 'Sve';
+      select.innerHTML = options.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+    }
+    if (select.value !== currentValue) select.value = currentValue;
+  }
+
   function populateFilterOptions(){
     const kupci = [...new Set(prodaja.filter(nonPaul).map(r=>r.kupac))].sort();
     const pMonths = [...new Set(prodaja.filter(nonPaul).map(r=>(r.datum||'').slice(0,7)).filter(Boolean))].sort().reverse();
     const kats = [...new Set(troskovi.map(r=>r.kategorija))];
     const tMonths = [...new Set(troskovi.map(r=>(r.datum||'').slice(0,7)).filter(Boolean))].sort().reverse();
 
-    const pfKupac = document.getElementById('pf-kupac');
-    pfKupac.innerHTML = '<option value="sve">Svi kupci</option>' + kupci.map(k=>`<option value="${k}">${KUPAC_LABEL[k]||k}</option>`).join('');
-    pfKupac.value = prodajaFilterKupac;
+    setSelectOptions(document.getElementById('pf-kupac'), 'pf-kupac',
+      [['sve','Svi kupci'], ...kupci.map(k=>[k, KUPAC_LABEL[k]||k])], prodajaFilterKupac);
 
-    const pfMjesec = document.getElementById('pf-mjesec');
-    pfMjesec.innerHTML = '<option value="sve">Svi mjeseci</option>' + pMonths.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
-    pfMjesec.value = prodajaFilterMjesec;
+    setSelectOptions(document.getElementById('pf-mjesec'), 'pf-mjesec',
+      [['sve','Svi mjeseci'], ...pMonths.map(m=>[m, monthLabel(m)])], prodajaFilterMjesec);
 
-    const tfKat = document.getElementById('tf-kat');
-    tfKat.innerHTML = '<option value="sve">Sve kategorije</option>' + kats.map(k=>`<option value="${k}">${KAT_LABEL[k]||k}</option>`).join('');
-    tfKat.value = troskoviFilterKat;
+    setSelectOptions(document.getElementById('tf-kat'), 'tf-kat',
+      [['sve','Sve kategorije'], ...kats.map(k=>[k, KAT_LABEL[k]||k])], troskoviFilterKat);
 
-    const tfMjesec = document.getElementById('tf-mjesec');
-    tfMjesec.innerHTML = '<option value="sve">Svi mjeseci</option>' + tMonths.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
-    tfMjesec.value = troskoviFilterMjesec;
+    setSelectOptions(document.getElementById('tf-mjesec'), 'tf-mjesec',
+      [['sve','Svi mjeseci'], ...tMonths.map(m=>[m, monthLabel(m)])], troskoviFilterMjesec);
   }
 
   function getFilteredProdaja(){
@@ -755,6 +787,13 @@ body {
     const card = document.getElementById('prodaja-list-card');
     const sorted = getFilteredProdaja().sort((a,b)=> (b.datum||'').localeCompare(a.datum||''));
     card.innerHTML = sorted.length ? sorted.slice(0,60).map(r=>entryRow(r,'prodaja')).join('') : '<div class="opg-empty">Nema unosa za odabrani filter.</div>';
+    const countEl = document.getElementById('prodaja-count');
+    if (countEl) {
+      const totalNonPaul = prodaja.filter(nonPaul).length;
+      countEl.textContent = (prodajaFilterKupac==='sve' && prodajaFilterMjesec==='sve')
+        ? `(${totalNonPaul})`
+        : `(${sorted.length} od ${totalNonPaul})`;
+    }
   }
 
   function renderTroskoviList(){
@@ -942,18 +981,41 @@ body {
       localStorage.setItem('opg_spray_doses', JSON.stringify(map));
     } catch(e){}
   }
+  function toggleCalcMode(){
+    const jed = document.getElementById('calc-jedinica').value;
+    document.getElementById('calc-ha-wrap').style.display = jed === 'ha' ? 'block' : 'none';
+    document.getElementById('calc-doza-wrap').style.display = jed === 'ha' ? 'none' : 'block';
+  }
   function renderCalculator(){
     const sredstvo = document.getElementById('calc-sredstvo').value;
     const spremnik = parseFloat(document.getElementById('calc-spremnik').value)||0;
-    const doza = parseFloat(document.getElementById('calc-doza').value)||0;
     const jed = document.getElementById('calc-jedinica').value;
-    let rezultat, label;
-    if (jed === 'pct') { rezultat = spremnik*1000*(doza/100); label = 'ml'; }
-    else if (jed === 'g_l') { rezultat = spremnik*doza; label = 'g'; }
-    else { rezultat = spremnik*doza; label = 'ml'; }
-    lastCalcResult = { value: Math.round(rezultat*100)/100, label, sredstvo };
-    document.getElementById('calc-rezultat').textContent = lastCalcResult.value.toLocaleString('hr-HR') + ' ' + label;
-    if (sredstvo && doza) saveSprayDose(sredstvo, doza, jed);
+    let rezultat, rezultatMax = null, label;
+
+    if (jed === 'ha') {
+      const dMin = parseFloat(document.getElementById('calc-ha-doza-min').value)||0;
+      const dMax = parseFloat(document.getElementById('calc-ha-doza-max').value)||dMin;
+      const vMin = parseFloat(document.getElementById('calc-ha-voda-min').value)||0;
+      const vMax = parseFloat(document.getElementById('calc-ha-voda-max').value)||vMin;
+      label = 'ml (ili g, ovisno o pakiranju)';
+      if (vMin>0) rezultat = (dMin/vMin)*1000*spremnik;
+      if (vMax>0) rezultatMax = (dMax/vMax)*1000*spremnik;
+      if (rezultat==null) rezultat = 0;
+    } else {
+      const doza = parseFloat(document.getElementById('calc-doza').value)||0;
+      if (jed === 'pct') { rezultat = spremnik*1000*(doza/100); label = 'ml'; }
+      else if (jed === 'g_l') { rezultat = spremnik*doza; label = 'g'; }
+      else { rezultat = spremnik*doza; label = 'ml'; }
+      if (sredstvo && doza) saveSprayDose(sredstvo, doza, jed);
+    }
+
+    const rMin = Math.round((rezultat||0)*100)/100;
+    const rMax = rezultatMax!=null ? Math.round(rezultatMax*100)/100 : null;
+    lastCalcResult = { value: rMax!=null ? Math.round(((rMin+rMax)/2)*100)/100 : rMin, label: label.split(' ')[0], sredstvo };
+    const text = (rMax!=null && Math.abs(rMax-rMin)>0.01)
+      ? `${rMin.toLocaleString('hr-HR')}–${rMax.toLocaleString('hr-HR')} ${label}`
+      : `${rMin.toLocaleString('hr-HR')} ${label}`;
+    document.getElementById('calc-rezultat').textContent = text;
   }
   function applyRememberedDose(){
     const sredstvo = document.getElementById('calc-sredstvo').value;
@@ -961,6 +1023,7 @@ body {
     if (remembered) {
       document.getElementById('calc-doza').value = remembered.doza;
       document.getElementById('calc-jedinica').value = remembered.jedinica;
+      toggleCalcMode();
       renderCalculator();
       toast('Učitana zadnja doza za ' + sredstvo);
     }
@@ -1192,10 +1255,11 @@ body {
     }
   });
 
-  ['calc-spremnik','calc-doza','calc-jedinica'].forEach(id=>{
+  ['calc-spremnik','calc-doza','calc-jedinica','calc-ha-doza-min','calc-ha-doza-max','calc-ha-voda-min','calc-ha-voda-max'].forEach(id=>{
     document.getElementById(id).addEventListener('input', renderCalculator);
     document.getElementById(id).addEventListener('change', renderCalculator);
   });
+  document.getElementById('calc-jedinica').addEventListener('change', toggleCalcMode);
   document.getElementById('calc-sredstvo').addEventListener('change', applyRememberedDose);
   document.getElementById('calc-sredstvo').addEventListener('input', renderCalculator);
   document.getElementById('calc-prenesi').addEventListener('click', ()=>{
@@ -1205,6 +1269,33 @@ body {
     renderPrskanjePreview();
     toast('Preneseno — samo dodaj kulturu i karencu pa spremi');
   });
+
+  function getFisUrl(){ return localStorage.getItem('opg_fis_url') || ''; }
+  function askFisUrl(){
+    const current = getFisUrl();
+    const url = prompt('Zalijepi adresu svoje Cloud Function (iz README-FIS.md, izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/fisLookup):', current);
+    if (url && url.trim()) { localStorage.setItem('opg_fis_url', url.trim()); return url.trim(); }
+    return null;
+  }
+  document.getElementById('fis-change-url').addEventListener('click', askFisUrl);
+  document.getElementById('fis-fetch').addEventListener('click', async ()=>{
+    let url = getFisUrl();
+    if (!url) { url = askFisUrl(); if (!url) return; }
+    const id = document.getElementById('fis-id').value.trim();
+    if (!id){ toast('Upiši ID proizvoda'); return; }
+    const resultEl = document.getElementById('fis-result');
+    resultEl.style.display = 'block';
+    resultEl.textContent = 'Dohvaćam s FIS-a… (može potrajati 10-ak sekundi)';
+    try {
+      const resp = await fetch(url.replace(/\/$/,'') + '?id=' + encodeURIComponent(id));
+      const data = await resp.json();
+      if (data.error) { resultEl.textContent = 'Greška: ' + data.error; }
+      else { resultEl.textContent = (data.title ? data.title + '\n\n' : '') + (data.text || '(prazan odgovor)'); }
+    } catch(e) {
+      resultEl.textContent = 'Greška pri spajanju na servis — provjeri adresu (⚙ Promijeni adresu servisa) i je li funkcija uspješno postavljena.\n\n' + e.message;
+    }
+  });
+
   document.getElementById('pr-datum').addEventListener('change', renderPrskanjePreview);
   document.getElementById('pr-karenca').addEventListener('input', renderPrskanjePreview);
   document.getElementById('pr-submit').addEventListener('click', async ()=>{
