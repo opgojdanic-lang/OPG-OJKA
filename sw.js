@@ -34,3 +34,26 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(event.request))
   );
 });
+
+// ---- Push obavijesti (Firebase Cloud Messaging) ----
+// Aplikacija šalje firebaseConfig ovamo nakon prijave (config nije tajna —
+// vidljiv je i inače u samoj aplikaciji), tek tad se aktivira FCM.
+let fcmReady = false;
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'INIT_FCM' && !fcmReady) {
+    fcmReady = true;
+    try {
+      importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+      importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+      firebase.initializeApp(event.data.config);
+      const messaging = firebase.messaging();
+      messaging.onBackgroundMessage((payload) => {
+        const title = (payload.notification && payload.notification.title) || 'OPG Ojdanić';
+        const body = (payload.notification && payload.notification.body) || '';
+        self.registration.showNotification(title, { body, icon: './icons/icon-192.png', badge: './icons/icon-192.png' });
+      });
+    } catch (e) {
+      console.error('FCM init greška u service workeru', e);
+    }
+  }
+});

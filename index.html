@@ -352,6 +352,7 @@ body {
       <div class="opg-filter-row" id="zastita-subnav">
         <button class="opg-chip active" data-sub="zalihe">Zalihe</button>
         <button class="opg-chip" data-sub="prskanje">Prskanje</button>
+        <button class="opg-chip" data-sub="vrijeme">Vrijeme</button>
       </div>
 
       <div id="sub-zalihe" class="opg-subview active">
@@ -435,6 +436,33 @@ body {
         <div class="opg-section-title">Povijest tretiranja</div>
         <div id="prskanje-list"></div>
       </div>
+
+      <div id="sub-vrijeme" class="opg-subview">
+        <div class="opg-card" id="vrijeme-status-card">
+          <div class="opg-section-title" style="margin-top:0;">Trenutni uvjeti</div>
+          <div id="vrijeme-status">
+            <div class="opg-empty">Još nema podataka — kliknite "Provjeri sada" ispod ili pričekajte automatsku provjeru.</div>
+          </div>
+        </div>
+
+        <div class="opg-card">
+          <div class="opg-section-title" style="margin-top:0;">Obavijesti</div>
+          <p class="opg-hint" style="margin-top:0;">Kad je vrijeme idealno ili prihvatljivo za prskanje, svi s uključenim obavijestima dobit će push obavijest na telefon — automatska provjera ide svakih 15 minuta.</p>
+          <button class="opg-submit plum" id="vrijeme-enable-btn">🔔 Uključi obavijesti na ovom telefonu</button>
+          <button class="opg-submit secondary" id="vrijeme-check-now" style="margin-top:8px;">Provjeri sada</button>
+          <div id="vrijeme-check-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
+        </div>
+
+        <div class="opg-card">
+          <div class="opg-section-title" style="margin-top:0;">Pragovi</div>
+          <div class="opg-row2">
+            <div class="opg-field"><label>Idealna temp. ispod (°C)</label><input type="number" id="vrijeme-temp-ideal" step="0.5" placeholder="25"></div>
+            <div class="opg-field"><label>Prihvatljiva temp. ispod (°C)</label><input type="number" id="vrijeme-temp-max" step="0.5" placeholder="28"></div>
+          </div>
+          <div class="opg-field"><label>Maks. brzina vjetra (m/s)</label><input type="number" id="vrijeme-wind-max" step="0.5" placeholder="4"></div>
+          <button class="opg-submit ghost" id="vrijeme-save-thresholds">Spremi pragove</button>
+        </div>
+      </div>
     </div>
 
     <!-- PREGLED -->
@@ -500,6 +528,8 @@ body {
   let fb = null;         // { db, collection, doc, setDoc, deleteDoc, onSnapshot, updateDoc, getDocs, writeBatch }
   let currentUser = localStorage.getItem('opg_user_name') || '';
   let sharedSettings = {};
+  let sprayConditions = {};
+  let firebaseApp = null;
 
   function updateUserChip(){
     document.getElementById('user-name-label').textContent = currentUser || 'Postavi ime';
@@ -562,6 +592,7 @@ body {
         import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
       ]);
       const app = initializeApp(config);
+      firebaseApp = app;
       const db = fsMod.getFirestore(app);
       try { await fsMod.enableIndexedDbPersistence(db); } catch(e) {}
       fb = { db, ...fsMod };
@@ -611,9 +642,17 @@ body {
         if (sharedSettings.ai_url) localStorage.setItem('opg_ai_url', sharedSettings.ai_url);
       });
 
+      fb.onSnapshot(fb.doc(db, 'settings', 'spray_conditions'), (snap) => {
+        sprayConditions = snap.exists() ? snap.data() : {};
+        renderVrijeme();
+      });
+
       mode = 'cloud';
       localStorage.setItem('opg_fb_config', JSON.stringify(config));
       setSyncStatus('connecting');
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'INIT_FCM', config });
+      }
       return true;
     } catch(e) {
       console.error(e);
@@ -1033,6 +1072,106 @@ body {
     });
   }
 
+  function renderVrijeme(){
+    const el = document.getElementById('vrijeme-status');
+    if (!el) return;
+    if (!sprayConditions.last_checked_at) {
+      el.innerHTML = '<div class="opg-empty">Još nema podataka — kliknite "Provjeri sada" ili pričekajte automatsku provjeru.</div>';
+    } else {
+      const statusLabel = { idealno: '🟢 Idealno za prskanje', prihvatljivo: '🟡 Prihvatljivo za prskanje', nije: '🔴 Nije idealno' };
+      const dt = new Date(sprayConditions.last_checked_at);
+      el.innerHTML = `
+        <div class="opg-paul-status ${sprayConditions.last_status==='idealno' ? 'ok' : (sprayConditions.last_status==='prihvatljivo' ? 'ok' : 'warn')}">
+          <div class="big">${statusLabel[sprayConditions.last_status] || sprayConditions.last_status || '–'}</div>
+          <div class="lbl">${sprayConditions.last_temp}°C · vjetar ${sprayConditions.last_wind} m/s</div>
+        </div>
+        <p class="opg-hint">Zadnja provjera: ${dt.toLocaleString('hr-HR')}</p>`;
+    }
+    // popuni pragove ako polja prazna (ne prepisuj dok korisnik tipka)
+    const ti = document.getElementById('vrijeme-temp-ideal');
+    const tm = document.getElementById('vrijeme-temp-max');
+    const wm = document.getElementById('vrijeme-wind-max');
+    if (document.activeElement !== ti) ti.value = sprayConditions.temp_ideal ?? 25;
+    if (document.activeElement !== tm) tm.value = sprayConditions.temp_max ?? 28;
+    if (document.activeElement !== wm) wm.value = sprayConditions.wind_max ?? 4;
+  }
+
+  function getSprayCheckUrl(){
+    if (mode === 'cloud' && sharedSettings.spray_check_url) return sharedSettings.spray_check_url;
+    return localStorage.getItem('opg_spray_check_url') || '';
+  }
+  function askSprayCheckUrl(){
+    const current = getSprayCheckUrl();
+    const url = prompt('Zalijepi adresu checkSprayConditionsNow funkcije (izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/checkSprayConditionsNow):', current);
+    if (url && url.trim()) {
+      const trimmed = url.trim();
+      localStorage.setItem('opg_spray_check_url', trimmed);
+      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { spray_check_url: trimmed }, { merge: true }); } catch(e) {} }
+      return trimmed;
+    }
+    return null;
+  }
+  function getVapidKey(){
+    if (mode === 'cloud' && sharedSettings.vapid_key) return sharedSettings.vapid_key;
+    return localStorage.getItem('opg_vapid_key') || '';
+  }
+  function askVapidKey(){
+    const current = getVapidKey();
+    const key = prompt('Zalijepi VAPID ključ (Firebase konzola → Project settings → Cloud Messaging → Web configuration → Generate key pair):', current);
+    if (key && key.trim()) {
+      const trimmed = key.trim();
+      localStorage.setItem('opg_vapid_key', trimmed);
+      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { vapid_key: trimmed }, { merge: true }); } catch(e) {} }
+      return trimmed;
+    }
+    return null;
+  }
+
+  async function checkSprayNow(){
+    let url = getSprayCheckUrl();
+    if (!url) { url = askSprayCheckUrl(); if (!url) return; }
+    const statusEl = document.getElementById('vrijeme-check-status');
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Provjeravam…';
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (data.error) { statusEl.textContent = 'Greška: ' + data.error; return; }
+      statusEl.textContent = `Gotovo: ${data.temp}°C, vjetar ${data.wind} m/s → ${data.status}${data.notified ? ' (poslana obavijest)' : ''}`;
+    } catch(e) {
+      statusEl.textContent = 'Greška pri spajanju: ' + e.message;
+    }
+  }
+
+  async function enableWeatherNotifications(){
+    if (!('Notification' in window)) { toast('Ovaj preglednik ne podržava obavijesti'); return; }
+    if (mode !== 'cloud') { toast('Prvo se poveži s Firebase-om (⚙ gore desno)'); return; }
+    let vapidKey = getVapidKey();
+    if (!vapidKey) { vapidKey = askVapidKey(); if (!vapidKey) return; }
+
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { toast('Dozvola za obavijesti nije odobrena'); return; }
+
+      const reg = await navigator.serviceWorker.ready;
+      const [{ getMessaging, getToken }] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js')
+      ]);
+      const messaging = getMessaging(firebaseApp);
+      const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: reg });
+      if (!token) { toast('Nije uspjelo dobiti token za obavijesti'); return; }
+
+      await fb.setDoc(fb.doc(fb.db, 'fcm_tokens', token), { token, user: currentUser || null, created_at: Date.now() });
+
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'INIT_FCM', config: JSON.parse(localStorage.getItem('opg_fb_config')||'{}') });
+      }
+      toast('Obavijesti uključene na ovom telefonu! 🔔');
+    } catch(e) {
+      toast('Greška: ' + e.message);
+    }
+  }
+
   function renderAll(){
     renderHero();
     renderProizvodList();
@@ -1044,6 +1183,7 @@ body {
     renderZaliheList();
     populateZaliheDatalist();
     renderPrskanjeList();
+    renderVrijeme();
   }
   let renderScheduled = false;
   function scheduleRenderAll(){
@@ -1198,6 +1338,7 @@ body {
     e.target.classList.add('active');
     document.getElementById('sub-zalihe').classList.toggle('active', sub==='zalihe');
     document.getElementById('sub-prskanje').classList.toggle('active', sub==='prskanje');
+    document.getElementById('sub-vrijeme').classList.toggle('active', sub==='vrijeme');
   });
 
   let pendingZalihaPhoto = null;
@@ -1413,6 +1554,20 @@ body {
   }
   function closeSetup(){ setupEl.classList.remove('show'); }
   document.getElementById('open-setup').addEventListener('click', ()=> openSetup(true));
+  document.getElementById('vrijeme-check-now').addEventListener('click', checkSprayNow);
+  document.getElementById('vrijeme-enable-btn').addEventListener('click', enableWeatherNotifications);
+  document.getElementById('vrijeme-save-thresholds').addEventListener('click', ()=>{
+    const temp_ideal = parseFloat(document.getElementById('vrijeme-temp-ideal').value)||25;
+    const temp_max = parseFloat(document.getElementById('vrijeme-temp-max').value)||28;
+    const wind_max = parseFloat(document.getElementById('vrijeme-wind-max').value)||4;
+    if (mode === 'cloud') {
+      fb.setDoc(fb.doc(fb.db, 'settings', 'spray_conditions'), { temp_ideal, temp_max, wind_max }, { merge: true })
+        .then(()=> toast('Pragovi spremljeni'))
+        .catch(()=> toast('Greška pri spremanju'));
+    } else {
+      toast('Pragovi se dijele preko Firestore-a — poveži se na ⚙ gore desno');
+    }
+  });
   document.getElementById('setup-close').addEventListener('click', closeSetup);
   document.getElementById('setup-skip').addEventListener('click', ()=>{ closeSetup(); toast('Radiš lokalno na ovom uređaju'); });
   document.getElementById('setup-connect').addEventListener('click', async ()=>{
