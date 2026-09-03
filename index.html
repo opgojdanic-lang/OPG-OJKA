@@ -387,37 +387,27 @@ body {
 
       <div id="sub-prskanje" class="opg-subview">
         <div class="opg-card">
-          <div class="opg-section-title" style="margin-top:0;">Kalkulator omjera</div>
+          <div class="opg-section-title" style="margin-top:0;">Kalkulator količine — FIS preporuka</div>
           <div class="opg-field">
             <label>Sredstvo (opcionalno — pamti zadnju dozu koju ste koristili)</label>
             <input type="text" id="calc-sredstvo" list="zalihe-list-dl" placeholder="npr. Bordoška juha">
           </div>
-          <div class="opg-row2">
-            <div class="opg-field"><label>Prskalica (L)</label><input type="number" id="calc-spremnik" step="0.1" min="0" placeholder="npr. 15"></div>
-            <div class="opg-field" id="calc-doza-wrap"><label>Doza</label><input type="number" id="calc-doza" step="0.01" min="0" placeholder="npr. 2"></div>
-          </div>
           <div class="opg-field">
-            <label>Način unosa doze</label>
-            <select id="calc-jedinica">
-              <option value="ml_l">ml po litri</option>
-              <option value="g_l">g po litri</option>
-              <option value="pct">% otopine</option>
-              <option value="ha">doza po hektaru (s FIS-a)</option>
-            </select>
+            <label>Prskalica (L)</label>
+            <input type="number" id="calc-spremnik" step="0.1" min="0" placeholder="npr. 15">
           </div>
-          <div id="calc-ha-wrap" style="display:none;">
-            <button type="button" class="opg-submit plum" id="calc-photo-btn">📷 Slikaj FIS preporuku</button>
-            <input type="file" id="calc-photo-input" accept="image/*" capture="environment" style="display:none;">
-            <div id="calc-photo-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
-            <p class="opg-hint">Ili prepišite brojeve ručno, točno kako pišu na FIS stranici za taj proizvod/štetnika/kulturu.</p>
-            <div class="opg-row2">
-              <div class="opg-field"><label>Doza po ha — od</label><input type="number" id="calc-ha-doza-min" step="0.001" min="0" placeholder="npr. 0.075"></div>
-              <div class="opg-field"><label>Doza po ha — do</label><input type="number" id="calc-ha-doza-max" step="0.001" min="0" placeholder="npr. 0.175"></div>
-            </div>
-            <div class="opg-row2">
-              <div class="opg-field"><label>Voda po ha (L) — od</label><input type="number" id="calc-ha-voda-min" step="1" min="0" placeholder="npr. 600"></div>
-              <div class="opg-field"><label>Voda po ha (L) — do</label><input type="number" id="calc-ha-voda-max" step="1" min="0" placeholder="npr. 1400"></div>
-            </div>
+
+          <button type="button" class="opg-submit plum" id="calc-photo-btn">📷 Slikaj FIS preporuku</button>
+          <input type="file" id="calc-photo-input" accept="image/*" style="display:none;">
+          <div id="calc-photo-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
+          <p class="opg-hint">Ili prepišite brojeve ručno, točno kako pišu na FIS stranici za taj proizvod/štetnika/kulturu.</p>
+          <div class="opg-row2">
+            <div class="opg-field"><label>Doza po ha — od</label><input type="number" id="calc-ha-doza-min" step="0.001" min="0" placeholder="npr. 0.075"></div>
+            <div class="opg-field"><label>Doza po ha — do</label><input type="number" id="calc-ha-doza-max" step="0.001" min="0" placeholder="npr. 0.175"></div>
+          </div>
+          <div class="opg-row2">
+            <div class="opg-field"><label>Voda po ha (L) — od</label><input type="number" id="calc-ha-voda-min" step="1" min="0" placeholder="npr. 600"></div>
+            <div class="opg-field"><label>Voda po ha (L) — do</label><input type="number" id="calc-ha-voda-max" step="1" min="0" placeholder="npr. 1400"></div>
           </div>
           <div class="opg-neto-preview">Potrebno sredstva: <b id="calc-rezultat">0 ml</b></div>
           <button class="opg-submit ghost" id="calc-prenesi">Prenesi u dnevnik tretiranja ↓</button>
@@ -964,41 +954,25 @@ body {
     try { const map = JSON.parse(localStorage.getItem('opg_spray_doses')||'{}'); return map[name.trim().toLowerCase()] || null; }
     catch(e){ return null; }
   }
-  function saveSprayDose(name, doza, jedinica){
+  function saveSprayDose(name, data){
     if (!name) return;
     try {
       const map = JSON.parse(localStorage.getItem('opg_spray_doses')||'{}');
-      map[name.trim().toLowerCase()] = { doza, jedinica };
+      map[name.trim().toLowerCase()] = data;
       localStorage.setItem('opg_spray_doses', JSON.stringify(map));
     } catch(e){}
-  }
-  function toggleCalcMode(){
-    const jed = document.getElementById('calc-jedinica').value;
-    document.getElementById('calc-ha-wrap').style.display = jed === 'ha' ? 'block' : 'none';
-    document.getElementById('calc-doza-wrap').style.display = jed === 'ha' ? 'none' : 'block';
   }
   function renderCalculator(){
     const sredstvo = document.getElementById('calc-sredstvo').value;
     const spremnik = parseFloat(document.getElementById('calc-spremnik').value)||0;
-    const jed = document.getElementById('calc-jedinica').value;
-    let rezultat, rezultatMax = null, label;
-
-    if (jed === 'ha') {
-      const dMin = parseFloat(document.getElementById('calc-ha-doza-min').value)||0;
-      const dMax = parseFloat(document.getElementById('calc-ha-doza-max').value)||dMin;
-      const vMin = parseFloat(document.getElementById('calc-ha-voda-min').value)||0;
-      const vMax = parseFloat(document.getElementById('calc-ha-voda-max').value)||vMin;
-      label = 'ml (ili g, ovisno o pakiranju)';
-      if (vMin>0) rezultat = (dMin/vMin)*1000*spremnik;
-      if (vMax>0) rezultatMax = (dMax/vMax)*1000*spremnik;
-      if (rezultat==null) rezultat = 0;
-    } else {
-      const doza = parseFloat(document.getElementById('calc-doza').value)||0;
-      if (jed === 'pct') { rezultat = spremnik*1000*(doza/100); label = 'ml'; }
-      else if (jed === 'g_l') { rezultat = spremnik*doza; label = 'g'; }
-      else { rezultat = spremnik*doza; label = 'ml'; }
-      if (sredstvo && doza) saveSprayDose(sredstvo, doza, jed);
-    }
+    const dMin = parseFloat(document.getElementById('calc-ha-doza-min').value)||0;
+    const dMax = parseFloat(document.getElementById('calc-ha-doza-max').value)||dMin;
+    const vMin = parseFloat(document.getElementById('calc-ha-voda-min').value)||0;
+    const vMax = parseFloat(document.getElementById('calc-ha-voda-max').value)||vMin;
+    const label = 'ml (ili g, ovisno o pakiranju)';
+    let rezultat = 0, rezultatMax = null;
+    if (vMin>0) rezultat = (dMin/vMin)*1000*spremnik;
+    if (vMax>0) rezultatMax = (dMax/vMax)*1000*spremnik;
 
     const rMin = Math.round((rezultat||0)*100)/100;
     const rMax = rezultatMax!=null ? Math.round(rezultatMax*100)/100 : null;
@@ -1007,14 +981,16 @@ body {
       ? `${rMin.toLocaleString('hr-HR')}–${rMax.toLocaleString('hr-HR')} ${label}`
       : `${rMin.toLocaleString('hr-HR')} ${label}`;
     document.getElementById('calc-rezultat').textContent = text;
+    if (sredstvo && (dMin || dMax)) saveSprayDose(sredstvo, { doza_min: dMin, doza_max: dMax, voda_min: vMin, voda_max: vMax });
   }
   function applyRememberedDose(){
     const sredstvo = document.getElementById('calc-sredstvo').value;
     const remembered = loadSprayDose(sredstvo);
     if (remembered) {
-      document.getElementById('calc-doza').value = remembered.doza;
-      document.getElementById('calc-jedinica').value = remembered.jedinica;
-      toggleCalcMode();
+      if (remembered.doza_min!=null) document.getElementById('calc-ha-doza-min').value = remembered.doza_min;
+      if (remembered.doza_max!=null) document.getElementById('calc-ha-doza-max').value = remembered.doza_max;
+      if (remembered.voda_min!=null) document.getElementById('calc-ha-voda-min').value = remembered.voda_min;
+      if (remembered.voda_max!=null) document.getElementById('calc-ha-voda-max').value = remembered.voda_max;
       renderCalculator();
       toast('Učitana zadnja doza za ' + sredstvo);
     }
@@ -1246,11 +1222,10 @@ body {
     }
   });
 
-  ['calc-spremnik','calc-doza','calc-jedinica','calc-ha-doza-min','calc-ha-doza-max','calc-ha-voda-min','calc-ha-voda-max'].forEach(id=>{
+  ['calc-spremnik','calc-ha-doza-min','calc-ha-doza-max','calc-ha-voda-min','calc-ha-voda-max'].forEach(id=>{
     document.getElementById(id).addEventListener('input', renderCalculator);
     document.getElementById(id).addEventListener('change', renderCalculator);
   });
-  document.getElementById('calc-jedinica').addEventListener('change', toggleCalcMode);
   document.getElementById('calc-sredstvo').addEventListener('change', applyRememberedDose);
   document.getElementById('calc-sredstvo').addEventListener('input', renderCalculator);
   document.getElementById('calc-prenesi').addEventListener('click', ()=>{
@@ -1269,13 +1244,15 @@ body {
     return null;
   }
   document.getElementById('calc-photo-btn').addEventListener('click', ()=>{
+    let url = getAiUrl();
+    if (!url) { url = askAiUrl(); if (!url) return; }
     document.getElementById('calc-photo-input').click();
   });
   document.getElementById('calc-photo-input').addEventListener('change', async (e)=>{
     const file = e.target.files[0];
     if (!file) return;
-    let url = getAiUrl();
-    if (!url) { url = askAiUrl(); if (!url) { e.target.value=''; return; } }
+    const url = getAiUrl();
+    if (!url) { e.target.value=''; return; }
 
     const statusEl = document.getElementById('calc-photo-status');
     statusEl.style.display = 'block';
