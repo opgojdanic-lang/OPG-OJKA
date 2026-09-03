@@ -785,7 +785,7 @@ body {
 
   function renderProdajaList(){
     const card = document.getElementById('prodaja-list-card');
-    const sorted = getFilteredProdaja().sort((a,b)=> (b.datum||'').localeCompare(a.datum||''));
+    const sorted = getFilteredProdaja().sort((a,b)=> (b.datum||'').localeCompare(a.datum||'') || ((b.ts||0)-(a.ts||0)));
     card.innerHTML = sorted.length ? sorted.slice(0,60).map(r=>entryRow(r,'prodaja')).join('') : '<div class="opg-empty">Nema unosa za odabrani filter.</div>';
     const countEl = document.getElementById('prodaja-count');
     if (countEl) {
@@ -798,7 +798,7 @@ body {
 
   function renderTroskoviList(){
     const card = document.getElementById('troskovi-list-card');
-    const sorted = getFilteredTroskovi().sort((a,b)=> (b.datum||'').localeCompare(a.datum||''));
+    const sorted = getFilteredTroskovi().sort((a,b)=> (b.datum||'').localeCompare(a.datum||'') || ((b.ts||0)-(a.ts||0)));
     if (!sorted.length){ card.innerHTML = '<div class="opg-empty">Nema troškova za odabrani filter.</div>'; return; }
     card.innerHTML = sorted.slice(0,60).map(r=>{
       const trosak = (r.kolicina||0)*(r.cijena||0);
@@ -815,7 +815,7 @@ body {
   }
 
   function renderPaul(){
-    const rows = prodaja.filter(onlyPaul).sort((a,b)=>(b.datum||'').localeCompare(a.datum||''));
+    const rows = prodaja.filter(onlyPaul).sort((a,b)=>(b.datum||'').localeCompare(a.datum||'') || ((b.ts||0)-(a.ts||0)));
     const totalKg = rows.reduce((s,r)=>s+(r.kg||0),0);
     const totalVal = rows.reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
     const dugVal = rows.filter(r=>!r.placeno).reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
@@ -943,7 +943,7 @@ body {
 
   function renderPrskanjeList(){
     const el = document.getElementById('prskanje-list');
-    const sorted = [...prskanje].sort((a,b)=>(b.datum||'').localeCompare(a.datum||''));
+    const sorted = [...prskanje].sort((a,b)=>(b.datum||'').localeCompare(a.datum||'') || ((b.ts||0)-(a.ts||0)));
     if (!sorted.length){ el.innerHTML = '<div class="opg-empty">Još nema unesenih tretiranja.</div>'; return; }
     const today = new Date(); today.setHours(0,0,0,0);
     el.innerHTML = sorted.map(r=>{
@@ -1181,7 +1181,7 @@ body {
     const kg = parseFloat(document.getElementById('f-kg').value)||0;
     const pak = parseFloat(document.getElementById('f-pak').value)||null;
     if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
-    await addProdaja({ id: uid('p'), kupac, datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: placenoVal, pak, unio: currentUser || null });
+    await addProdaja({ id: uid('p'), kupac, datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: placenoVal, pak, unio: currentUser || null, ts: Date.now() });
     document.getElementById('f-proizvod').value = ''; document.getElementById('f-cijena').value = ''; document.getElementById('f-kg').value = ''; document.getElementById('f-pak').value = '';
     renderNetoPreview();
     if (mode==='local') renderAll();
@@ -1196,7 +1196,7 @@ body {
     const cijena = parseFloat(document.getElementById('t-cijena').value)||0;
     const datum = document.getElementById('t-datum').value || todayStr();
     if (!naziv || !cijena){ toast('Upiši naziv i cijenu'); return; }
-    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, kolicina, cijena, datum, unio: currentUser || null });
+    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, kolicina, cijena, datum, unio: currentUser || null, ts: Date.now() });
     document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
     renderTrosakPreview();
     if (mode==='local') renderAll();
@@ -1209,7 +1209,7 @@ body {
     const cijena_kg = parseFloat(document.getElementById('pa-cijena').value)||0;
     const kg = parseFloat(document.getElementById('pa-kg').value)||0;
     if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
-    await addProdaja({ id: uid('pa'), kupac: 'PAUL', datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: paulPlacenoVal, pak: null, unio: currentUser || null });
+    await addProdaja({ id: uid('pa'), kupac: 'PAUL', datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: paulPlacenoVal, pak: null, unio: currentUser || null, ts: Date.now() });
     document.getElementById('pa-proizvod').value = ''; document.getElementById('pa-cijena').value = ''; document.getElementById('pa-kg').value = '';
     renderPaulPreview();
     if (mode==='local') renderAll();
@@ -1305,7 +1305,7 @@ body {
     const kolicina = parseFloat(document.getElementById('pr-kolicina').value)||0;
     const karenca_dana = parseInt(document.getElementById('pr-karenca').value,10)||0;
     if (!sredstvo || !kultura){ toast('Upiši sredstvo i kulturu'); return; }
-    await addPrskanje({ id: uid('pr'), datum, sredstvo, kultura, kolicina, karenca_dana, unio: currentUser || null });
+    await addPrskanje({ id: uid('pr'), datum, sredstvo, kultura, kolicina, karenca_dana, unio: currentUser || null, ts: Date.now() });
     document.getElementById('pr-sredstvo').value = ''; document.getElementById('pr-kultura').value = ''; document.getElementById('pr-kolicina').value = ''; document.getElementById('pr-karenca').value = '';
     renderPrskanjePreview();
     toast('Tretiranje spremljeno');
