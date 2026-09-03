@@ -400,6 +400,8 @@ body {
           <button type="button" class="opg-submit plum" id="calc-photo-btn">📷 Slikaj FIS preporuku</button>
           <input type="file" id="calc-photo-input" accept="image/*" style="display:none;">
           <div id="calc-photo-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
+          <div id="calc-photo-candidates" style="display:none; margin-top:8px;"></div>
+          <button type="button" class="opg-submit ghost" id="calc-photo-reset" style="display:none; margin-top:8px;">🔄 Poništi i slikaj ponovno</button>
           <p class="opg-hint">Ili prepišite brojeve ručno, točno kako pišu na FIS stranici za taj proizvod/štetnika/kulturu.</p>
           <div class="opg-row2">
             <div class="opg-field"><label>Doza po ha — od</label><input type="number" id="calc-ha-doza-min" step="0.001" min="0" placeholder="npr. 0.075"></div>
@@ -1259,6 +1261,65 @@ body {
     }
     return null;
   }
+  function applyFisItem(item){
+    if (item.doza_po_ha_min != null) document.getElementById('calc-ha-doza-min').value = item.doza_po_ha_min;
+    if (item.doza_po_ha_max != null) document.getElementById('calc-ha-doza-max').value = item.doza_po_ha_max;
+    if (item.voda_po_ha_min != null) document.getElementById('calc-ha-voda-min').value = item.voda_po_ha_min;
+    if (item.voda_po_ha_max != null) document.getElementById('calc-ha-voda-max').value = item.voda_po_ha_max;
+    if (item.proizvod) document.getElementById('calc-sredstvo').value = item.proizvod;
+    if (item.karenca_dana != null) document.getElementById('pr-karenca').value = item.karenca_dana;
+    renderCalculator();
+    renderPrskanjePreview();
+
+    const candBox = document.getElementById('calc-photo-candidates');
+    candBox.style.display = 'none';
+    candBox.innerHTML = '';
+
+    const statusEl = document.getElementById('calc-photo-status');
+    statusEl.style.display = 'block';
+    const parts = [];
+    if (item.kultura) parts.push(item.kultura);
+    if (item.stetnik_ili_bolest) parts.push(item.stetnik_ili_bolest);
+    statusEl.textContent = '✓ ' + (item.proizvod ? item.proizvod + ' — ' : '') + parts.join(' · ') +
+      '\nPogledajte "Potrebno sredstva" ispod — uvijek provjerite prije prskanja.';
+    document.getElementById('calc-photo-reset').style.display = 'block';
+    toast('Izračun spreman — provjerite prije prskanja');
+  }
+
+  function renderFisCandidates(items){
+    const statusEl = document.getElementById('calc-photo-status');
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Prepoznato je više redaka na slici — odaberite koji se odnosi na vaš problem:';
+
+    const box = document.getElementById('calc-photo-candidates');
+    box.style.display = 'block';
+    box.innerHTML = items.map((it, i) => {
+      const label = [it.stetnik_ili_bolest, it.kultura].filter(Boolean).join(' · ') || ('Redak ' + (i+1));
+      return `<button type="button" class="opg-submit ghost" style="margin-bottom:6px; text-align:left;" data-idx="${i}">${label}</button>`;
+    }).join('');
+    box.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => applyFisItem(items[parseInt(btn.dataset.idx, 10)]));
+    });
+    document.getElementById('calc-photo-reset').style.display = 'block';
+  }
+
+  function resetPhotoResult(){
+    document.getElementById('calc-ha-doza-min').value = '';
+    document.getElementById('calc-ha-doza-max').value = '';
+    document.getElementById('calc-ha-voda-min').value = '';
+    document.getElementById('calc-ha-voda-max').value = '';
+    document.getElementById('calc-photo-status').style.display = 'none';
+    const candBox = document.getElementById('calc-photo-candidates');
+    candBox.style.display = 'none';
+    candBox.innerHTML = '';
+    document.getElementById('calc-photo-reset').style.display = 'none';
+    renderCalculator();
+  }
+  document.getElementById('calc-photo-reset').addEventListener('click', ()=>{
+    resetPhotoResult();
+    document.getElementById('calc-photo-input').click();
+  });
+
   document.getElementById('calc-photo-btn').addEventListener('click', ()=>{
     let url = getAiUrl();
     if (!url) { url = askAiUrl(); if (!url) return; }
@@ -1271,6 +1332,7 @@ body {
     if (!url) { e.target.value=''; return; }
 
     const statusEl = document.getElementById('calc-photo-status');
+    document.getElementById('calc-photo-candidates').style.display = 'none';
     statusEl.style.display = 'block';
     statusEl.textContent = 'Šaljem sliku i čekam odgovor… (par sekundi)';
 
@@ -1284,27 +1346,11 @@ body {
       });
       const data = await resp.json();
       if (data.error) { statusEl.textContent = 'Greška: ' + data.error; e.target.value=''; return; }
-      const p = data.parsed;
-      if (!p) { statusEl.textContent = 'AI nije uspio pročitati strukturirane podatke. Sirovi odgovor:\n' + (data.raw||''); e.target.value=''; return; }
+      const items = Array.isArray(data.parsed) ? data.parsed.filter(Boolean) : (data.parsed ? [data.parsed] : []);
+      if (!items.length) { statusEl.textContent = 'AI nije uspio pročitati podatke sa slike. Pokušajte jasniju, bolje osvijetljenu fotografiju.'; e.target.value=''; return; }
 
-      if (p.doza_po_ha_min != null) document.getElementById('calc-ha-doza-min').value = p.doza_po_ha_min;
-      if (p.doza_po_ha_max != null) document.getElementById('calc-ha-doza-max').value = p.doza_po_ha_max;
-      if (p.voda_po_ha_min != null) document.getElementById('calc-ha-voda-min').value = p.voda_po_ha_min;
-      if (p.voda_po_ha_max != null) document.getElementById('calc-ha-voda-max').value = p.voda_po_ha_max;
-      if (p.proizvod) document.getElementById('calc-sredstvo').value = p.proizvod;
-      if (p.karenca_dana != null) document.getElementById('pr-karenca').value = p.karenca_dana;
-      renderCalculator();
-      renderPrskanjePreview();
-
-      const parts = [];
-      if (p.proizvod) parts.push('Sredstvo: ' + p.proizvod);
-      if (p.kultura) parts.push('Kultura: ' + p.kultura);
-      if (p.stetnik_ili_bolest) parts.push('Štetnik/bolest: ' + p.stetnik_ili_bolest);
-      if (p.karenca_dana != null) parts.push('Karenca: ' + p.karenca_dana + ' dana');
-      if (p.napomena) parts.push('Napomena: ' + p.napomena);
-      statusEl.textContent = '✓ Popunjeno iz fotografije.' + (parts.length ? '\n' + parts.join('\n') : '') +
-        '\n\nUvijek provjerite da su prepoznati brojevi ispravni prije prskanja.';
-      toast('Polja popunjena iz fotografije — provjerite prije prskanja');
+      if (items.length === 1) { applyFisItem(items[0]); }
+      else { renderFisCandidates(items); }
     } catch(err) {
       statusEl.textContent = 'Greška pri obradi slike: ' + err.message;
     }
