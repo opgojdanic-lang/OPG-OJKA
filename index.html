@@ -11,9 +11,10 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <link rel="icon" href="./icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap');
-
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
@@ -37,12 +38,14 @@ body {
   background: var(--bg);
   font-variant-numeric: tabular-nums;
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 #opg-root { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 84px; }
 #opg-root h1, #opg-root h2, #opg-root .display { font-family: 'Fraunces', serif; }
 
 .opg-header { background: var(--forest); color: #F2EEDC; padding: calc(18px + env(safe-area-inset-top)) 20px 26px; border-radius: 0 0 22px 22px; position: relative; overflow: hidden; }
-.opg-header::after { content: ""; position: absolute; right: -30px; top: -30px; width: 140px; height: 140px; border-radius: 50%; background: rgba(226,150,58,0.14); }
+.opg-header::after { content: ""; position: absolute; right: -30px; top: -30px; width: 140px; height: 140px; border-radius: 50%; background: rgba(226,150,58,0.14); pointer-events: none; }
 .opg-brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .opg-brand-logo { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; background: #fff; flex-shrink: 0; }
 .opg-brand-text { flex: 1; min-width: 0; }
@@ -53,13 +56,13 @@ body {
 .opg-sync-dot .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); }
 .opg-sync-dot.live .dot { background: #8FD19E; box-shadow: 0 0 0 3px rgba(143,209,158,0.25); }
 .opg-hero-row { display: flex; gap: 10px; }
-.opg-hero-card { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 12px 14px; }
+.opg-hero-card { flex: 1; min-width: 0; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 12px 14px; }
 .opg-hero-card .lbl { font-size: 12px; color: #C9D6C4; margin-bottom: 4px; }
-.opg-hero-card .val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; }
+.opg-hero-card .val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; overflow-wrap: break-word; }
 .opg-hero-card.profit .val { color: #EFD9AE; }
 
 .opg-tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--card); border-top: 1px solid var(--sage-line); display: flex; padding: 7px 6px calc(7px + env(safe-area-inset-bottom)); gap: 4px; z-index: 50; }
-.opg-tab { flex: 1; border: none; background: transparent; padding: 7px 2px; border-radius: 12px; font-size: 11.5px; font-weight: 600; color: var(--sage); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+.opg-tab { flex: 1; min-width: 0; border: none; background: transparent; padding: 7px 2px; border-radius: 12px; font-size: 11.5px; font-weight: 600; color: var(--sage); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
 .opg-tab .ic { font-size: 17px; }
 .opg-tab.active { background: var(--forest); color: #fff; }
 
@@ -75,14 +78,14 @@ body {
 .opg-field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
 .opg-field input, .opg-field select, .opg-field textarea {
   width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid var(--sage-line);
-  background: #fff; font-size: 15px; font-family: 'Inter'; color: var(--ink);
+  background: #fff; font-size: 16px; font-family: 'Inter'; color: var(--ink);
 }
 .opg-field input:focus, .opg-field select:focus, .opg-field textarea:focus { outline: none; border-color: var(--forest); }
 .opg-row2 { display: flex; gap: 10px; }
-.opg-row2 > div { flex: 1; }
+.opg-row2 > div { flex: 1; min-width: 0; }
 
 .opg-toggle-row { display: flex; gap: 8px; }
-.opg-toggle-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid var(--sage-line); background: #fff; font-weight: 700; font-size: 13.5px; cursor: pointer; color: var(--ink-soft); }
+.opg-toggle-btn { flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1.5px solid var(--sage-line); background: #fff; font-weight: 700; font-size: 13.5px; cursor: pointer; color: var(--ink-soft); }
 .opg-toggle-btn.on-yes.selected { background: var(--ok-bg); border-color: var(--ok-ink); color: var(--ok-ink); }
 .opg-toggle-btn.on-no.selected { background: var(--warn-bg); border-color: var(--warn-ink); color: var(--warn-ink); }
 
@@ -121,7 +124,7 @@ body {
 .opg-chip.active { background: var(--forest); border-color: var(--forest); color: #fff; }
 
 .opg-inline-filters { display: flex; gap: 8px; margin-bottom: 14px; }
-.opg-inline-filters select { flex: 1; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--sage-line); background: #fff; font-size: 13px; font-family: 'Inter'; color: var(--ink-soft); }
+.opg-inline-filters select { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--sage-line); background: #fff; font-size: 16px; font-family: 'Inter'; color: var(--ink-soft); }
 
 .opg-loading { text-align: center; padding: 60px 20px; color: var(--sage); font-size: 14px; }
 
@@ -129,6 +132,7 @@ body {
 .opg-toast.show { opacity: 1; }
 
 .opg-report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.opg-report-grid > button { min-width: 0; }
 .opg-hint { font-size: 12px; color: var(--sage); margin: 6px 2px 16px; line-height: 1.5; }
 #opg-import-input { display: none; }
 
@@ -438,12 +442,12 @@ body {
       fb.onSnapshot(fb.collection(db, 'prodaja'), (snap) => {
         prodaja = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setSyncStatus('live');
-        renderAll();
+        scheduleRenderAll();
       }, () => setSyncStatus('local'));
 
       fb.onSnapshot(fb.collection(db, 'troskovi'), (snap) => {
         troskovi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderAll();
+        scheduleRenderAll();
       });
 
       mode = 'cloud';
@@ -656,6 +660,12 @@ body {
     renderTroskoviList();
     renderPaul();
     renderPregled();
+  }
+  let renderScheduled = false;
+  function scheduleRenderAll(){
+    if (renderScheduled) return;
+    renderScheduled = true;
+    requestAnimationFrame(() => { renderScheduled = false; renderAll(); });
   }
 
   // ================= CSV / JSON =================
