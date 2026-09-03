@@ -62,7 +62,7 @@ body {
 .opg-hero-card.profit .val { color: #EFD9AE; }
 
 .opg-tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--card); border-top: 1px solid var(--sage-line); display: flex; padding: 7px 6px calc(7px + env(safe-area-inset-bottom)); gap: 4px; z-index: 50; }
-.opg-tab { flex: 1; min-width: 0; border: none; background: transparent; padding: 7px 2px; border-radius: 12px; font-size: 11.5px; font-weight: 600; color: var(--sage); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+.opg-tab { flex: 1; min-width: 0; border: none; background: transparent; padding: 7px 1px; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--sage); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; white-space: nowrap; }
 .opg-tab .ic { font-size: 17px; }
 .opg-tab.active { background: var(--forest); color: #fff; }
 
@@ -145,6 +145,27 @@ body {
 .opg-paul-status.ok .big { color: var(--ok-ink); }
 .opg-paul-status.warn .big { color: var(--warn-ink); }
 .opg-paul-status .lbl { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+
+.opg-subview { display: none; }
+.opg-subview.active { display: block; }
+
+.opg-stock-item { display: flex; gap: 12px; align-items: center; background: var(--card); border: 1px solid var(--sage-line); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+.opg-stock-photo { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; background: var(--sage-line); flex-shrink: 0; }
+.opg-stock-photo.empty { display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.opg-stock-main { flex: 1; min-width: 0; }
+.opg-stock-name { font-weight: 700; color: var(--forest); font-size: 14px; }
+.opg-stock-qty { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+.opg-stock-bar-wrap { height: 6px; background: var(--sage-line); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+.opg-stock-bar { height: 100%; background: var(--forest); border-radius: 4px; }
+.opg-stock-bar.low { background: var(--paprika); }
+.opg-stock-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.opg-icon-btn { border: none; background: none; color: var(--sage); font-size: 15px; cursor: pointer; padding: 2px 4px; }
+
+.opg-phi-badge { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 20px; white-space: nowrap; }
+.opg-phi-badge.wait { background: var(--warn-bg); color: var(--warn-ink); }
+.opg-phi-badge.ok { background: var(--ok-bg); color: var(--ok-ink); }
+
+.opg-fis-link { display: block; text-align: center; text-decoration: none; box-sizing: border-box; margin-top: 4px; }
 
 /* ---------- SETUP OVERLAY ---------- */
 #opg-setup { position: fixed; inset: 0; background: var(--bg); z-index: 200; overflow-y: auto; display: none; }
@@ -317,6 +338,84 @@ body {
       <div class="opg-card" id="paul-list-card"></div>
     </div>
 
+    <!-- ZASTITA -->
+    <div class="opg-view" data-view="zastita">
+      <div class="opg-filter-row" id="zastita-subnav">
+        <button class="opg-chip active" data-sub="zalihe">Zalihe</button>
+        <button class="opg-chip" data-sub="prskanje">Prskanje</button>
+      </div>
+
+      <div id="sub-zalihe" class="opg-subview active">
+        <div class="opg-card">
+          <div class="opg-field">
+            <label>Naziv sredstva</label>
+            <input type="text" id="z-naziv" placeholder="npr. Bordoška juha">
+          </div>
+          <div class="opg-field">
+            <label>Fotografija (opcionalno)</label>
+            <input type="file" id="z-slika" accept="image/*" capture="environment">
+            <div id="z-slika-preview"></div>
+          </div>
+          <div class="opg-row2">
+            <div class="opg-field"><label>Količina</label><input type="number" id="z-kolicina" step="0.01" min="0" placeholder="0"></div>
+            <div class="opg-field">
+              <label>Jedinica</label>
+              <select id="z-jedinica">
+                <option value="L">L</option>
+                <option value="ml">ml</option>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="kom">kom</option>
+              </select>
+            </div>
+          </div>
+          <button class="opg-submit" id="z-submit">Dodaj na zalihe</button>
+        </div>
+
+        <div class="opg-section-title">Zalihe sredstava</div>
+        <div id="zalihe-list"></div>
+      </div>
+
+      <div id="sub-prskanje" class="opg-subview">
+        <div class="opg-card">
+          <div class="opg-section-title" style="margin-top:0;">Kalkulator omjera</div>
+          <div class="opg-row2">
+            <div class="opg-field"><label>Prskalica (L)</label><input type="number" id="calc-spremnik" step="0.1" min="0" placeholder="npr. 15"></div>
+            <div class="opg-field"><label>Doza</label><input type="number" id="calc-doza" step="0.01" min="0" placeholder="npr. 2"></div>
+          </div>
+          <div class="opg-field">
+            <label>Jedinica doze</label>
+            <select id="calc-jedinica">
+              <option value="ml_l">ml po litri</option>
+              <option value="g_l">g po litri</option>
+              <option value="pct">% otopine</option>
+            </select>
+          </div>
+          <div class="opg-neto-preview">Potrebno sredstva: <b id="calc-rezultat">0 ml</b></div>
+        </div>
+
+        <div class="opg-card">
+          <div class="opg-section-title" style="margin-top:0;">Novi unos tretiranja</div>
+          <div class="opg-row2">
+            <div class="opg-field"><label>Datum</label><input type="date" id="pr-datum"></div>
+            <div class="opg-field"><label>Sredstvo</label><input type="text" id="pr-sredstvo" list="zalihe-list-dl" placeholder="npr. Bordoška juha"><datalist id="zalihe-list-dl"></datalist></div>
+          </div>
+          <div class="opg-row2">
+            <div class="opg-field"><label>Kultura</label><input type="text" id="pr-kultura" placeholder="npr. Tikvica"></div>
+            <div class="opg-field"><label>Utrošeno</label><input type="number" id="pr-kolicina" step="0.01" min="0" placeholder="0"></div>
+          </div>
+          <div class="opg-field"><label>Karenca (dana)</label><input type="number" id="pr-karenca" min="0" placeholder="npr. 7"></div>
+          <div class="opg-neto-preview">Ubrati tek nakon: <b id="pr-berba-preview">–</b></div>
+          <button class="opg-submit" id="pr-submit">Spremi tretiranje</button>
+        </div>
+
+        <a class="opg-submit ghost opg-fis-link" href="https://fis.mps.hr/TrazilicaSZB/" target="_blank" rel="noopener">Pretraži službeni FIS registar ↗</a>
+
+        <div class="opg-section-title">Povijest tretiranja</div>
+        <div id="prskanje-list"></div>
+      </div>
+    </div>
+
     <!-- PREGLED -->
     <div class="opg-view" data-view="pregled">
       <div class="opg-filter-row" id="pregled-filters"></div>
@@ -351,6 +450,7 @@ body {
     <button class="opg-tab active" data-tab="prodaja"><span class="ic">🥒</span>Prodaja</button>
     <button class="opg-tab" data-tab="troskovi"><span class="ic">🧾</span>Troškovi</button>
     <button class="opg-tab" data-tab="paul"><span class="ic">🤝</span>Paul</button>
+    <button class="opg-tab" data-tab="zastita"><span class="ic">🧴</span>Zaštita</button>
     <button class="opg-tab" data-tab="pregled"><span class="ic">📊</span>Pregled</button>
   </div>
 
@@ -366,6 +466,8 @@ body {
 
   let prodaja = [];       // includes PAUL entries too (kupac === 'PAUL'), excluded from financial totals
   let troskovi = [];
+  let zalihe = [];
+  let prskanje = [];
   let pregledFilter = 'sve';
   let prodajaFilterKupac = 'sve';
   let prodajaFilterMjesec = 'sve';
@@ -413,9 +515,15 @@ body {
       const paulSeed = SEED_PRODAJA.filter(r => r.kupac === 'PAUL');
       if (paulSeed.length) { prodaja = prodaja.concat(paulSeed); saveLocalProdaja(); }
     }
+    try { const z = localStorage.getItem('opg_zalihe'); zalihe = z ? JSON.parse(z) : []; }
+    catch(e){ zalihe = []; }
+    try { const pr = localStorage.getItem('opg_prskanje'); prskanje = pr ? JSON.parse(pr) : []; }
+    catch(e){ prskanje = []; }
   }
   function saveLocalProdaja(){ try { localStorage.setItem('opg_prodaja', JSON.stringify(prodaja)); } catch(e){ toast('Greška pri spremanju'); } }
   function saveLocalTroskovi(){ try { localStorage.setItem('opg_troskovi', JSON.stringify(troskovi)); } catch(e){ toast('Greška pri spremanju'); } }
+  function saveLocalZalihe(){ try { localStorage.setItem('opg_zalihe', JSON.stringify(zalihe)); } catch(e){ toast('Greška pri spremanju'); } }
+  function saveLocalPrskanje(){ try { localStorage.setItem('opg_prskanje', JSON.stringify(prskanje)); } catch(e){ toast('Greška pri spremanju'); } }
 
   function setSyncStatus(state){
     const dot = document.getElementById('sync-indicator');
@@ -465,6 +573,16 @@ body {
         scheduleRenderAll();
       });
 
+      fb.onSnapshot(fb.collection(db, 'zalihe'), (snap) => {
+        zalihe = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        scheduleRenderAll();
+      });
+
+      fb.onSnapshot(fb.collection(db, 'prskanje'), (snap) => {
+        prskanje = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        scheduleRenderAll();
+      });
+
       mode = 'cloud';
       localStorage.setItem('opg_fb_config', JSON.stringify(config));
       setSyncStatus('connecting');
@@ -506,6 +624,46 @@ body {
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'troskovi', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalTroskovi(); }
+  }
+
+  async function saveZalihaDoc(item){
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'zalihe', item.id), item); } catch(e){ toast('Greška pri spremanju u oblak'); } }
+    else { saveLocalZalihe(); }
+  }
+  async function addZaliha(entry){
+    zalihe.push(entry);
+    renderAll();
+    await saveZalihaDoc(entry);
+  }
+  async function updateZalihaQty(id, newQty){
+    const item = zalihe.find(z=>z.id===id);
+    if (!item) return;
+    item.trenutna_kolicina = Math.max(0, newQty);
+    renderAll();
+    await saveZalihaDoc(item);
+  }
+  async function deleteZaliha(id){
+    zalihe = zalihe.filter(z=>z.id!==id);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'zalihe', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
+    else { saveLocalZalihe(); }
+  }
+  async function addPrskanje(entry){
+    const match = zalihe.find(z => (z.naziv||'').trim().toLowerCase() === (entry.sredstvo||'').trim().toLowerCase());
+    if (match) {
+      match.trenutna_kolicina = Math.max(0, (match.trenutna_kolicina||0) - (entry.kolicina||0));
+      await saveZalihaDoc(match);
+    }
+    prskanje.push(entry);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prskanje', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
+    else { saveLocalPrskanje(); }
+  }
+  async function deletePrskanje(id){
+    prskanje = prskanje.filter(r=>r.id!==id);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'prskanje', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
+    else { saveLocalPrskanje(); }
   }
 
   // ================= RENDER =================
@@ -679,6 +837,107 @@ body {
     document.getElementById('pa-neto-preview').textContent = fmt(c*kg);
   }
 
+  // ================= ZASTITA: zalihe, prskanje, kalkulator =================
+  function renderZaliheList(){
+    const el = document.getElementById('zalihe-list');
+    const sorted = [...zalihe].sort((a,b)=>(a.naziv||'').localeCompare(b.naziv||''));
+    if (!sorted.length){ el.innerHTML = '<div class="opg-empty">Još nema unesenih zaliha.</div>'; return; }
+    el.innerHTML = sorted.map(z=>{
+      const pct = z.pocetna_kolicina ? Math.max(0, Math.min(100, Math.round((z.trenutna_kolicina||0)/z.pocetna_kolicina*100))) : 0;
+      const low = pct <= 20;
+      const photo = z.slika ? `<img class="opg-stock-photo" src="${z.slika}" alt="">` : `<div class="opg-stock-photo empty">🧴</div>`;
+      return `<div class="opg-stock-item">
+        ${photo}
+        <div class="opg-stock-main">
+          <div class="opg-stock-name">${z.naziv}</div>
+          <div class="opg-stock-qty">Preostalo: ${(z.trenutna_kolicina||0).toLocaleString('hr-HR')} / ${(z.pocetna_kolicina||0).toLocaleString('hr-HR')} ${z.jedinica||''}</div>
+          <div class="opg-stock-bar-wrap"><div class="opg-stock-bar ${low?'low':''}" style="width:${pct}%"></div></div>
+        </div>
+        <div class="opg-stock-actions">
+          <button class="opg-icon-btn" data-edit-zaliha="${z.id}">✎</button>
+          <button class="opg-icon-btn" data-del-zaliha="${z.id}">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function populateZaliheDatalist(){
+    document.getElementById('zalihe-list-dl').innerHTML = zalihe.map(z=>`<option value="${z.naziv}">`).join('');
+  }
+
+  function computeBerbaDate(datum, karencaDana){
+    if (!datum || !karencaDana) return null;
+    const d = new Date(datum+'T00:00:00');
+    d.setDate(d.getDate() + parseInt(karencaDana,10));
+    return d;
+  }
+
+  function renderPrskanjeList(){
+    const el = document.getElementById('prskanje-list');
+    const sorted = [...prskanje].sort((a,b)=>(b.datum||'').localeCompare(a.datum||''));
+    if (!sorted.length){ el.innerHTML = '<div class="opg-empty">Još nema unesenih tretiranja.</div>'; return; }
+    const today = new Date(); today.setHours(0,0,0,0);
+    el.innerHTML = sorted.map(r=>{
+      const berba = computeBerbaDate(r.datum, r.karenca_dana);
+      let badge = '';
+      if (berba) {
+        const wait = berba > today;
+        const berbaStr = berba.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit'});
+        badge = `<span class="opg-phi-badge ${wait?'wait':'ok'}">${wait ? 'Čekaj do '+berbaStr : 'Sigurno za berbu'}</span>`;
+      }
+      return `<div class="opg-entry">
+        <div class="opg-entry-main">
+          <div class="opg-entry-top">${r.sredstvo||''} · ${r.kultura||''}</div>
+          <div class="opg-entry-sub">${dfmt(r.datum)} · ${r.kolicina||0}${r.unio?' · unio: '+r.unio:''}</div>
+        </div>
+        <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          ${badge}
+        </div>
+        <button class="opg-del" data-del-prskanje="${r.id}">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderCalculator(){
+    const spremnik = parseFloat(document.getElementById('calc-spremnik').value)||0;
+    const doza = parseFloat(document.getElementById('calc-doza').value)||0;
+    const jed = document.getElementById('calc-jedinica').value;
+    let rezultat, label;
+    if (jed === 'pct') { rezultat = spremnik*1000*(doza/100); label = 'ml'; }
+    else if (jed === 'g_l') { rezultat = spremnik*doza; label = 'g'; }
+    else { rezultat = spremnik*doza; label = 'ml'; }
+    document.getElementById('calc-rezultat').textContent = (Math.round(rezultat*100)/100).toLocaleString('hr-HR') + ' ' + label;
+  }
+
+  function renderPrskanjePreview(){
+    const datum = document.getElementById('pr-datum').value;
+    const karenca = document.getElementById('pr-karenca').value;
+    const berba = computeBerbaDate(datum, karenca);
+    document.getElementById('pr-berba-preview').textContent = berba ? berba.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit', year:'numeric'}) : '–';
+  }
+
+  function resizeImageFile(file, maxDim, quality){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          let w = img.width, h = img.height;
+          if (w > h && w > maxDim) { h = Math.round(h*maxDim/w); w = maxDim; }
+          else if (h > maxDim) { w = Math.round(w*maxDim/h); h = maxDim; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   function renderAll(){
     renderHero();
     renderProizvodList();
@@ -687,6 +946,9 @@ body {
     renderTroskoviList();
     renderPaul();
     renderPregled();
+    renderZaliheList();
+    populateZaliheDatalist();
+    renderPrskanjeList();
   }
   let renderScheduled = false;
   function scheduleRenderAll(){
@@ -736,7 +998,7 @@ body {
     toast('Izvještaj troškova spremljen');
   }
   function exportJSON(){
-    const payload = JSON.stringify({ prodaja, troskovi, exported: new Date().toISOString() }, null, 2);
+    const payload = JSON.stringify({ prodaja, troskovi, zalihe, prskanje, exported: new Date().toISOString() }, null, 2);
     downloadBlob(payload, `opg_sigurnosna_kopija_${todayStr()}.json`, 'application/json');
     toast('Sigurnosna kopija spremljena');
   }
@@ -747,14 +1009,18 @@ body {
         const data = JSON.parse(reader.result);
         if (!Array.isArray(data.prodaja) || !Array.isArray(data.troskovi)) throw new Error('bad format');
         if (!confirm('Ovo će zamijeniti sve trenutne podatke podacima iz kopije. Nastaviti?')) return;
+        const zaliheIn = Array.isArray(data.zalihe) ? data.zalihe : [];
+        const prskanjeIn = Array.isArray(data.prskanje) ? data.prskanje : [];
         if (mode === 'cloud') {
           const batch = fb.writeBatch(fb.db);
           data.prodaja.forEach(r => batch.set(fb.doc(fb.db, 'prodaja', r.id), r));
           data.troskovi.forEach(r => batch.set(fb.doc(fb.db, 'troskovi', r.id), r));
+          zaliheIn.forEach(r => batch.set(fb.doc(fb.db, 'zalihe', r.id), r));
+          prskanjeIn.forEach(r => batch.set(fb.doc(fb.db, 'prskanje', r.id), r));
           await batch.commit();
         } else {
-          prodaja = data.prodaja; troskovi = data.troskovi;
-          saveLocalProdaja(); saveLocalTroskovi(); renderAll();
+          prodaja = data.prodaja; troskovi = data.troskovi; zalihe = zaliheIn; prskanje = prskanjeIn;
+          saveLocalProdaja(); saveLocalTroskovi(); saveLocalZalihe(); saveLocalPrskanje(); renderAll();
         }
         toast('Podaci uvezeni');
       } catch(e) { toast('Datoteka nije valjana sigurnosna kopija'); }
@@ -830,6 +1096,68 @@ body {
     toast('Spremljeno (Paul)');
   });
 
+  document.getElementById('zastita-subnav').addEventListener('click', (e)=>{
+    const sub = e.target.dataset.sub;
+    if (!sub) return;
+    document.querySelectorAll('#zastita-subnav .opg-chip').forEach(c=>c.classList.remove('active'));
+    e.target.classList.add('active');
+    document.getElementById('sub-zalihe').classList.toggle('active', sub==='zalihe');
+    document.getElementById('sub-prskanje').classList.toggle('active', sub==='prskanje');
+  });
+
+  let pendingZalihaPhoto = null;
+  document.getElementById('z-slika').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      pendingZalihaPhoto = await resizeImageFile(file, 480, 0.7);
+      document.getElementById('z-slika-preview').innerHTML = `<img src="${pendingZalihaPhoto}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; margin-top:6px;">`;
+    } catch(e) { toast('Fotografija se nije mogla učitati'); }
+  });
+  document.getElementById('z-submit').addEventListener('click', async ()=>{
+    const naziv = document.getElementById('z-naziv').value.trim();
+    const kolicina = parseFloat(document.getElementById('z-kolicina').value)||0;
+    const jedinica = document.getElementById('z-jedinica').value;
+    if (!naziv || !kolicina){ toast('Upiši naziv i količinu'); return; }
+    await addZaliha({ id: uid('z'), naziv, pocetna_kolicina: kolicina, trenutna_kolicina: kolicina, jedinica, slika: pendingZalihaPhoto, unio: currentUser || null, datum: todayStr() });
+    document.getElementById('z-naziv').value = ''; document.getElementById('z-kolicina').value = ''; document.getElementById('z-slika').value = '';
+    document.getElementById('z-slika-preview').innerHTML = ''; pendingZalihaPhoto = null;
+    toast('Dodano na zalihe');
+  });
+  document.getElementById('zalihe-list').addEventListener('click', async (e)=>{
+    const editId = e.target.dataset.editZaliha, delId = e.target.dataset.delZaliha;
+    if (editId) {
+      const item = zalihe.find(z=>z.id===editId);
+      const n = prompt(`Nova preostala količina (${item?item.jedinica:''}):`, item ? item.trenutna_kolicina : 0);
+      if (n !== null && n.trim() !== '' && !isNaN(parseFloat(n))) await updateZalihaQty(editId, parseFloat(n));
+    } else if (delId && confirm('Obrisati ovu zalihu?')) {
+      await deleteZaliha(delId);
+    }
+  });
+
+  ['calc-spremnik','calc-doza','calc-jedinica'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', renderCalculator);
+    document.getElementById(id).addEventListener('change', renderCalculator);
+  });
+  document.getElementById('pr-datum').addEventListener('change', renderPrskanjePreview);
+  document.getElementById('pr-karenca').addEventListener('input', renderPrskanjePreview);
+  document.getElementById('pr-submit').addEventListener('click', async ()=>{
+    const datum = document.getElementById('pr-datum').value || todayStr();
+    const sredstvo = document.getElementById('pr-sredstvo').value.trim();
+    const kultura = document.getElementById('pr-kultura').value.trim();
+    const kolicina = parseFloat(document.getElementById('pr-kolicina').value)||0;
+    const karenca_dana = parseInt(document.getElementById('pr-karenca').value,10)||0;
+    if (!sredstvo || !kultura){ toast('Upiši sredstvo i kulturu'); return; }
+    await addPrskanje({ id: uid('pr'), datum, sredstvo, kultura, kolicina, karenca_dana, unio: currentUser || null });
+    document.getElementById('pr-sredstvo').value = ''; document.getElementById('pr-kultura').value = ''; document.getElementById('pr-kolicina').value = ''; document.getElementById('pr-karenca').value = '';
+    renderPrskanjePreview();
+    toast('Tretiranje spremljeno');
+  });
+  document.getElementById('prskanje-list').addEventListener('click', async (e)=>{
+    const delId = e.target.dataset.delPrskanje;
+    if (delId && confirm('Obrisati ovaj unos?')) await deletePrskanje(delId);
+  });
+
   document.getElementById('prodaja-list-card').addEventListener('click', async (e)=>{
     const toggleId = e.target.dataset.toggleId, delId = e.target.dataset.delProdaja;
     if (toggleId) await toggleProdajaPlaceno(toggleId);
@@ -890,11 +1218,14 @@ body {
   document.getElementById('f-datum').value = todayStr();
   document.getElementById('t-datum').value = todayStr();
   document.getElementById('pa-datum').value = todayStr();
+  document.getElementById('pr-datum').value = todayStr();
 
   loadLocal();
   document.getElementById('opg-loading').style.display = 'none';
   document.getElementById('opg-content').style.display = 'block';
   renderAll();
+  renderCalculator();
+  renderPrskanjePreview();
   ensureUserName();
 
   const savedConfig = localStorage.getItem('opg_fb_config');
