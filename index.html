@@ -175,7 +175,6 @@ body {
 .opg-phi-badge.ok { background: var(--ok-bg); color: var(--ok-ink); }
 
 .opg-fis-link { display: block; text-align: center; text-decoration: none; box-sizing: border-box; margin-top: 4px; }
-.opg-fis-result { white-space: pre-wrap; font-size: 11.5px; line-height: 1.5; max-height: 280px; overflow-y: auto; background: #fff; border: 1px solid var(--sage-line); border-radius: 10px; padding: 10px; display: none; color: var(--ink-soft); }
 
 /* ---------- SETUP OVERLAY ---------- */
 #opg-setup { position: fixed; inset: 0; background: var(--bg); z-index: 200; overflow-y: auto; display: none; }
@@ -407,7 +406,10 @@ body {
             </select>
           </div>
           <div id="calc-ha-wrap" style="display:none;">
-            <p class="opg-hint" style="margin-top:0;">Prepišite brojeve točno kako pišu na FIS stranici za taj proizvod/štetnika/kulturu.</p>
+            <button type="button" class="opg-submit plum" id="calc-photo-btn">📷 Slikaj FIS preporuku</button>
+            <input type="file" id="calc-photo-input" accept="image/*" capture="environment" style="display:none;">
+            <div id="calc-photo-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
+            <p class="opg-hint">Ili prepišite brojeve ručno, točno kako pišu na FIS stranici za taj proizvod/štetnika/kulturu.</p>
             <div class="opg-row2">
               <div class="opg-field"><label>Doza po ha — od</label><input type="number" id="calc-ha-doza-min" step="0.001" min="0" placeholder="npr. 0.075"></div>
               <div class="opg-field"><label>Doza po ha — do</label><input type="number" id="calc-ha-doza-max" step="0.001" min="0" placeholder="npr. 0.175"></div>
@@ -419,17 +421,6 @@ body {
           </div>
           <div class="opg-neto-preview">Potrebno sredstva: <b id="calc-rezultat">0 ml</b></div>
           <button class="opg-submit ghost" id="calc-prenesi">Prenesi u dnevnik tretiranja ↓</button>
-        </div>
-
-        <div class="opg-card">
-          <div class="opg-section-title" style="margin-top:0;">FIS pretraga (beta)</div>
-          <p class="opg-hint" style="margin-top:0;">Zahtijeva postavljenu Cloud Function (vidi README-FIS.md). Broj proizvoda pronađite na kraju FIS URL-a kad otvorite stranicu proizvoda, npr. za Decis 100 EC je 946.</p>
-          <div class="opg-row2">
-            <div class="opg-field"><label>ID proizvoda</label><input type="number" id="fis-id" placeholder="npr. 946"></div>
-            <div class="opg-field"><label>&nbsp;</label><button class="opg-submit secondary" id="fis-fetch" style="margin-top:0;">Dohvati s FIS-a</button></div>
-          </div>
-          <div id="fis-result" class="opg-fis-result"></div>
-          <button class="opg-submit ghost" id="fis-change-url" style="margin-top:8px;">Promijeni adresu servisa</button>
         </div>
 
         <div class="opg-card">
@@ -1270,30 +1261,61 @@ body {
     toast('Preneseno — samo dodaj kulturu i karencu pa spremi');
   });
 
-  function getFisUrl(){ return localStorage.getItem('opg_fis_url') || ''; }
-  function askFisUrl(){
-    const current = getFisUrl();
-    const url = prompt('Zalijepi adresu svoje Cloud Function (iz README-FIS.md, izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/fisLookup):', current);
-    if (url && url.trim()) { localStorage.setItem('opg_fis_url', url.trim()); return url.trim(); }
+  function getAiUrl(){ return localStorage.getItem('opg_ai_url') || ''; }
+  function askAiUrl(){
+    const current = getAiUrl();
+    const url = prompt('Zalijepi adresu fisPhotoLookup funkcije (iz README-FIS.md, izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/fisPhotoLookup):', current);
+    if (url && url.trim()) { localStorage.setItem('opg_ai_url', url.trim()); return url.trim(); }
     return null;
   }
-  document.getElementById('fis-change-url').addEventListener('click', askFisUrl);
-  document.getElementById('fis-fetch').addEventListener('click', async ()=>{
-    let url = getFisUrl();
-    if (!url) { url = askFisUrl(); if (!url) return; }
-    const id = document.getElementById('fis-id').value.trim();
-    if (!id){ toast('Upiši ID proizvoda'); return; }
-    const resultEl = document.getElementById('fis-result');
-    resultEl.style.display = 'block';
-    resultEl.textContent = 'Dohvaćam s FIS-a… (može potrajati 10-ak sekundi)';
+  document.getElementById('calc-photo-btn').addEventListener('click', ()=>{
+    document.getElementById('calc-photo-input').click();
+  });
+  document.getElementById('calc-photo-input').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if (!file) return;
+    let url = getAiUrl();
+    if (!url) { url = askAiUrl(); if (!url) { e.target.value=''; return; } }
+
+    const statusEl = document.getElementById('calc-photo-status');
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Šaljem sliku i čekam odgovor… (par sekundi)';
+
     try {
-      const resp = await fetch(url.replace(/\/$/,'') + '?id=' + encodeURIComponent(id));
+      const dataUrl = await resizeImageFile(file, 1200, 0.85);
+      const base64 = dataUrl.split(',')[1];
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' })
+      });
       const data = await resp.json();
-      if (data.error) { resultEl.textContent = 'Greška: ' + data.error; }
-      else { resultEl.textContent = (data.title ? data.title + '\n\n' : '') + (data.text || '(prazan odgovor)'); }
-    } catch(e) {
-      resultEl.textContent = 'Greška pri spajanju na servis — provjeri adresu (⚙ Promijeni adresu servisa) i je li funkcija uspješno postavljena.\n\n' + e.message;
+      if (data.error) { statusEl.textContent = 'Greška: ' + data.error; e.target.value=''; return; }
+      const p = data.parsed;
+      if (!p) { statusEl.textContent = 'AI nije uspio pročitati strukturirane podatke. Sirovi odgovor:\n' + (data.raw||''); e.target.value=''; return; }
+
+      if (p.doza_po_ha_min != null) document.getElementById('calc-ha-doza-min').value = p.doza_po_ha_min;
+      if (p.doza_po_ha_max != null) document.getElementById('calc-ha-doza-max').value = p.doza_po_ha_max;
+      if (p.voda_po_ha_min != null) document.getElementById('calc-ha-voda-min').value = p.voda_po_ha_min;
+      if (p.voda_po_ha_max != null) document.getElementById('calc-ha-voda-max').value = p.voda_po_ha_max;
+      if (p.proizvod) document.getElementById('calc-sredstvo').value = p.proizvod;
+      if (p.karenca_dana != null) document.getElementById('pr-karenca').value = p.karenca_dana;
+      renderCalculator();
+      renderPrskanjePreview();
+
+      const parts = [];
+      if (p.proizvod) parts.push('Sredstvo: ' + p.proizvod);
+      if (p.kultura) parts.push('Kultura: ' + p.kultura);
+      if (p.stetnik_ili_bolest) parts.push('Štetnik/bolest: ' + p.stetnik_ili_bolest);
+      if (p.karenca_dana != null) parts.push('Karenca: ' + p.karenca_dana + ' dana');
+      if (p.napomena) parts.push('Napomena: ' + p.napomena);
+      statusEl.textContent = '✓ Popunjeno iz fotografije.' + (parts.length ? '\n' + parts.join('\n') : '') +
+        '\n\nUvijek provjerite da su prepoznati brojevi ispravni prije prskanja.';
+      toast('Polja popunjena iz fotografije — provjerite prije prskanja');
+    } catch(err) {
+      statusEl.textContent = 'Greška pri obradi slike: ' + err.message;
     }
+    e.target.value = '';
   });
 
   document.getElementById('pr-datum').addEventListener('change', renderPrskanjePreview);
