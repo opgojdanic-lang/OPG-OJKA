@@ -45,7 +45,6 @@ body {
 #opg-root h1, #opg-root h2, #opg-root .display { font-family: 'Fraunces', serif; }
 
 .opg-header { background: var(--forest); color: #F2EEDC; padding: calc(18px + env(safe-area-inset-top)) 20px 26px; border-radius: 0 0 22px 22px; position: relative; overflow: hidden; }
-.opg-header::after { content: ""; position: absolute; right: -30px; top: -30px; width: 140px; height: 140px; border-radius: 50%; background: rgba(226,150,58,0.14); pointer-events: none; }
 .opg-brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .opg-brand-logo { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; background: #fff; flex-shrink: 0; }
 .opg-brand-text { flex: 1; min-width: 0; }
@@ -55,10 +54,11 @@ body {
 .opg-sync-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #C9D6C4; margin-top: 2px; }
 .opg-sync-dot .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); }
 .opg-sync-dot.live .dot { background: #8FD19E; box-shadow: 0 0 0 3px rgba(143,209,158,0.25); }
-.opg-hero-row { display: flex; gap: 10px; }
-.opg-hero-card { flex: 1; min-width: 0; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 12px 14px; }
-.opg-hero-card .lbl { font-size: 12px; color: #C9D6C4; margin-bottom: 4px; }
-.opg-hero-card .val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; overflow-wrap: break-word; }
+.opg-user-chip { margin-top: 5px; border: none; background: rgba(255,255,255,0.1); color: #C9D6C4; font-size: 11px; padding: 3px 9px; border-radius: 20px; cursor: pointer; }
+.opg-hero-row { display: flex; gap: 6px; }
+.opg-hero-card { flex: 1; min-width: 0; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 10px 8px; }
+.opg-hero-card .lbl { font-size: 11px; color: #C9D6C4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.opg-hero-card .val { font-family: 'Fraunces', serif; font-size: clamp(13px, 4.4vw, 19px); font-weight: 600; white-space: nowrap; overflow: hidden; }
 .opg-hero-card.profit .val { color: #EFD9AE; }
 
 .opg-tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--card); border-top: 1px solid var(--sage-line); display: flex; padding: 7px 6px calc(7px + env(safe-area-inset-bottom)); gap: 4px; z-index: 50; }
@@ -200,6 +200,7 @@ body {
         <p class="opg-eyebrow">OPG · sezona 2026</p>
         <h1 class="opg-title">OPG Ojdanić</h1>
         <div class="opg-sync-dot" id="sync-indicator"><span class="dot"></span><span id="sync-label">Lokalno (bez sinkronizacije)</span></div>
+        <button class="opg-user-chip" id="user-chip">👤 <span id="user-name-label">Postavi ime</span></button>
       </div>
       <button class="opg-gear" id="open-setup">⚙</button>
     </div>
@@ -373,6 +374,18 @@ body {
 
   let mode = 'local';    // 'local' or 'cloud'
   let fb = null;         // { db, collection, doc, setDoc, deleteDoc, onSnapshot, updateDoc, getDocs, writeBatch }
+  let currentUser = localStorage.getItem('opg_user_name') || '';
+
+  function updateUserChip(){
+    document.getElementById('user-name-label').textContent = currentUser || 'Postavi ime';
+  }
+  function ensureUserName(){
+    if (!currentUser) {
+      const n = prompt('Kako se zovete? (prikazuje se uz vaše unose)');
+      if (n && n.trim()) { currentUser = n.trim(); localStorage.setItem('opg_user_name', currentUser); }
+    }
+    updateUserChip();
+  }
 
   const fmt = (n) => (Math.round((n||0)*100)/100).toLocaleString('hr-HR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
   const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -463,36 +476,46 @@ body {
   }
 
   async function addProdaja(entry){
-    if (mode === 'cloud') { await fb.setDoc(fb.doc(fb.db, 'prodaja', entry.id), entry); }
-    else { prodaja.push(entry); saveLocalProdaja(); }
+    prodaja.push(entry);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prodaja', entry.id), entry); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
+    else { saveLocalProdaja(); }
   }
   async function toggleProdajaPlaceno(id){
     const row = prodaja.find(r=>r.id===id);
     if (!row) return;
     row.placeno = !row.placeno;
-    if (mode === 'cloud') { await fb.setDoc(fb.doc(fb.db, 'prodaja', id), row); }
-    else { saveLocalProdaja(); renderAll(); }
+    renderAll();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prodaja', id), row); } catch(e){ toast('Greška pri spremanju u oblak'); } }
+    else { saveLocalProdaja(); }
   }
   async function deleteProdaja(id){
-    if (mode === 'cloud') { await fb.deleteDoc(fb.doc(fb.db, 'prodaja', id)); }
-    else { prodaja = prodaja.filter(r=>r.id!==id); saveLocalProdaja(); renderAll(); }
+    prodaja = prodaja.filter(r=>r.id!==id);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'prodaja', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
+    else { saveLocalProdaja(); }
   }
   async function addTrosak(entry){
-    if (mode === 'cloud') { await fb.setDoc(fb.doc(fb.db, 'troskovi', entry.id), entry); }
-    else { troskovi.push(entry); saveLocalTroskovi(); renderAll(); }
+    troskovi.push(entry);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'troskovi', entry.id), entry); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
+    else { saveLocalTroskovi(); }
   }
   async function deleteTrosak(id){
-    if (mode === 'cloud') { await fb.deleteDoc(fb.doc(fb.db, 'troskovi', id)); }
-    else { troskovi = troskovi.filter(r=>r.id!==id); saveLocalTroskovi(); renderAll(); }
+    troskovi = troskovi.filter(r=>r.id!==id);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'troskovi', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
+    else { saveLocalTroskovi(); }
   }
 
   // ================= RENDER =================
+  const fmtHero = (n) => Math.round(n||0).toLocaleString('hr-HR') + ' €';
   function renderHero(){
     const prihod = prodaja.filter(nonPaul).reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
     const trosak = troskovi.reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0);
-    document.getElementById('hero-prihod').textContent = fmt(prihod);
-    document.getElementById('hero-troskovi').textContent = fmt(trosak);
-    document.getElementById('hero-dobit').textContent = fmt(prihod-trosak);
+    document.getElementById('hero-prihod').textContent = fmtHero(prihod);
+    document.getElementById('hero-troskovi').textContent = fmtHero(trosak);
+    document.getElementById('hero-dobit').textContent = fmtHero(prihod-trosak);
   }
 
   function renderProizvodList(){
@@ -541,10 +564,11 @@ body {
     const del = kind==='prodaja' ? `data-del-prodaja="${r.id}"` : `data-del-paul="${r.id}"`;
     const toggle = kind==='prodaja' ? `data-toggle-id="${r.id}"` : `data-toggle-paul="${r.id}"`;
     const title = kind==='prodaja' ? `${KUPAC_LABEL[r.kupac]||r.kupac} · ${r.proizvod||''}` : (r.proizvod||'');
+    const unioTxt = r.unio ? ` · unio: ${r.unio}` : '';
     return `<div class="opg-entry">
       <div class="opg-entry-main">
         <div class="opg-entry-top">${title}</div>
-        <div class="opg-entry-sub">${dfmt(r.datum)} · ${r.kg||0} kg × ${(r.cijena_kg||0).toLocaleString('hr-HR',{minimumFractionDigits:2})} €</div>
+        <div class="opg-entry-sub">${dfmt(r.datum)} · ${r.kg||0} kg × ${(r.cijena_kg||0).toLocaleString('hr-HR',{minimumFractionDigits:2})} €${unioTxt}</div>
       </div>
       <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
         <div class="opg-entry-amt">${fmt(neto)}</div>
@@ -566,10 +590,11 @@ body {
     if (!sorted.length){ card.innerHTML = '<div class="opg-empty">Nema troškova za odabrani filter.</div>'; return; }
     card.innerHTML = sorted.slice(0,60).map(r=>{
       const trosak = (r.kolicina||0)*(r.cijena||0);
+      const unioTxt = r.unio ? ` · unio: ${r.unio}` : '';
       return `<div class="opg-entry">
         <div class="opg-entry-main">
           <div class="opg-entry-top">${r.naziv||KAT_LABEL[r.kategorija]}</div>
-          <div class="opg-entry-sub">${KAT_LABEL[r.kategorija]||r.kategorija}${r.kultura?' · '+r.kultura:''} · ${dfmt(r.datum)}</div>
+          <div class="opg-entry-sub">${KAT_LABEL[r.kategorija]||r.kategorija}${r.kultura?' · '+r.kultura:''} · ${dfmt(r.datum)}${unioTxt}</div>
         </div>
         <div class="opg-entry-amt">${fmt(trosak)}</div>
         <button class="opg-del" data-del-trosak="${r.id}">✕</button>
@@ -770,7 +795,7 @@ body {
     const kg = parseFloat(document.getElementById('f-kg').value)||0;
     const pak = parseFloat(document.getElementById('f-pak').value)||null;
     if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
-    await addProdaja({ id: uid('p'), kupac, datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: placenoVal, pak });
+    await addProdaja({ id: uid('p'), kupac, datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: placenoVal, pak, unio: currentUser || null });
     document.getElementById('f-proizvod').value = ''; document.getElementById('f-cijena').value = ''; document.getElementById('f-kg').value = ''; document.getElementById('f-pak').value = '';
     renderNetoPreview();
     if (mode==='local') renderAll();
@@ -785,7 +810,7 @@ body {
     const cijena = parseFloat(document.getElementById('t-cijena').value)||0;
     const datum = document.getElementById('t-datum').value || todayStr();
     if (!naziv || !cijena){ toast('Upiši naziv i cijenu'); return; }
-    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, kolicina, cijena, datum });
+    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, kolicina, cijena, datum, unio: currentUser || null });
     document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
     renderTrosakPreview();
     if (mode==='local') renderAll();
@@ -798,7 +823,7 @@ body {
     const cijena_kg = parseFloat(document.getElementById('pa-cijena').value)||0;
     const kg = parseFloat(document.getElementById('pa-kg').value)||0;
     if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
-    await addProdaja({ id: uid('pa'), kupac: 'PAUL', datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: paulPlacenoVal, pak: null });
+    await addProdaja({ id: uid('pa'), kupac: 'PAUL', datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: paulPlacenoVal, pak: null, unio: currentUser || null });
     document.getElementById('pa-proizvod').value = ''; document.getElementById('pa-cijena').value = ''; document.getElementById('pa-kg').value = '';
     renderPaulPreview();
     if (mode==='local') renderAll();
@@ -856,6 +881,11 @@ body {
     else { setSyncStatus('local'); toast('Povezivanje nije uspjelo — provjeri config i pokušaj ponovno'); }
   });
 
+  document.getElementById('user-chip').addEventListener('click', ()=>{
+    const n = prompt('Promijeni ime:', currentUser || '');
+    if (n !== null && n.trim()){ currentUser = n.trim(); localStorage.setItem('opg_user_name', currentUser); updateUserChip(); }
+  });
+
   // ================= INIT =================
   document.getElementById('f-datum').value = todayStr();
   document.getElementById('t-datum').value = todayStr();
@@ -865,6 +895,7 @@ body {
   document.getElementById('opg-loading').style.display = 'none';
   document.getElementById('opg-content').style.display = 'block';
   renderAll();
+  ensureUserName();
 
   const savedConfig = localStorage.getItem('opg_fb_config');
   if (savedConfig) {
