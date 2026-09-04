@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <style>
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -148,6 +149,12 @@ body {
 #opg-import-input { display: none; }
 
 .opg-paul-status { text-align: center; padding: 18px 10px; border-radius: 14px; margin-bottom: 4px; }
+.opg-isk-card { background: var(--card); border: 1px solid var(--sage-line); border-radius: 16px; padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.opg-isk-card:active { opacity: 0.85; }
+.opg-isk-name { font-weight: 700; font-size: 15px; color: var(--forest); }
+.opg-isk-meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+.opg-isk-expired { color: var(--warn-ink) !important; font-weight: 700; }
+.opg-isk-del { border: none; background: none; color: var(--sage); font-size: 17px; cursor: pointer; padding: 4px 8px; }
 .opg-paul-status.ok { background: var(--ok-bg); }
 .opg-paul-status.warn { background: var(--warn-bg); }
 .opg-paul-status .big { font-family: 'Fraunces'; font-size: 24px; font-weight: 600; }
@@ -353,6 +360,7 @@ body {
         <button class="opg-chip active" data-sub="zalihe">Zalihe</button>
         <button class="opg-chip" data-sub="prskanje">Prskanje</button>
         <button class="opg-chip" data-sub="vrijeme">Vrijeme</button>
+        <button class="opg-chip" data-sub="iskaznica">Iskaznica</button>
       </div>
 
       <div id="sub-zalihe" class="opg-subview active">
@@ -463,6 +471,32 @@ body {
           <button class="opg-submit ghost" id="vrijeme-save-thresholds">Spremi pragove</button>
         </div>
       </div>
+
+      <div id="sub-iskaznica" class="opg-subview">
+        <div class="opg-section-title" style="margin-top:0;">Vjerodajnice za kupnju pesticida</div>
+        <p class="opg-hint" style="margin-top:0;">Dodirnite karticu za prikaz barkoda preko cijelog zaslona, spremno za skeniranje u poljoapoteci.</p>
+        <div id="iskaznica-list"></div>
+
+        <div class="opg-section-title">Dodaj vjerodajnicu</div>
+        <div class="opg-card">
+          <div class="opg-field"><label>Ime i prezime</label><input type="text" id="isk-ime" placeholder="npr. Mira Ojdanić"></div>
+          <div class="opg-field"><label>OIB</label><input type="text" id="isk-oib" inputmode="numeric" placeholder="npr. 54042759810"></div>
+          <div class="opg-row2">
+            <div class="opg-field"><label>Vrijedi do</label><input type="date" id="isk-vrijedi-do"></div>
+            <div class="opg-field"><label>Modul</label><input type="text" id="isk-modul" placeholder="npr. 1" value="1"></div>
+          </div>
+          <div class="opg-field"><label>Barkod (opcionalno — ako se ne poklapa s automatskim, upiši ručno)</label><input type="text" id="isk-barkod-rucno" placeholder="ostavi prazno za automatski"></div>
+          <button class="opg-submit" id="isk-submit">Spremi vjerodajnicu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ISKAZNICA FULLSCREEN -->
+    <div id="isk-fullscreen" style="display:none; position:fixed; inset:0; background:#fff; z-index:300; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+      <button id="isk-fullscreen-close" style="position:absolute; top:calc(16px + env(safe-area-inset-top)); right:16px; border:none; background:var(--sage-line); width:36px; height:36px; border-radius:50%; font-size:16px; cursor:pointer; color:var(--forest);">✕</button>
+      <div id="isk-fullscreen-name" style="font-family:'Fraunces'; font-size:20px; font-weight:600; color:var(--ink); margin-bottom:6px; text-align:center;"></div>
+      <div id="isk-fullscreen-meta" style="font-size:13px; color:var(--ink-soft); margin-bottom:24px; text-align:center;"></div>
+      <svg id="isk-fullscreen-svg" style="width:100%; max-width:420px;"></svg>
     </div>
 
     <!-- PREGLED -->
@@ -513,11 +547,13 @@ body {
   const KAT_LABEL = { SJEME: 'Sjeme', GNOJIVO: 'Gnojivo', REPROMATERIJAL: 'Repromaterijal', 'SREDSTVA ZA ZAŠTITU': 'Sredstva za zaštitu', OSTALO: 'Ostalo' };
 
   const SEED_PRODAJA = [{"id": "p1", "kupac": "RIBOLA", "datum": "2026-06-11", "proizvod": "TIKVICA", "cijena_kg": 0.7, "kg": 67, "placeno": true, "pak": 7}, {"id": "p2", "kupac": "RIBOLA", "datum": "2026-06-14", "proizvod": "TIKVICA", "cijena_kg": 0.7, "kg": 50, "placeno": true, "pak": 5}, {"id": "p3", "kupac": "RIBOLA", "datum": "2026-06-18", "proizvod": "TIKVICA", "cijena_kg": 0.5, "kg": 118, "placeno": true, "pak": 14}, {"id": "p4", "kupac": "RIBOLA", "datum": "2026-06-22", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 180, "placeno": true, "pak": 16}, {"id": "p5", "kupac": "RIBOLA", "datum": "2026-06-25", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 165, "placeno": true, "pak": 11}, {"id": "p6", "kupac": "RIBOLA", "datum": "2026-06-28", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 110, "placeno": true, "pak": 14}, {"id": "p7", "kupac": "RIBOLA", "datum": "2026-07-03", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 202, "placeno": true, "pak": 18}, {"id": "p8", "kupac": "RIBOLA", "datum": "2026-07-07", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 145, "placeno": true, "pak": 21}, {"id": "p9", "kupac": "RIBOLA", "datum": "2026-07-13", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 177, "placeno": true, "pak": 20}, {"id": "p10", "kupac": "RIBOLA", "datum": "2026-07-17", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 158, "placeno": true, "pak": 20}, {"id": "p11", "kupac": "RIBOLA", "datum": "2026-07-22", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 176, "placeno": true, "pak": 30}, {"id": "p12", "kupac": "RIBOLA", "datum": "2026-07-27", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 172, "placeno": true, "pak": 25}, {"id": "p13", "kupac": "RIBOLA", "datum": "2026-08-02", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 203, "placeno": false, "pak": 15}, {"id": "p14", "kupac": "RIBOLA", "datum": "2026-08-06", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 132, "placeno": false, "pak": 12}, {"id": "p15", "kupac": "RIBOLA", "datum": "2026-08-13", "proizvod": "TIKVICA", "cijena_kg": 0.65, "kg": 190, "placeno": false, "pak": 19}, {"id": "p16", "kupac": "RIBOLA", "datum": "2026-08-23", "proizvod": "TIKVICA", "cijena_kg": 0.8, "kg": 58, "placeno": false, "pak": 4}, {"id": "p17", "kupac": "RIBOLA", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 1737, "placeno": true, "pak": 164}, {"id": "p18", "kupac": "RIBOLA", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 1240, "placeno": true, "pak": 120}, {"id": "p19", "kupac": "RIBOLA", "datum": "2026-07-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 850, "placeno": true, "pak": 80}, {"id": "p20", "kupac": "RIBOLA", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 986, "placeno": false, "pak": 98}, {"id": "p21", "kupac": "RIBOLA", "datum": "2026-08-23", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 1792, "placeno": false, "pak": 164}, {"id": "p22", "kupac": "RIBOLA", "datum": "2026-07-27", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.8, "kg": 845, "placeno": true, "pak": null}, {"id": "p23", "kupac": "RIBOLA", "datum": "2026-08-19", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.7, "kg": 1193, "placeno": false, "pak": null}, {"id": "p24", "kupac": "BARIČEVIĆ", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p25", "kupac": "BARIČEVIĆ", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p26", "kupac": "BARIČEVIĆ", "datum": "2026-07-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p27", "kupac": "BARIČEVIĆ", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p28", "kupac": "BARIČEVIĆ", "datum": "2026-07-30", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p29", "kupac": "BARIČEVIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p30", "kupac": "BARIČEVIĆ", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p31", "kupac": "BARIČEVIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p32", "kupac": "BARIČEVIĆ", "datum": "2026-08-20", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p33", "kupac": "BARIČEVIĆ", "datum": "2026-08-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p34", "kupac": "BARIČEVIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p35", "kupac": "ĐAKULA", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": false, "pak": 3}, {"id": "p36", "kupac": "ĐAKULA", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p37", "kupac": "ĐAKULA", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p38", "kupac": "ĐAKULA", "datum": "2026-07-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p39", "kupac": "ĐAKULA", "datum": "2026-07-25", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p40", "kupac": "ĐAKULA", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 120, "placeno": false, "pak": 12}, {"id": "p41", "kupac": "ĐAKULA", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p42", "kupac": "ĐAKULA", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 120, "placeno": true, "pak": 12}, {"id": "p43", "kupac": "ĐAKULA", "datum": "2026-08-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p44", "kupac": "ĐAKULA", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p45", "kupac": "ĐAKULA", "datum": "2026-08-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p46", "kupac": "ĐAKULA", "datum": "2026-08-26", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p47", "kupac": "ĐAKULA", "datum": "2026-08-31", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p48", "kupac": "ĐAKULA", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p49", "kupac": "BOKŠIĆ", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 10, "placeno": true, "pak": 1}, {"id": "p50", "kupac": "BOKŠIĆ", "datum": "2026-07-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p51", "kupac": "BOKŠIĆ", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p52", "kupac": "BOKŠIĆ", "datum": "2026-08-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p53", "kupac": "BOKŠIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p54", "kupac": "BOKŠIĆ", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p55", "kupac": "BOKŠIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p56", "kupac": "BOKŠIĆ", "datum": "2026-08-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p57", "kupac": "BOKŠIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p58", "kupac": "VITIĆ", "datum": "2026-07-27", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p59", "kupac": "VITIĆ", "datum": "2026-07-29", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p60", "kupac": "VITIĆ", "datum": "2026-08-02", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p61", "kupac": "VITIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p62", "kupac": "VITIĆ", "datum": "2026-08-11", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p63", "kupac": "VITIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p64", "kupac": "VITIĆ", "datum": "2026-08-19", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p65", "kupac": "VITIĆ", "datum": "2026-08-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p66", "kupac": "VITIĆ", "datum": "2026-08-26", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p67", "kupac": "VITIĆ", "datum": "2026-08-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p68", "kupac": "VITIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p69", "kupac": "VITIĆ", "datum": "2026-07-27", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p70", "kupac": "VITIĆ", "datum": "2026-07-29", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p71", "kupac": "VITIĆ", "datum": "2026-08-02", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 10, "placeno": true, "pak": 2}, {"id": "p72", "kupac": "VITIĆ", "datum": "2026-08-11", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p73", "kupac": "VITIĆ", "datum": "2026-08-17", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p74", "kupac": "VITIĆ", "datum": "2026-08-19", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p75", "kupac": "VITIĆ", "datum": "2026-08-21", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p76", "kupac": "PAUL", "datum": "2026-06-28", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 200, "placeno": true, "pak": null}, {"id": "p77", "kupac": "PAUL", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 200, "placeno": true, "pak": null}, {"id": "p78", "kupac": "PAUL", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 300, "placeno": true, "pak": null}, {"id": "p79", "kupac": "PAUL", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 400, "placeno": true, "pak": null}, {"id": "p80", "kupac": "PAUL", "datum": "2026-08-06", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 400, "placeno": true, "pak": null}, {"id": "p81", "kupac": "PAUL", "datum": "2026-08-19", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.7, "kg": 250, "placeno": true, "pak": null}, {"id": "p82", "kupac": "PAUL", "datum": "2026-08-19", "proizvod": "TIKVICA", "cijena_kg": 0.8, "kg": 410, "placeno": true, "pak": null}];
+  const SEED_LICENCE = { id: "lic1", ime: "Mira Ojdanić", oib: "54042759810", vrijedi_do: "2026-09-25", modul: "1", barkod_rucno: null };
 
   let prodaja = [];       // includes PAUL entries too (kupac === 'PAUL'), excluded from financial totals
   let troskovi = [];
   let zalihe = [];
   let prskanje = [];
+  let licences = [];
   let pregledFilter = 'sve';
   let prodajaFilterKupac = 'sve';
   let prodajaFilterMjesec = 'sve';
@@ -572,11 +608,18 @@ body {
     catch(e){ zalihe = []; }
     try { const pr = localStorage.getItem('opg_prskanje'); prskanje = pr ? JSON.parse(pr) : []; }
     catch(e){ prskanje = []; }
+    try { const lc = localStorage.getItem('opg_licences'); licences = lc ? JSON.parse(lc) : []; }
+    catch(e){ licences = []; }
+    if (!licences.some(l => l.oib === SEED_LICENCE.oib)) {
+      licences = licences.concat([SEED_LICENCE]);
+      saveLocalLicences();
+    }
   }
   function saveLocalProdaja(){ try { localStorage.setItem('opg_prodaja', JSON.stringify(prodaja)); } catch(e){ toast('Greška pri spremanju'); } }
   function saveLocalTroskovi(){ try { localStorage.setItem('opg_troskovi', JSON.stringify(troskovi)); } catch(e){ toast('Greška pri spremanju'); } }
   function saveLocalZalihe(){ try { localStorage.setItem('opg_zalihe', JSON.stringify(zalihe)); } catch(e){ toast('Greška pri spremanju'); } }
   function saveLocalPrskanje(){ try { localStorage.setItem('opg_prskanje', JSON.stringify(prskanje)); } catch(e){ toast('Greška pri spremanju'); } }
+  function saveLocalLicences(){ try { localStorage.setItem('opg_licences', JSON.stringify(licences)); } catch(e){ toast('Greška pri spremanju'); } }
 
   function setSyncStatus(state){
     const dot = document.getElementById('sync-indicator');
@@ -616,6 +659,11 @@ body {
         }
       }
 
+      const licSnap = await fb.getDocs(fb.collection(db, 'licences'));
+      if (!licSnap.docs.some(d => d.data().oib === SEED_LICENCE.oib)) {
+        await fb.setDoc(fb.doc(db, 'licences', SEED_LICENCE.id), SEED_LICENCE);
+      }
+
       fb.onSnapshot(fb.collection(db, 'prodaja'), (snap) => {
         prodaja = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setSyncStatus('live');
@@ -634,6 +682,11 @@ body {
 
       fb.onSnapshot(fb.collection(db, 'prskanje'), (snap) => {
         prskanje = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        scheduleRenderAll();
+      });
+
+      fb.onSnapshot(fb.collection(db, 'licences'), (snap) => {
+        licences = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         scheduleRenderAll();
       });
 
@@ -714,6 +767,18 @@ body {
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'zalihe', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalZalihe(); }
+  }
+  async function addLicenca(entry){
+    licences.push(entry);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'licences', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
+    else { saveLocalLicences(); }
+  }
+  async function deleteLicenca(id){
+    licences = licences.filter(l=>l.id!==id);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'licences', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
+    else { saveLocalLicences(); }
   }
   async function addPrskanje(entry){
     const match = zalihe.find(z => (z.naziv||'').trim().toLowerCase() === (entry.sredstvo||'').trim().toLowerCase());
@@ -935,6 +1000,45 @@ body {
   }
 
   // ================= ZASTITA: zalihe, prskanje, kalkulator =================
+  function ddmmyyyy(dateStr){
+    if (!dateStr) return '';
+    const [y,m,d] = dateStr.split('-');
+    return d + m + y;
+  }
+  function computeBarcodeValue(oib, modul, vrijediDo){
+    return `${(oib||'').trim()}-${(modul||'1').trim()}-${ddmmyyyy(vrijediDo)}`;
+  }
+  function renderIskaznicaList(){
+    const el = document.getElementById('iskaznica-list');
+    if (!el) return;
+    if (!licences.length){ el.innerHTML = '<div class="opg-empty">Još nema dodanih vjerodajnica.</div>'; return; }
+    const today = todayStr();
+    el.innerHTML = licences.map(l=>{
+      const expired = l.vrijedi_do && l.vrijedi_do < today;
+      return `<div class="opg-isk-card" data-open-isk="${l.id}">
+        <div>
+          <div class="opg-isk-name">${l.ime||''}</div>
+          <div class="opg-isk-meta ${expired?'opg-isk-expired':''}">${expired?'Isteklo':'Vrijedi do'} ${l.vrijedi_do ? dfmt(l.vrijedi_do) : '–'} · OIB ${l.oib||''}</div>
+        </div>
+        <button class="opg-isk-del" data-del-isk="${l.id}">✕</button>
+      </div>`;
+    }).join('');
+  }
+  function openIskaznicaFullscreen(id){
+    const l = licences.find(x=>x.id===id);
+    if (!l) return;
+    const value = l.barkod_rucno || computeBarcodeValue(l.oib, l.modul, l.vrijedi_do);
+    document.getElementById('isk-fullscreen-name').textContent = l.ime || '';
+    document.getElementById('isk-fullscreen-meta').textContent = `OIB ${l.oib||''} · Vrijedi do ${l.vrijedi_do ? dfmt(l.vrijedi_do) : '–'}`;
+    try {
+      JsBarcode('#isk-fullscreen-svg', value, { format: 'CODE128', displayValue: true, fontSize: 14, height: 90, margin: 10 });
+    } catch(e) {
+      toast('Greška pri crtanju barkoda — provjeri podatke');
+      return;
+    }
+    document.getElementById('isk-fullscreen').style.display = 'flex';
+  }
+
   function renderZaliheList(){
     const el = document.getElementById('zalihe-list');
     const sorted = [...zalihe].sort((a,b)=>(a.naziv||'').localeCompare(b.naziv||''));
@@ -1184,6 +1288,7 @@ body {
     populateZaliheDatalist();
     renderPrskanjeList();
     renderVrijeme();
+    renderIskaznicaList();
   }
   let renderScheduled = false;
   function scheduleRenderAll(){
@@ -1339,6 +1444,7 @@ body {
     document.getElementById('sub-zalihe').classList.toggle('active', sub==='zalihe');
     document.getElementById('sub-prskanje').classList.toggle('active', sub==='prskanje');
     document.getElementById('sub-vrijeme').classList.toggle('active', sub==='vrijeme');
+    document.getElementById('sub-iskaznica').classList.toggle('active', sub==='iskaznica');
   });
 
   let pendingZalihaPhoto = null;
@@ -1567,6 +1673,31 @@ body {
     } else {
       toast('Pragovi se dijele preko Firestore-a — poveži se na ⚙ gore desno');
     }
+  });
+
+  document.getElementById('isk-submit').addEventListener('click', async ()=>{
+    const ime = document.getElementById('isk-ime').value.trim();
+    const oib = document.getElementById('isk-oib').value.trim();
+    const vrijedi_do = document.getElementById('isk-vrijedi-do').value;
+    const modul = document.getElementById('isk-modul').value.trim() || '1';
+    const barkod_rucno = document.getElementById('isk-barkod-rucno').value.trim();
+    if (!ime || !oib || !vrijedi_do){ toast('Upiši ime, OIB i datum isteka'); return; }
+    await addLicenca({ id: uid('lic'), ime, oib, vrijedi_do, modul, barkod_rucno: barkod_rucno || null, unio: currentUser || null });
+    document.getElementById('isk-ime').value = '';
+    document.getElementById('isk-oib').value = '';
+    document.getElementById('isk-vrijedi-do').value = '';
+    document.getElementById('isk-modul').value = '1';
+    document.getElementById('isk-barkod-rucno').value = '';
+    toast('Vjerodajnica spremljena');
+  });
+  document.getElementById('iskaznica-list').addEventListener('click', async (e)=>{
+    const openId = e.target.closest('[data-open-isk]');
+    const delId = e.target.dataset.delIsk;
+    if (delId){ e.stopPropagation(); if (confirm('Obrisati ovu vjerodajnicu?')) await deleteLicenca(delId); return; }
+    if (openId){ openIskaznicaFullscreen(openId.dataset.openIsk); }
+  });
+  document.getElementById('isk-fullscreen-close').addEventListener('click', ()=>{
+    document.getElementById('isk-fullscreen').style.display = 'none';
   });
   document.getElementById('setup-close').addEventListener('click', closeSetup);
   document.getElementById('setup-skip').addEventListener('click', ()=>{ closeSetup(); toast('Radiš lokalno na ovom uređaju'); });
