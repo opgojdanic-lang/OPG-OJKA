@@ -155,6 +155,9 @@ body {
 .opg-isk-meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
 .opg-isk-expired { color: var(--warn-ink) !important; font-weight: 700; }
 .opg-isk-del { border: none; background: none; color: var(--sage); font-size: 17px; cursor: pointer; padding: 4px 8px; }
+.opg-isk-add-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; background: var(--card); border: 1px dashed var(--sage-line); border-radius: 14px; padding: 13px 16px; font-family: 'Inter'; font-size: 14px; font-weight: 600; color: var(--forest); cursor: pointer; margin: 18px 0 10px; }
+.opg-isk-add-icon { font-size: 18px; font-weight: 700; transition: transform 0.2s; }
+.opg-isk-add-icon.open { transform: rotate(45deg); }
 .opg-paul-status.ok { background: var(--ok-bg); }
 .opg-paul-status.warn { background: var(--warn-bg); }
 .opg-paul-status .big { font-family: 'Fraunces'; font-size: 24px; font-weight: 600; }
@@ -477,8 +480,11 @@ body {
         <p class="opg-hint" style="margin-top:0;">Dodirnite karticu za prikaz barkoda preko cijelog zaslona, spremno za skeniranje u poljoapoteci.</p>
         <div id="iskaznica-list"></div>
 
-        <div class="opg-section-title">Dodaj vjerodajnicu</div>
-        <div class="opg-card">
+        <button type="button" class="opg-isk-add-toggle" id="isk-add-toggle">
+          <span>Dodaj vjerodajnicu</span>
+          <span class="opg-isk-add-icon" id="isk-add-icon">+</span>
+        </button>
+        <div class="opg-card" id="isk-add-form" style="display:none;">
           <div class="opg-field"><label>Ime i prezime</label><input type="text" id="isk-ime" placeholder="npr. Mira Ojdanić"></div>
           <div class="opg-field"><label>OIB</label><input type="text" id="isk-oib" inputmode="numeric" placeholder="npr. 54042759810"></div>
           <div class="opg-row2">
@@ -1675,6 +1681,13 @@ body {
     }
   });
 
+  document.getElementById('isk-add-toggle').addEventListener('click', ()=>{
+    const form = document.getElementById('isk-add-form');
+    const icon = document.getElementById('isk-add-icon');
+    const opening = form.style.display === 'none';
+    form.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
   document.getElementById('isk-submit').addEventListener('click', async ()=>{
     const ime = document.getElementById('isk-ime').value.trim();
     const oib = document.getElementById('isk-oib').value.trim();
@@ -1688,6 +1701,8 @@ body {
     document.getElementById('isk-vrijedi-do').value = '';
     document.getElementById('isk-modul').value = '1';
     document.getElementById('isk-barkod-rucno').value = '';
+    document.getElementById('isk-add-form').style.display = 'none';
+    document.getElementById('isk-add-icon').classList.remove('open');
     toast('Vjerodajnica spremljena');
   });
   document.getElementById('iskaznica-list').addEventListener('click', async (e)=>{
