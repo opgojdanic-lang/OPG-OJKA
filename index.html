@@ -64,7 +64,8 @@ body {
 
 .opg-tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--card); border-top: 1px solid var(--sage-line); display: flex; padding: 7px 6px calc(7px + env(safe-area-inset-bottom)); gap: 4px; z-index: 50; }
 .opg-tab { flex: 1; min-width: 0; border: none; background: transparent; padding: 7px 1px; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--sage); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; white-space: nowrap; }
-.opg-tab .ic { font-size: 17px; }
+.opg-tab .ic { font-size: 17px; display: flex; align-items: center; justify-content: center; height: 19px; }
+.opg-tab-img { height: 19px; width: auto; object-fit: contain; }
 .opg-tab.active { background: var(--forest); color: #fff; }
 
 .opg-view { padding: 18px 16px 8px; display: none; }
@@ -536,10 +537,10 @@ body {
   </div>
 
   <div class="opg-tabbar">
-    <button class="opg-tab active" data-tab="prodaja"><span class="ic">🥒</span>Prodaja</button>
+    <button class="opg-tab active" data-tab="prodaja"><span class="ic">🧺</span>Prodaja</button>
     <button class="opg-tab" data-tab="troskovi"><span class="ic">🧾</span>Troškovi</button>
     <button class="opg-tab" data-tab="paul"><span class="ic">🤝</span>Paul</button>
-    <button class="opg-tab" data-tab="zastita"><span class="ic">🧴</span>Zaštita</button>
+    <button class="opg-tab" data-tab="zastita"><span class="ic"><img src="./icons/sprayer-tab.png" alt="" class="opg-tab-img"></span>Zaštita</button>
     <button class="opg-tab" data-tab="pregled"><span class="ic">📊</span>Pregled</button>
   </div>
 
