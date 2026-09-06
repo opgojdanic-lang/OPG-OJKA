@@ -457,6 +457,7 @@ body {
             <div class="opg-field"><label>Utrošeno</label><input type="number" id="pr-kolicina" step="0.01" min="0" placeholder="0"></div>
           </div>
           <div class="opg-field"><label>Karenca (dana)</label><input type="number" id="pr-karenca" min="0" placeholder="npr. 7"></div>
+          <div class="opg-field"><label>Komentar (opcionalno)</label><textarea id="pr-komentar" rows="3" placeholder="npr. vrijeme prskanja, primijećeni problemi, napomena za sljedeći put…" style="width:100%; padding:11px 12px; border-radius:10px; border:1.5px solid var(--sage-line); background:#fff; font-size:16px; font-family:'Inter'; color:var(--ink); resize:vertical;"></textarea></div>
           <div class="opg-neto-preview">Ubrati tek nakon: <b id="pr-berba-preview">–</b></div>
           <button class="opg-submit" id="pr-submit">Spremi tretiranje</button>
         </div>
@@ -530,6 +531,9 @@ body {
 
       <div class="opg-section-title">Prihod po kupcu</div>
       <div class="opg-sum-card" id="sum-by-kupac"></div>
+
+      <div class="opg-section-title">Isporučene količine po kupcu</div>
+      <div class="opg-sum-card" id="sum-kolicina-by-kupac"></div>
 
       <div class="opg-section-title">Troškovi po kategoriji</div>
       <div class="opg-sum-card" id="sum-by-kat"></div>
@@ -986,6 +990,33 @@ body {
       <div class="opg-sum-subrows">${subRows}</div>`;
     }).join('') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
 
+    const byKupacKg = {};
+    const byKupacProizvodKg = {};
+    pFiltered.forEach(r=>{
+      byKupacKg[r.kupac] = (byKupacKg[r.kupac]||0) + (r.kg||0);
+      byKupacProizvodKg[r.kupac] = byKupacProizvodKg[r.kupac] || {};
+      const p = r.proizvod || '—';
+      byKupacProizvodKg[r.kupac][p] = (byKupacProizvodKg[r.kupac][p]||0) + (r.kg||0);
+    });
+    const totalKgKupac = Object.values(byKupacKg).reduce((a,b)=>a+b,0) || 1;
+    const kolicinaCard = document.getElementById('sum-kolicina-by-kupac');
+    const kupacKgKeys = Object.keys(byKupacKg).sort((a,b)=>byKupacKg[b]-byKupacKg[a]);
+    kolicinaCard.innerHTML = kupacKgKeys.length ? kupacKgKeys.map(k=>{
+      const proizvodi = Object.entries(byKupacProizvodKg[k]||{}).sort((a,b)=>b[1]-a[1]);
+      const subRows = proizvodi.map(([p,val])=>`
+        <div class="opg-sum-subrow">
+          <div class="opg-sum-subname">${p}</div>
+          <div class="opg-sum-subval">${val.toLocaleString('hr-HR')} kg</div>
+        </div>`).join('');
+      return `
+      <div class="opg-sum-row">
+        <div class="opg-sum-name" style="min-width:88px;">${KUPAC_LABEL[k]||k}</div>
+        <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKupacKg[k]/totalKgKupac*100)}%; background:var(--squash);"></div></div>
+        <div class="opg-sum-val">${byKupacKg[k].toLocaleString('hr-HR')} kg</div>
+      </div>
+      <div class="opg-sum-subrows">${subRows}</div>`;
+    }).join('') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
+
     const byKat = {};
     tFiltered.forEach(r=>{ byKat[r.kategorija] = (byKat[r.kategorija]||0) + (r.kolicina||0)*(r.cijena||0); });
     const totalTrosak = Object.values(byKat).reduce((a,b)=>a+b,0) || 1;
@@ -1116,6 +1147,7 @@ body {
         <div class="opg-entry-main">
           <div class="opg-entry-top">${r.sredstvo||''} · ${r.kultura||''}</div>
           <div class="opg-entry-sub">${dfmt(r.datum)} · ${r.kolicina||0}${r.unio?' · unio: '+r.unio:''}</div>
+          ${r.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${r.komentar}</div>` : ''}
         </div>
         <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           ${badge}
@@ -1739,9 +1771,10 @@ body {
     const kultura = document.getElementById('pr-kultura').value.trim();
     const kolicina = parseFloat(document.getElementById('pr-kolicina').value)||0;
     const karenca_dana = parseInt(document.getElementById('pr-karenca').value,10)||0;
+    const komentar = document.getElementById('pr-komentar').value.trim();
     if (!sredstvo || !kultura){ toast('Upiši sredstvo i kulturu'); return; }
-    await addPrskanje({ id: uid('pr'), datum, sredstvo, kultura, kolicina, karenca_dana, unio: currentUser || null, ts: Date.now() });
-    document.getElementById('pr-sredstvo').value = ''; document.getElementById('pr-kultura').value = ''; document.getElementById('pr-kolicina').value = ''; document.getElementById('pr-karenca').value = '';
+    await addPrskanje({ id: uid('pr'), datum, sredstvo, kultura, kolicina, karenca_dana, komentar: komentar || null, unio: currentUser || null, ts: Date.now() });
+    document.getElementById('pr-sredstvo').value = ''; document.getElementById('pr-kultura').value = ''; document.getElementById('pr-kolicina').value = ''; document.getElementById('pr-karenca').value = ''; document.getElementById('pr-komentar').value = '';
     renderPrskanjePreview();
     toast('Tretiranje spremljeno');
   });
