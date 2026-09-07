@@ -627,7 +627,7 @@ body {
   let currentUser = localStorage.getItem('opg_user_name') || '';
   let sharedSettings = {};
   let sprayConditions = {};
-  let currentSeason = localStorage.getItem('opg_season') || String(new Date().getFullYear());
+  let currentSeason = String(new Date().getFullYear());
   let firebaseApp = null;
 
   function updateUserChip(){
@@ -936,7 +936,7 @@ body {
     troskovi.forEach(r=>{ if (r.datum) years.add(r.datum.slice(0,4)); });
     years.add(String(new Date().getFullYear()));
     const sorted = [...years].sort().reverse();
-    if (!sorted.includes(currentSeason) && currentSeason !== 'sve') { currentSeason = sorted[0]; localStorage.setItem('opg_season', currentSeason); }
+    if (!sorted.includes(currentSeason) && currentSeason !== 'sve') { currentSeason = sorted[0]; }
     const optionsHtml = sorted.map(y=>`<option value="${y}">${y}</option>`).join('') + '<option value="sve">sve</option>';
     if (sel.dataset.built !== optionsHtml) { sel.innerHTML = optionsHtml; sel.dataset.built = optionsHtml; }
     if (sel.value !== currentSeason) sel.value = currentSeason;
@@ -1977,7 +1977,6 @@ body {
   document.getElementById('open-setup').addEventListener('click', ()=> openSetup(true));
   document.getElementById('season-select').addEventListener('change', (e)=>{
     currentSeason = e.target.value;
-    localStorage.setItem('opg_season', currentSeason);
     renderAll();
     toast(currentSeason === 'sve' ? 'Prikaz: sve sezone' : 'Prikaz: sezona ' + currentSeason);
   });
