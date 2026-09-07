@@ -634,7 +634,7 @@ body {
   const dfmt = (d) => { const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit', year:'2-digit'}); };
   const monthLabel = (m) => new Date(m+'-01').toLocaleDateString('hr-HR',{month:'long', year:'numeric'});
   const nonPaul = (r) => r.kupac !== 'PAUL' && inSeason(r.datum);
-  const onlyPaul = (r) => r.kupac === 'PAUL';
+  const onlyPaul = (r) => r.kupac === 'PAUL' && inSeason(r.datum);
   function inSeason(datum){ return currentSeason === 'sve' || (datum||'').startsWith(currentSeason); }
   function seasonTroskovi(){ return troskovi.filter(r => inSeason(r.datum)); }
 
@@ -1307,18 +1307,40 @@ body {
         <div class="opg-sum-val">${fmt(byKupac[k])}</div>
       </div>`).join('') : '<div class="opg-empty">Još nema podataka.</div>';
 
-    // isporuceno po proizvodu (kg)
+    // isporuceno po proizvodu (kg, cijena min/max/prosj, prva isporuka)
     const byProizvod = {};
-    pFiltered.forEach(r=>{ const p = r.proizvod||'—'; byProizvod[p] = (byProizvod[p]||0) + (r.kg||0); });
-    const totalKg = Object.values(byProizvod).reduce((a,b)=>a+b,0) || 1;
-    const prKeys = Object.keys(byProizvod).sort((a,b)=>byProizvod[b]-byProizvod[a]);
+    pFiltered.forEach(r=>{
+      const p = r.proizvod||'—';
+      if (!byProizvod[p]) byProizvod[p] = { kg:0, prihod:0, min:null, max:null, prvi:null };
+      const o = byProizvod[p];
+      o.kg += (r.kg||0);
+      o.prihod += (r.cijena_kg||0)*(r.kg||0);
+      if (r.cijena_kg!=null) {
+        o.min = (o.min==null) ? r.cijena_kg : Math.min(o.min, r.cijena_kg);
+        o.max = (o.max==null) ? r.cijena_kg : Math.max(o.max, r.cijena_kg);
+      }
+      if (r.datum && (!o.prvi || r.datum < o.prvi)) o.prvi = r.datum;
+    });
+    const totalKg = Object.values(byProizvod).reduce((a,b)=>a+b.kg,0) || 1;
+    const prKeys = Object.keys(byProizvod).sort((a,b)=>byProizvod[b].kg-byProizvod[a].kg);
     const prEl = document.getElementById('pocetna-proizvodi');
-    prEl.innerHTML = prKeys.length ? prKeys.map(p=>`
+    prEl.innerHTML = prKeys.length ? prKeys.map(p=>{
+      const o = byProizvod[p];
+      const prosj = o.kg ? (o.prihod/o.kg) : 0;
+      const cijenaTxt = (o.min===o.max)
+        ? `${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2})} €/kg`
+        : `${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2})}–${o.max.toLocaleString('hr-HR',{minimumFractionDigits:2})} € (prosj. ${prosj.toLocaleString('hr-HR',{minimumFractionDigits:2})} €)`;
+      return `
       <div class="opg-sum-row">
         <div class="opg-sum-name" style="min-width:110px;">${p}</div>
-        <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byProizvod[p]/totalKg*100)}%; background:var(--squash);"></div></div>
-        <div class="opg-sum-val">${byProizvod[p].toLocaleString('hr-HR')} kg</div>
-      </div>`).join('') : '<div class="opg-empty">Još nema podataka.</div>';
+        <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(o.kg/totalKg*100)}%; background:var(--squash);"></div></div>
+        <div class="opg-sum-val">${o.kg.toLocaleString('hr-HR')} kg</div>
+      </div>
+      <div class="opg-sum-subrows">
+        <div class="opg-sum-subrow"><div class="opg-sum-subname">Cijena</div><div class="opg-sum-subval">${cijenaTxt}</div></div>
+        <div class="opg-sum-subrow"><div class="opg-sum-subname">Prva isporuka</div><div class="opg-sum-subval">${o.prvi ? dfmt(o.prvi) : '–'}</div></div>
+      </div>`;
+    }).join('') : '<div class="opg-empty">Još nema podataka.</div>';
 
     // vrijeme
     const vrEl = document.getElementById('pocetna-vrijeme');
