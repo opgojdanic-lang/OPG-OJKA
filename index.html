@@ -50,6 +50,8 @@ body {
 .opg-brand-logo { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; background: #fff; flex-shrink: 0; }
 .opg-brand-text { flex: 1; min-width: 0; }
 .opg-eyebrow { font-size: 12.5px; color: #C9D6C4; margin: 0 0 1px; }
+.opg-season-select { background: transparent; border: none; color: #C9D6C4; font-size: 12.5px; font-family: 'Inter'; padding: 0; margin: 0; -webkit-appearance: none; appearance: none; text-decoration: underline; text-underline-offset: 2px; }
+.opg-season-select option { color: #1C2419; }
 .opg-title { font-size: 21px; font-weight: 700; margin: 0; letter-spacing: -0.2px; }
 .opg-gear { border: none; background: rgba(255,255,255,0.1); color: #F2EEDC; width: 34px; height: 34px; border-radius: 10px; font-size: 16px; cursor: pointer; flex-shrink: 0; }
 .opg-sync-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #C9D6C4; margin-top: 2px; }
@@ -244,7 +246,7 @@ body {
     <div class="opg-brand-row">
       <img class="opg-brand-logo" src="./icons/icon-192.png" alt="Logo">
       <div class="opg-brand-text">
-        <p class="opg-eyebrow">OPG · sezona 2026</p>
+        <p class="opg-eyebrow">OPG · sezona <select id="season-select" class="opg-season-select"></select></p>
         <h1 class="opg-title">OPG Ojdanić</h1>
         <div class="opg-sync-dot" id="sync-indicator"><span class="dot"></span><span id="sync-label">Lokalno (bez sinkronizacije)</span></div>
         <button class="opg-user-chip" id="user-chip">👤 <span id="user-name-label">Postavi ime</span></button>
@@ -611,6 +613,7 @@ body {
   let currentUser = localStorage.getItem('opg_user_name') || '';
   let sharedSettings = {};
   let sprayConditions = {};
+  let currentSeason = localStorage.getItem('opg_season') || String(new Date().getFullYear());
   let firebaseApp = null;
 
   function updateUserChip(){
@@ -629,8 +632,10 @@ body {
   const todayStr = () => new Date().toISOString().slice(0,10);
   const dfmt = (d) => { const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit', year:'2-digit'}); };
   const monthLabel = (m) => new Date(m+'-01').toLocaleDateString('hr-HR',{month:'long', year:'numeric'});
-  const nonPaul = (r) => r.kupac !== 'PAUL';
+  const nonPaul = (r) => r.kupac !== 'PAUL' && inSeason(r.datum);
   const onlyPaul = (r) => r.kupac === 'PAUL';
+  function inSeason(datum){ return currentSeason === 'sve' || (datum||'').startsWith(currentSeason); }
+  function seasonTroskovi(){ return troskovi.filter(r => inSeason(r.datum)); }
 
   function toast(msg){
     const t = document.getElementById('opg-toast');
@@ -849,7 +854,7 @@ body {
   const fmtHero = (n) => Math.round(n||0).toLocaleString('hr-HR') + ' €';
   function renderHero(){
     const prihod = prodaja.filter(nonPaul).reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
-    const trosak = troskovi.reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0);
+    const trosak = seasonTroskovi().reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0);
     document.getElementById('hero-prihod').textContent = fmtHero(prihod);
     document.getElementById('hero-troskovi').textContent = fmtHero(trosak);
     document.getElementById('hero-dobit').textContent = fmtHero(prihod-trosak);
@@ -872,11 +877,25 @@ body {
     if (select.value !== currentValue) select.value = currentValue;
   }
 
+  function populateSeasonSelect(){
+    const sel = document.getElementById('season-select');
+    if (!sel) return;
+    const years = new Set();
+    prodaja.forEach(r=>{ if (r.datum) years.add(r.datum.slice(0,4)); });
+    troskovi.forEach(r=>{ if (r.datum) years.add(r.datum.slice(0,4)); });
+    years.add(String(new Date().getFullYear()));
+    const sorted = [...years].sort().reverse();
+    if (!sorted.includes(currentSeason) && currentSeason !== 'sve') { currentSeason = sorted[0]; localStorage.setItem('opg_season', currentSeason); }
+    const optionsHtml = sorted.map(y=>`<option value="${y}">${y}</option>`).join('') + '<option value="sve">sve</option>';
+    if (sel.dataset.built !== optionsHtml) { sel.innerHTML = optionsHtml; sel.dataset.built = optionsHtml; }
+    if (sel.value !== currentSeason) sel.value = currentSeason;
+  }
+
   function populateFilterOptions(){
     const kupci = [...new Set(prodaja.filter(nonPaul).map(r=>r.kupac))].sort();
     const pMonths = [...new Set(prodaja.filter(nonPaul).map(r=>(r.datum||'').slice(0,7)).filter(Boolean))].sort().reverse();
-    const kats = [...new Set(troskovi.map(r=>r.kategorija))];
-    const tMonths = [...new Set(troskovi.map(r=>(r.datum||'').slice(0,7)).filter(Boolean))].sort().reverse();
+    const kats = [...new Set(seasonTroskovi().map(r=>r.kategorija))];
+    const tMonths = [...new Set(seasonTroskovi().map(r=>(r.datum||'').slice(0,7)).filter(Boolean))].sort().reverse();
 
     setSelectOptions(document.getElementById('pf-kupac'), 'pf-kupac',
       [['sve','Svi kupci'], ...kupci.map(k=>[k, KUPAC_LABEL[k]||k])], prodajaFilterKupac);
@@ -898,7 +917,7 @@ body {
     );
   }
   function getFilteredTroskovi(){
-    return troskovi.filter(r =>
+    return seasonTroskovi().filter(r =>
       (troskoviFilterKat==='sve' || r.kategorija===troskoviFilterKat) &&
       (troskoviFilterMjesec==='sve' || (r.datum||'').startsWith(troskoviFilterMjesec))
     );
@@ -978,7 +997,7 @@ body {
       months.map(m=>`<button class="opg-chip ${pregledFilter===m?'active':''}" data-filter="${m}">${monthLabel(m)}</button>`).join('');
 
     const pFiltered = (pregledFilter==='sve' ? prodaja : prodaja.filter(r=>(r.datum||'').startsWith(pregledFilter))).filter(nonPaul);
-    const tFiltered = pregledFilter==='sve' ? troskovi : troskovi.filter(r=>(r.datum||'').startsWith(pregledFilter));
+    const tFiltered = (pregledFilter==='sve' ? troskovi : troskovi.filter(r=>(r.datum||'').startsWith(pregledFilter))).filter(r=>inSeason(r.datum));
 
     const byKupac = {};
     const byKupacProizvod = {};
@@ -1257,7 +1276,7 @@ body {
 
     const pFiltered = prodaja.filter(nonPaul);
     const prihod = pFiltered.reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
-    const trosak = troskovi.reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0);
+    const trosak = seasonTroskovi().reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0);
     finEl.innerHTML = `
       <div class="opg-sum-row"><div class="opg-sum-name">Prihod</div><div class="opg-sum-val">${fmt(prihod)}</div></div>
       <div class="opg-sum-row"><div class="opg-sum-name">Troškovi</div><div class="opg-sum-val">${fmt(trosak)}</div></div>
@@ -1467,6 +1486,7 @@ body {
   }
 
   function renderAll(){
+    populateSeasonSelect();
     renderHero();
     renderProizvodList();
     populateFilterOptions();
@@ -1852,6 +1872,12 @@ body {
   }
   function closeSetup(){ setupEl.classList.remove('show'); }
   document.getElementById('open-setup').addEventListener('click', ()=> openSetup(true));
+  document.getElementById('season-select').addEventListener('change', (e)=>{
+    currentSeason = e.target.value;
+    localStorage.setItem('opg_season', currentSeason);
+    renderAll();
+    toast(currentSeason === 'sve' ? 'Prikaz: sve sezone' : 'Prikaz: sezona ' + currentSeason);
+  });
   document.getElementById('vrijeme-check-now').addEventListener('click', checkSprayNow);
   document.getElementById('vrijeme-enable-btn').addEventListener('click', enableWeatherNotifications);
   document.getElementById('vrijeme-save-thresholds').addEventListener('click', ()=>{
