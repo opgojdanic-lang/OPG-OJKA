@@ -274,8 +274,12 @@ body {
       <div class="opg-sum-card" id="pocetna-kupci"></div>
       <div class="opg-sum-card" id="pocetna-proizvodi" style="display:none;"></div>
 
-      <div class="opg-section-title">Vrijeme</div>
+      <div class="opg-filter-row" id="pocetna-vr-toggle">
+        <button class="opg-chip active" data-pvr="vrijeme">Vrijeme</button>
+        <button class="opg-chip" data-pvr="prognoza">Vremenska prognoza</button>
+      </div>
       <div class="opg-card" id="pocetna-vrijeme"></div>
+      <div class="opg-card" id="pocetna-prognoza" style="display:none;"></div>
 
       <div class="opg-section-title">Obavijesti</div>
       <div class="opg-card" id="pocetna-obavijesti"></div>
@@ -1294,9 +1298,10 @@ body {
       vrEl.innerHTML = `<div class="opg-paul-status ${sprayConditions.last_status==='nije' ? 'warn' : 'ok'}">
         <div class="big">${statusLabel[sprayConditions.last_status] || '–'}</div>
         <div class="lbl">${sprayConditions.last_temp}°C · vjetar ${sprayConditions.last_wind} m/s</div>
-      </div>
-      <div style="margin-top:10px;">${forecastHtml()}</div>`;
+      </div>`;
     }
+    const progEl = document.getElementById('pocetna-prognoza');
+    if (progEl) progEl.innerHTML = forecastHtml();
 
     // obavijesti
     const notices = [];
@@ -1869,6 +1874,14 @@ body {
     btn.classList.add('active');
     document.getElementById('pocetna-kupci').style.display = btn.dataset.pkp==='kupci' ? 'block' : 'none';
     document.getElementById('pocetna-proizvodi').style.display = btn.dataset.pkp==='proizvodi' ? 'block' : 'none';
+  });
+  document.getElementById('pocetna-vr-toggle').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-pvr]');
+    if (!btn) return;
+    document.querySelectorAll('#pocetna-vr-toggle .opg-chip').forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pocetna-vrijeme').style.display = btn.dataset.pvr==='vrijeme' ? 'block' : 'none';
+    document.getElementById('pocetna-prognoza').style.display = btn.dataset.pvr==='prognoza' ? 'block' : 'none';
   });
   document.getElementById('isk-add-toggle').addEventListener('click', ()=>{
     const form = document.getElementById('isk-add-form');
