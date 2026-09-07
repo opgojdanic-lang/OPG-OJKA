@@ -272,9 +272,11 @@ body {
       <div class="opg-filter-row" id="pocetna-kp-toggle">
         <button class="opg-chip active" data-pkp="kupci">Prihod po kupcu</button>
         <button class="opg-chip" data-pkp="proizvodi">Isporučeno po proizvodu</button>
+        <button class="opg-chip" data-pkp="zarada">Zarada po proizvodu</button>
       </div>
       <div class="opg-sum-card" id="pocetna-kupci"></div>
       <div class="opg-sum-card" id="pocetna-proizvodi" style="display:none;"></div>
+      <div class="opg-sum-card" id="pocetna-zarada" style="display:none;"></div>
 
       <div class="opg-filter-row" id="pocetna-vr-toggle">
         <button class="opg-chip active" data-pvr="vrijeme">Vrijeme</button>
@@ -1328,8 +1330,8 @@ body {
       const o = byProizvod[p];
       const prosj = o.kg ? (o.prihod/o.kg) : 0;
       const cijenaTxt = (o.min===o.max)
-        ? `${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2})} €/kg`
-        : `${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2})}–${o.max.toLocaleString('hr-HR',{minimumFractionDigits:2})} € (prosj. ${prosj.toLocaleString('hr-HR',{minimumFractionDigits:2})} €)`;
+        ? `${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2, maximumFractionDigits:2})} €/kg`
+        : `${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2, maximumFractionDigits:2})}–${o.max.toLocaleString('hr-HR',{minimumFractionDigits:2, maximumFractionDigits:2})} € (prosj. ${prosj.toLocaleString('hr-HR',{minimumFractionDigits:2, maximumFractionDigits:2})} €)`;
       return `
       <div class="opg-sum-row">
         <div class="opg-sum-name" style="min-width:110px;">${p}</div>
@@ -1341,6 +1343,35 @@ body {
         <div class="opg-sum-subrow"><div class="opg-sum-subname">Prva isporuka</div><div class="opg-sum-subval">${o.prvi ? dfmt(o.prvi) : '–'}</div></div>
       </div>`;
     }).join('') : '<div class="opg-empty">Još nema podataka.</div>';
+
+    // zarada po proizvodu (prihod - troškovi čija Kultura odgovara nazivu proizvoda)
+    const trosakPoKulturi = {};
+    let trosakBezKulture = 0;
+    seasonTroskovi().forEach(t=>{
+      const kultura = (t.kultura||'').trim().toUpperCase();
+      const iznos = (t.kolicina||0)*(t.cijena||0);
+      if (kultura) trosakPoKulturi[kultura] = (trosakPoKulturi[kultura]||0) + iznos;
+      else trosakBezKulture += iznos;
+    });
+    const zarEl = document.getElementById('pocetna-zarada');
+    const zarKeys = Object.keys(byProizvod).sort((a,b)=>{
+      const za = byProizvod[a].prihod - (trosakPoKulturi[a.trim().toUpperCase()]||0);
+      const zb = byProizvod[b].prihod - (trosakPoKulturi[b.trim().toUpperCase()]||0);
+      return zb - za;
+    });
+    zarEl.innerHTML = (zarKeys.length ? zarKeys.map(p=>{
+      const trosakP = trosakPoKulturi[p.trim().toUpperCase()] || 0;
+      const zarada = byProizvod[p].prihod - trosakP;
+      return `<div class="opg-sum-row">
+        <div class="opg-sum-name" style="min-width:110px;">${p}</div>
+        <div class="opg-sum-val" style="color:${zarada>=0?'var(--forest)':'var(--warn-ink)'};">${fmt(zarada)}</div>
+      </div>
+      <div class="opg-sum-subrows">
+        <div class="opg-sum-subrow"><div class="opg-sum-subname">Prihod</div><div class="opg-sum-subval">${fmt(byProizvod[p].prihod)}</div></div>
+        <div class="opg-sum-subrow"><div class="opg-sum-subname">Troškovi (po kulturi)</div><div class="opg-sum-subval">${fmt(trosakP)}</div></div>
+      </div>`;
+    }).join('') : '<div class="opg-empty">Još nema podataka.</div>') +
+    (trosakBezKulture > 0 ? `<p class="opg-hint" style="margin:10px 2px 0;">+ ${fmt(trosakBezKulture)} općih troškova nije vezano za pojedinu kulturu (nema upisano polje "Kultura" kod troška), pa nije uračunato gore.</p>` : '');
 
     // vrijeme
     const vrEl = document.getElementById('pocetna-vrijeme');
@@ -1934,6 +1965,7 @@ body {
     btn.classList.add('active');
     document.getElementById('pocetna-kupci').style.display = btn.dataset.pkp==='kupci' ? 'block' : 'none';
     document.getElementById('pocetna-proizvodi').style.display = btn.dataset.pkp==='proizvodi' ? 'block' : 'none';
+    document.getElementById('pocetna-zarada').style.display = btn.dataset.pkp==='zarada' ? 'block' : 'none';
   });
   document.getElementById('pocetna-vr-toggle').addEventListener('click', (e)=>{
     const btn = e.target.closest('[data-pvr]');
