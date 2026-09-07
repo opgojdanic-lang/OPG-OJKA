@@ -728,6 +728,7 @@ body {
       fb.onSnapshot(fb.doc(db, 'settings', 'spray_conditions'), (snap) => {
         sprayConditions = snap.exists() ? snap.data() : {};
         renderVrijeme();
+        renderPocetna();
       });
 
       mode = 'cloud';
