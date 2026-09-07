@@ -278,19 +278,23 @@ body {
       <div class="opg-sum-card" id="pocetna-proizvodi" style="display:none;"></div>
       <div class="opg-sum-card" id="pocetna-zarada" style="display:none;"></div>
 
-      <div class="opg-filter-row" id="pocetna-vr-toggle">
-        <button class="opg-chip active" data-pvr="vrijeme">Vrijeme</button>
-        <button class="opg-chip" data-pvr="prognoza">Vremenska prognoza</button>
-      </div>
-      <div class="opg-card" id="pocetna-vrijeme"></div>
-      <div class="opg-card" id="pocetna-prognoza" style="display:none;"></div>
+      <div id="pocetna-vrijeme-block">
+        <div class="opg-filter-row" id="pocetna-vr-toggle">
+          <button class="opg-chip active" data-pvr="vrijeme">Vrijeme</button>
+          <button class="opg-chip" data-pvr="prognoza">Vremenska prognoza</button>
+        </div>
+        <div class="opg-card" id="pocetna-vrijeme"></div>
+        <div class="opg-card" id="pocetna-prognoza" style="display:none;"></div>
 
-      <div class="opg-section-title">Obavijesti</div>
-      <div class="opg-card" id="pocetna-obavijesti"></div>
+        <div class="opg-section-title">Obavijesti</div>
+        <div class="opg-card" id="pocetna-obavijesti"></div>
+      </div>
     </div>
 
     <div class="opg-view" data-view="prodaja">
-      <div class="opg-card">
+      <div class="opg-card" id="prodaja-add-card">
+        <div id="prodaja-archive-notice" class="opg-empty" style="display:none;">📁 Arhivirana sezona — samo pregled, unos novih podataka je isključen.</div>
+        <div id="prodaja-add-fields">
         <div class="opg-field">
           <label>Kupac</label>
           <select id="f-kupac">
@@ -319,6 +323,7 @@ body {
           </div>
         </div>
         <button class="opg-submit" id="f-prodaja-submit">Spremi prodaju</button>
+        </div>
       </div>
 
       <div class="opg-section-title">Pregled unosa <span id="prodaja-count" style="font-weight:400; color:var(--sage); font-size:12px;"></span></div>
@@ -331,7 +336,9 @@ body {
 
     <!-- TROSKOVI -->
     <div class="opg-view" data-view="troskovi">
-      <div class="opg-card">
+      <div class="opg-card" id="troskovi-add-card">
+        <div id="troskovi-archive-notice" class="opg-empty" style="display:none;">📁 Arhivirana sezona — samo pregled, unos novih podataka je isključen.</div>
+        <div id="troskovi-add-fields">
         <div class="opg-field">
           <label>Kategorija</label>
           <select id="t-kategorija">
@@ -351,6 +358,7 @@ body {
         <div class="opg-field"><label>Datum</label><input type="date" id="t-datum"></div>
         <div class="opg-neto-preview">Trošak: <b id="t-trosak-preview">0,00 €</b></div>
         <button class="opg-submit" id="f-trosak-submit">Spremi trošak</button>
+        </div>
       </div>
 
       <div class="opg-section-title">Pregled troškova</div>
@@ -364,7 +372,9 @@ body {
     <!-- PAUL -->
     <div class="opg-view" data-view="paul">
       <p class="opg-hint" style="margin-top:0;">Paul se vodi zasebno i <b>ne ulazi</b> u prihod niti u dobit gore — samo pratimo koliko mu je prodano i je li plaćeno.</p>
-      <div class="opg-card">
+      <div class="opg-card" id="paul-add-card">
+        <div id="paul-archive-notice" class="opg-empty" style="display:none;">📁 Arhivirana sezona — samo pregled, unos novih podataka je isključen.</div>
+        <div id="paul-add-fields">
         <div class="opg-row2">
           <div class="opg-field"><label>Datum</label><input type="date" id="pa-datum"></div>
           <div class="opg-field"><label>Proizvod</label><input type="text" id="pa-proizvod" list="proizvod-list" placeholder="npr. Tikvica"></div>
@@ -382,6 +392,7 @@ body {
           </div>
         </div>
         <button class="opg-submit plum" id="pa-submit">Spremi (Paul)</button>
+        </div>
       </div>
 
       <div class="opg-section-title">Stanje s Paulom</div>
@@ -889,6 +900,32 @@ body {
       select.innerHTML = options.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
     }
     if (select.value !== currentValue) select.value = currentValue;
+  }
+
+  function isArchiveSeason(){
+    return currentSeason !== 'sve' && currentSeason !== String(new Date().getFullYear());
+  }
+  function applySeasonMode(){
+    const archived = isArchiveSeason();
+
+    const zastitaTab = document.querySelector('.opg-tab[data-tab="zastita"]');
+    if (zastitaTab) zastitaTab.style.display = archived ? 'none' : '';
+    if (archived && document.querySelector('.opg-view[data-view="zastita"]')?.classList.contains('active')) {
+      document.querySelectorAll('.opg-tab').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.opg-view').forEach(v=>v.classList.remove('active'));
+      document.querySelector('.opg-tab[data-tab="pocetna"]').classList.add('active');
+      document.querySelector('.opg-view[data-view="pocetna"]').classList.add('active');
+    }
+
+    [['prodaja-add-fields','prodaja-archive-notice'], ['troskovi-add-fields','troskovi-archive-notice'], ['paul-add-fields','paul-archive-notice']].forEach(([fields, notice])=>{
+      const fEl = document.getElementById(fields);
+      const nEl = document.getElementById(notice);
+      if (fEl) fEl.style.display = archived ? 'none' : 'block';
+      if (nEl) nEl.style.display = archived ? 'block' : 'none';
+    });
+
+    const vrBlock = document.getElementById('pocetna-vrijeme-block');
+    if (vrBlock) vrBlock.style.display = archived ? 'none' : 'block';
   }
 
   function populateSeasonSelect(){
@@ -1552,6 +1589,7 @@ body {
 
   function renderAll(){
     populateSeasonSelect();
+    applySeasonMode();
     renderHero();
     renderProizvodList();
     populateFilterOptions();
