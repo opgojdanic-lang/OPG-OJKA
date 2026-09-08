@@ -165,6 +165,9 @@ body {
 .opg-parcela-kultura { font-size: 13.5px; color: var(--ink); margin-top: 4px; }
 .opg-parcela-history { font-size: 11.5px; color: var(--sage); margin-top: 6px; }
 .opg-parcela-edit { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sage-line); }
+.pcalc-group-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.pcalc-group-row input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--sage-line); font-size: 15px; font-family: 'Inter'; background: #fff; color: var(--ink); }
+.pcalc-group-del { flex-shrink: 0; border: none; background: var(--sage-line); color: var(--warn-ink); width: 32px; height: 32px; border-radius: 8px; font-size: 14px; cursor: pointer; }
 .opg-forecast-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
 .opg-forecast-day { flex: 0 0 auto; min-width: 64px; background: #F6F2DC; border: 1px solid var(--sage-line); border-radius: 12px; padding: 10px 8px; text-align: center; }
 .opg-forecast-day .fd-label { font-size: 11px; font-weight: 600; color: var(--ink-soft); margin-bottom: 4px; }
@@ -1566,17 +1569,38 @@ body {
     if (v.broj_sadnica) bits.push(v.broj_sadnica.toLocaleString('hr-HR')+' sadnica');
     return bits.join(' · ');
   }
+  const PARCELA_KULTURE = ['PAPRIKA BABURA', 'BUTTERNUT TIKVA', 'TIKVICA'];
+  function kulturaSelectHtml(selected){
+    const opts = ['<option value="">— odaberi kulturu —</option>']
+      .concat(PARCELA_KULTURE.map(k=>`<option value="${k}"${k===selected?' selected':''}>${k.charAt(0)+k.slice(1).toLowerCase()}</option>`));
+    return `<select class="parcela-edit-kultura">${opts.join('')}</select>`;
+  }
+  function groupRowHtml(g){
+    g = g || {};
+    return `<div class="pcalc-group-row">
+      <input type="number" class="pcalc-group-folije" min="0" step="1" value="${g.broj_folija||''}" placeholder="broj folija npr. 7">
+      <input type="number" class="pcalc-group-duljina" min="0" step="0.1" value="${g.duljina_reda||''}" placeholder="duljina (m) npr. 50">
+      <button type="button" class="pcalc-group-del">✕</button>
+    </div>`;
+  }
+  function parcelaAreaFor(p){
+    const obj = (p.kulture||{})[currentSeason];
+    if (obj && typeof obj === 'object' && obj.povrsina_ha) return obj.povrsina_ha;
+    return p.povrsina_ha || 0;
+  }
   function renderParceleList(){
     const el = document.getElementById('parcele-list');
     if (!el) return;
     if (!parcele.length){ el.innerHTML = '<div class="opg-empty">Još nema dodanih parcela.</div>'; return; }
-    el.innerHTML = parcele.map(p=>{
+    const sorted = [...parcele].sort((a,b)=> parcelaAreaFor(b) - parcelaAreaFor(a));
+    el.innerHTML = sorted.map(p=>{
       const kultureSezone = Object.keys(p.kulture||{}).sort().reverse();
       const trenutnaObj = (p.kulture||{})[currentSeason];
       const trenutnaLabel = kulturaLabel(trenutnaObj);
       const trenutnaOpis = parcelaOpisTxt(trenutnaObj);
       const historyTxt = kultureSezone.filter(y=>y!==currentSeason).map(y=>`${y}: ${kulturaLabel(p.kulture[y])||'–'}`).join(' · ');
       const d = (typeof trenutnaObj === 'object' && trenutnaObj) ? trenutnaObj : {};
+      const grupe = (d.duljine && d.duljine.length) ? d.duljine : [{}];
       return `<div class="opg-parcela-card" data-parcela="${p.id}">
         <div class="opg-parcela-head" data-toggle-parcela="${p.id}">
           <div class="opg-parcela-name">${p.naziv}</div>
@@ -1585,18 +1609,18 @@ body {
         <div class="opg-parcela-kultura">${currentSeason}: <b>${trenutnaLabel || 'nije uneseno'}</b></div>
         ${historyTxt ? `<div class="opg-parcela-history">Prijašnje sezone: ${historyTxt}</div>` : ''}
         <div class="opg-parcela-edit" id="parcela-edit-${p.id}">
-          <div class="opg-field"><label>Kultura za sezonu ${currentSeason}</label><input type="text" class="parcela-edit-kultura" value="${trenutnaLabel||''}" placeholder="npr. Paprika babura"></div>
+          <div class="opg-field"><label>Kultura za sezonu ${currentSeason}</label>${kulturaSelectHtml(trenutnaLabel)}</div>
 
           <div class="opg-section-title" style="margin-top:14px; font-size:13px;">Izračun površine</div>
-          <div class="opg-row2">
-            <div class="opg-field"><label>Broj folija</label><input type="number" class="pcalc-folije" min="0" step="1" value="${d.broj_folija||''}" placeholder="npr. 4"></div>
+          <p class="opg-hint" style="margin-top:0;">Ako redovi imaju različite duljine, dodajte zasebnu liniju za svaku duljinu (npr. 7 folija × 50 m, pa zasebno 6 folija × 40 m).</p>
+          <div class="pcalc-groups">${grupe.map(g=>groupRowHtml(g)).join('')}</div>
+          <button type="button" class="opg-submit ghost pcalc-add-group" style="margin-top:6px; padding:9px;">+ Dodaj duljinu reda</button>
+
+          <div class="opg-row2" style="margin-top:10px;">
             <div class="opg-field"><label>Redova po foliji</label><input type="number" class="pcalc-redovi" min="0" step="1" value="${d.redova_po_foliji||''}" placeholder="npr. 2"></div>
-          </div>
-          <p class="opg-hint" style="margin-top:0;">Ukupno redova: <b class="pcalc-out-redova">0</b></p>
-          <div class="opg-row2">
-            <div class="opg-field"><label>Duljina reda (m)</label><input type="number" class="pcalc-duljina" min="0" step="0.1" value="${d.duljina_reda||''}" placeholder="npr. 25"></div>
             <div class="opg-field"><label>Razmak između folija (m)</label><input type="number" class="pcalc-razmak-folija" min="0" step="0.01" value="${d.razmak_folija||''}" placeholder="npr. 1.6"></div>
           </div>
+          <p class="opg-hint" style="margin-top:0;">Ukupno folija: <b class="pcalc-out-folija">0</b> · Ukupno redova: <b class="pcalc-out-redova">0</b></p>
           <p class="opg-hint" style="margin-top:0;">Izračunata površina: <b class="pcalc-out-povrsina">0 ha</b></p>
 
           <div class="opg-section-title" style="margin-top:10px; font-size:13px;">Izračun broja sadnica</div>
@@ -1613,26 +1637,36 @@ body {
       if (card) computeParcelaCalc(card);
     });
   }
+  function readGroups(card){
+    return [...card.querySelectorAll('.pcalc-group-row')].map(row=>({
+      broj_folija: parseFloat(row.querySelector('.pcalc-group-folije')?.value) || 0,
+      duljina_reda: parseFloat(row.querySelector('.pcalc-group-duljina')?.value) || 0
+    })).filter(g=>g.broj_folija>0 && g.duljina_reda>0);
+  }
   function computeParcelaCalc(card){
-    const folije = parseFloat(card.querySelector('.pcalc-folije')?.value) || 0;
+    const grupe = readGroups(card);
     const redovi = parseFloat(card.querySelector('.pcalc-redovi')?.value) || 0;
-    const duljina = parseFloat(card.querySelector('.pcalc-duljina')?.value) || 0;
     const razmakFolija = parseFloat(card.querySelector('.pcalc-razmak-folija')?.value) || 0;
     const razmakSadnje = parseFloat(card.querySelector('.pcalc-razmak-sadnje')?.value) || 0;
 
-    const ukupnoRedova = folije * redovi;
-    const povrsinaHa = (folije * razmakFolija * duljina) / 10000;
-    const biljakaPoRedu = razmakSadnje > 0 ? Math.floor(duljina / (razmakSadnje/100)) : 0;
-    const ukupnoSadnica = biljakaPoRedu * ukupnoRedova;
+    const ukupnoFolija = grupe.reduce((s,g)=>s+g.broj_folija, 0);
+    const ukupnoRedova = ukupnoFolija * redovi;
+    const povrsinaM2 = grupe.reduce((s,g)=>s + g.broj_folija*razmakFolija*g.duljina_reda, 0);
+    const povrsinaHa = povrsinaM2 / 10000;
+    const ukupnoSadnica = razmakSadnje > 0
+      ? grupe.reduce((s,g)=> s + Math.floor(g.duljina_reda/(razmakSadnje/100)) * g.broj_folija * redovi, 0)
+      : 0;
 
+    const outFolija = card.querySelector('.pcalc-out-folija');
     const outRedova = card.querySelector('.pcalc-out-redova');
     const outPovrsina = card.querySelector('.pcalc-out-povrsina');
     const outSadnica = card.querySelector('.pcalc-out-sadnica');
+    if (outFolija) outFolija.textContent = ukupnoFolija.toLocaleString('hr-HR');
     if (outRedova) outRedova.textContent = ukupnoRedova.toLocaleString('hr-HR');
     if (outPovrsina) outPovrsina.textContent = povrsinaHa.toLocaleString('hr-HR',{maximumFractionDigits:3}) + ' ha';
     if (outSadnica) outSadnica.textContent = ukupnoSadnica.toLocaleString('hr-HR');
 
-    return { broj_folija: folije, redova_po_foliji: redovi, duljina_reda: duljina, razmak_folija: razmakFolija, razmak_sadnje: razmakSadnje, ukupno_redova: ukupnoRedova, povrsina_ha: povrsinaHa, broj_sadnica: ukupnoSadnica };
+    return { duljine: grupe, redova_po_foliji: redovi, razmak_folija: razmakFolija, razmak_sadnje: razmakSadnje, ukupno_folija: ukupnoFolija, ukupno_redova: ukupnoRedova, povrsina_ha: povrsinaHa, broj_sadnica: ukupnoSadnica };
   }
 
   function renderIskaznicaList(){
@@ -2616,12 +2650,25 @@ body {
     toast('Parcela dodana');
   });
   document.getElementById('parcele-list').addEventListener('input', (e)=>{
-    if (e.target.matches('.pcalc-folije, .pcalc-redovi, .pcalc-duljina, .pcalc-razmak-folija, .pcalc-razmak-sadnje')) {
+    if (e.target.matches('.pcalc-group-folije, .pcalc-group-duljina, .pcalc-redovi, .pcalc-razmak-folija, .pcalc-razmak-sadnje')) {
       const card = e.target.closest('.opg-parcela-card');
       if (card) computeParcelaCalc(card);
     }
   });
   document.getElementById('parcele-list').addEventListener('click', async (e)=>{
+    if (e.target.matches('.pcalc-add-group')) {
+      const card = e.target.closest('.opg-parcela-card');
+      card.querySelector('.pcalc-groups').insertAdjacentHTML('beforeend', groupRowHtml());
+      return;
+    }
+    if (e.target.matches('.pcalc-group-del')) {
+      const card = e.target.closest('.opg-parcela-card');
+      const row = e.target.closest('.pcalc-group-row');
+      const groupsEl = card.querySelector('.pcalc-groups');
+      if (groupsEl.children.length > 1) row.remove(); else { row.querySelector('.pcalc-group-folije').value=''; row.querySelector('.pcalc-group-duljina').value=''; }
+      computeParcelaCalc(card);
+      return;
+    }
     const toggleId = e.target.closest('[data-toggle-parcela]')?.dataset.toggleParcela;
     const saveId = e.target.dataset.saveParcela;
     const delId = e.target.dataset.delParcela;
