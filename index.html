@@ -412,6 +412,7 @@ body {
         </div>
         <div class="opg-field"><label>Naziv / vrsta</label><input type="text" id="t-naziv" placeholder="npr. Sjeme tikvice, NPK gnojivo…"></div>
         <div class="opg-field"><label>Kultura (opcionalno)</label><input type="text" id="t-kultura" placeholder="npr. Tikvica, Paprika…"></div>
+        <div class="opg-field"><label>Trgovac (opcionalno)</label><input type="text" id="t-trgovac" placeholder="npr. Agroprima, Poljoapoteka…"></div>
         <div class="opg-row2">
           <div class="opg-field"><label>Količina</label><input type="number" id="t-kolicina" step="0.01" min="0" placeholder="0"></div>
           <div class="opg-field"><label>Cijena po jedinici (€)</label><input type="number" id="t-cijena" step="0.01" min="0" placeholder="0.00"></div>
@@ -1329,7 +1330,7 @@ body {
       return `<div class="opg-entry">
         <div class="opg-entry-main">
           <div class="opg-entry-top">${r.naziv||KAT_LABEL[r.kategorija]}</div>
-          <div class="opg-entry-sub">${KAT_LABEL[r.kategorija]||r.kategorija}${r.kultura?' · '+r.kultura:''} · ${dfmt(r.datum)}${unioTxt}</div>
+          <div class="opg-entry-sub">${KAT_LABEL[r.kategorija]||r.kategorija}${r.kultura?' · '+r.kultura:''}${r.trgovac?' · '+r.trgovac:''} · ${dfmt(r.datum)}${unioTxt}</div>
         </div>
         <div class="opg-entry-amt">${fmt(trosak)}</div>
         ${racunThumb}
@@ -1966,13 +1967,13 @@ body {
   }
   function exportTroskoviCSV(){
     const rows = getFilteredTroskovi().sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
-    const header = ['Datum','Kategorija','Naziv','Kultura','Kolicina','Cijena po jedinici (EUR)','Trosak (EUR)'];
+    const header = ['Datum','Kategorija','Naziv','Kultura','Trgovac','Kolicina','Cijena po jedinici (EUR)','Trosak (EUR)'];
     const lines = [header.join(';')];
     rows.forEach(r=>{
       const trosak = (r.kolicina||0)*(r.cijena||0);
-      lines.push([r.datum, KAT_LABEL[r.kategorija]||r.kategorija, r.naziv, r.kultura||'', r.kolicina, r.cijena, trosak.toFixed(2)].map(csvEscape).join(';'));
+      lines.push([r.datum, KAT_LABEL[r.kategorija]||r.kategorija, r.naziv, r.kultura||'', r.trgovac||'', r.kolicina, r.cijena, trosak.toFixed(2)].map(csvEscape).join(';'));
     });
-    lines.push(['','','','','','UKUPNO', rows.reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0).toFixed(2)].join(';'));
+    lines.push(['','','','','','','UKUPNO', rows.reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0).toFixed(2)].join(';'));
     downloadBlob('\uFEFF'+lines.join('\n'), `troskovi_${pregledFilter}.csv`, 'text/csv;charset=utf-8');
     toast('Izvještaj troškova spremljen');
   }
@@ -2062,12 +2063,13 @@ body {
     const kategorija = document.getElementById('t-kategorija').value;
     const naziv = document.getElementById('t-naziv').value.trim();
     const kultura = document.getElementById('t-kultura').value.trim();
+    const trgovac = document.getElementById('t-trgovac').value.trim();
     const kolicina = parseFloat(document.getElementById('t-kolicina').value)||0;
     const cijena = parseFloat(document.getElementById('t-cijena').value)||0;
     const datum = document.getElementById('t-datum').value || todayStr();
     if (!naziv || !cijena){ toast('Upiši naziv i cijenu'); return; }
-    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, kolicina, cijena, datum, racun: pendingTrosakRacun, unio: currentUser || null, ts: Date.now() });
-    document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
+    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, trgovac, kolicina, cijena, datum, racun: pendingTrosakRacun, unio: currentUser || null, ts: Date.now() });
+    document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-trgovac').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
     document.getElementById('t-racun').value = ''; document.getElementById('t-racun-preview').innerHTML = ''; pendingTrosakRacun = null;
     renderTrosakPreview();
     if (mode==='local') renderAll();
