@@ -206,6 +206,32 @@ body {
 .opg-setup-steps a { color: var(--paprika); font-weight: 600; }
 #opg-setup textarea { min-height: 130px; font-family: monospace; font-size: 12.5px; }
 .opg-setup-close { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px; border: none; background: var(--sage-line); width: 32px; height: 32px; border-radius: 50%; font-size: 15px; cursor: pointer; color: var(--forest); }
+#print-report { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body * { visibility: hidden; }
+  #print-report, #print-report * { visibility: visible; }
+  #print-report { display: block; position: absolute; top: 0; left: 0; width: 100%; }
+  #print-report .pr-page { page-break-after: always; }
+  #print-report .pr-page:last-child { page-break-after: auto; }
+}
+.pr-h1 { font-family: 'Fraunces', serif; font-size: 22px; color: #1F3D2B; margin: 0 0 2px; }
+.pr-sub { font-size: 12px; color: #6B8266; margin: 0 0 16px; }
+.pr-section { font-size: 14px; font-weight: 700; color: #1F3D2B; margin: 18px 0 8px; border-bottom: 1px solid #D9D4B8; padding-bottom: 4px; }
+.pr-kpi-row { display: flex; gap: 10px; margin-bottom: 6px; }
+.pr-kpi { flex: 1; border: 1px solid #D9D4B8; border-radius: 8px; padding: 8px 10px; }
+.pr-kpi .lbl { font-size: 10px; color: #6B8266; }
+.pr-kpi .val { font-family: 'Fraunces', serif; font-size: 16px; color: #1C2419; font-weight: 600; }
+.pr-kpi .delta { font-size: 10px; margin-top: 2px; }
+.pr-bar-row { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-bottom: 4px; }
+.pr-bar-name { width: 78px; flex-shrink: 0; color: #1C2419; }
+.pr-bar-track { flex: 1; height: 10px; background: #F2EEDC; border-radius: 4px; overflow: hidden; display: flex; }
+.pr-bar-a { background: #1F3D2B; height: 100%; }
+.pr-bar-b { background: #E2963A; height: 100%; }
+.pr-bar-val { width: 130px; flex-shrink: 0; text-align: right; color: #4B5245; }
+.pr-legend { display: flex; gap: 14px; font-size: 10.5px; margin-bottom: 8px; }
+.pr-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.pr-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 </style>
 </head>
 <body>
@@ -292,7 +318,11 @@ body {
     </div>
 
     <div class="opg-view" data-view="prodaja">
-      <div class="opg-card" id="prodaja-add-card">
+      <button type="button" class="opg-isk-add-toggle" id="prodaja-add-toggle" style="margin-top:0;">
+        <span>Unesi novu prodaju</span>
+        <span class="opg-isk-add-icon" id="prodaja-add-icon">+</span>
+      </button>
+      <div class="opg-card" id="prodaja-add-card" style="display:none;">
         <div id="prodaja-archive-notice" class="opg-empty" style="display:none;">📁 Arhivirana sezona — samo pregled, unos novih podataka je isključen.</div>
         <div id="prodaja-add-fields">
         <div class="opg-field">
@@ -336,7 +366,11 @@ body {
 
     <!-- TROSKOVI -->
     <div class="opg-view" data-view="troskovi">
-      <div class="opg-card" id="troskovi-add-card">
+      <button type="button" class="opg-isk-add-toggle" id="troskovi-add-toggle" style="margin-top:0;">
+        <span>Unesi novi trošak</span>
+        <span class="opg-isk-add-icon" id="troskovi-add-icon">+</span>
+      </button>
+      <div class="opg-card" id="troskovi-add-card" style="display:none;">
         <div id="troskovi-archive-notice" class="opg-empty" style="display:none;">📁 Arhivirana sezona — samo pregled, unos novih podataka je isključen.</div>
         <div id="troskovi-add-fields">
         <div class="opg-field">
@@ -372,7 +406,15 @@ body {
     <!-- PAUL -->
     <div class="opg-view" data-view="paul">
       <p class="opg-hint" style="margin-top:0;">Paul se vodi zasebno i <b>ne ulazi</b> u prihod niti u dobit gore — samo pratimo koliko mu je prodano i je li plaćeno.</p>
-      <div class="opg-card" id="paul-add-card">
+
+      <div class="opg-section-title" style="margin-top:0;">Stanje s Paulom</div>
+      <div id="paul-status"></div>
+
+      <button type="button" class="opg-isk-add-toggle" id="paul-add-toggle">
+        <span>Unesi isplatu</span>
+        <span class="opg-isk-add-icon" id="paul-add-icon">+</span>
+      </button>
+      <div class="opg-card" id="paul-add-card" style="display:none;">
         <div id="paul-archive-notice" class="opg-empty" style="display:none;">📁 Arhivirana sezona — samo pregled, unos novih podataka je isključen.</div>
         <div id="paul-add-fields">
         <div class="opg-row2">
@@ -394,9 +436,6 @@ body {
         <button class="opg-submit plum" id="pa-submit">Spremi (Paul)</button>
         </div>
       </div>
-
-      <div class="opg-section-title">Stanje s Paulom</div>
-      <div id="paul-status"></div>
 
       <div class="opg-section-title">Svi unosi — Paul</div>
       <div class="opg-card" id="paul-list-card"></div>
@@ -586,8 +625,20 @@ body {
         </div>
         <input type="file" id="opg-import-input" accept="application/json">
       </div>
+
+      <div class="opg-section-title">Usporedba sezona</div>
+      <div class="opg-card">
+        <div class="opg-row2">
+          <div class="opg-field"><label>Sezona A</label><select id="cmp-season-a"></select></div>
+          <div class="opg-field"><label>Sezona B</label><select id="cmp-season-b"></select></div>
+        </div>
+        <button class="opg-submit" id="cmp-generate">📄 Generiraj PDF izvještaj</button>
+        <p class="opg-hint">Otvorit će se prozor za ispis — u njemu odaberite "Save as PDF" / "Spremi kao PDF" umjesto pisača.</p>
+      </div>
     </div>
   </div>
+
+  <div id="print-report"></div>
 
   <div class="opg-tabbar">
     <button class="opg-tab active" data-tab="pocetna"><span class="ic">🏠</span>Početna</button>
@@ -902,6 +953,111 @@ body {
     if (select.value !== currentValue) select.value = currentValue;
   }
 
+  function dataForYear(year){
+    const p = prodaja.filter(r => r.kupac !== 'PAUL' && (r.datum||'').startsWith(year));
+    const t = troskovi.filter(r => (r.datum||'').startsWith(year));
+    const prihod = p.reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
+    const trosak = t.reduce((s,r)=>s+(r.kolicina||0)*(r.cijena||0),0);
+    const byKupac = {};
+    p.forEach(r=>{ byKupac[r.kupac] = (byKupac[r.kupac]||0) + (r.cijena_kg||0)*(r.kg||0); });
+    const byProizvodKg = {};
+    p.forEach(r=>{ const pr=r.proizvod||'—'; byProizvodKg[pr] = (byProizvodKg[pr]||0) + (r.kg||0); });
+    return { prihod, trosak, dobit: prihod-trosak, byKupac, byProizvodKg };
+  }
+
+  function pctDelta(a,b){
+    if (!a) return b>0 ? '+∞%' : '0%';
+    const d = ((b-a)/Math.abs(a))*100;
+    return (d>=0?'+':'') + d.toFixed(0) + '%';
+  }
+
+  function populateCompareSelects(){
+    const selA = document.getElementById('cmp-season-a');
+    const selB = document.getElementById('cmp-season-b');
+    if (!selA || !selB) return;
+    const years = new Set();
+    prodaja.forEach(r=>{ if (r.datum) years.add(r.datum.slice(0,4)); });
+    troskovi.forEach(r=>{ if (r.datum) years.add(r.datum.slice(0,4)); });
+    years.add(String(new Date().getFullYear()));
+    const sorted = [...years].sort().reverse();
+    const optsHtml = sorted.map(y=>`<option value="${y}">${y}</option>`).join('');
+    if (selA.dataset.built !== optsHtml) {
+      selA.innerHTML = optsHtml; selA.dataset.built = optsHtml;
+      selB.innerHTML = optsHtml; selB.dataset.built = optsHtml;
+      selA.value = sorted[0];
+      selB.value = sorted[1] || sorted[0];
+    }
+  }
+
+  function generateComparisonReport(){
+    const yearA = document.getElementById('cmp-season-a').value;
+    const yearB = document.getElementById('cmp-season-b').value;
+    const A = dataForYear(yearA);
+    const B = dataForYear(yearB);
+
+    const allKupci = [...new Set([...Object.keys(A.byKupac), ...Object.keys(B.byKupac)])]
+      .sort((k1,k2)=> (B.byKupac[k2]||0)+(A.byKupac[k2]||0) - ((B.byKupac[k1]||0)+(A.byKupac[k1]||0)));
+    const allProizvodi = [...new Set([...Object.keys(A.byProizvodKg), ...Object.keys(B.byProizvodKg)])]
+      .sort((p1,p2)=> (B.byProizvodKg[p2]||0)+(A.byProizvodKg[p2]||0) - ((B.byProizvodKg[p1]||0)+(A.byProizvodKg[p1]||0)));
+
+    const maxKupacVal = Math.max(1, ...allKupci.map(k=>Math.max(A.byKupac[k]||0, B.byKupac[k]||0)));
+    const maxProizvodVal = Math.max(1, ...allProizvodi.map(p=>Math.max(A.byProizvodKg[p]||0, B.byProizvodKg[p]||0)));
+
+    const kupacBars = allKupci.map(k=>`
+      <div class="pr-bar-row">
+        <div class="pr-bar-name">${KUPAC_LABEL[k]||k}</div>
+        <div class="pr-bar-track"><div class="pr-bar-a" style="width:${Math.round((A.byKupac[k]||0)/maxKupacVal*100)}%"></div></div>
+        <div class="pr-bar-val">${fmt(A.byKupac[k]||0)}</div>
+      </div>
+      <div class="pr-bar-row">
+        <div class="pr-bar-name"></div>
+        <div class="pr-bar-track"><div class="pr-bar-b" style="width:${Math.round((B.byKupac[k]||0)/maxKupacVal*100)}%"></div></div>
+        <div class="pr-bar-val">${fmt(B.byKupac[k]||0)}</div>
+      </div>`).join('');
+
+    const proizvodBars = allProizvodi.map(p=>`
+      <div class="pr-bar-row">
+        <div class="pr-bar-name">${p}</div>
+        <div class="pr-bar-track"><div class="pr-bar-a" style="width:${Math.round((A.byProizvodKg[p]||0)/maxProizvodVal*100)}%"></div></div>
+        <div class="pr-bar-val">${(A.byProizvodKg[p]||0).toLocaleString('hr-HR')} kg</div>
+      </div>
+      <div class="pr-bar-row">
+        <div class="pr-bar-name"></div>
+        <div class="pr-bar-track"><div class="pr-bar-b" style="width:${Math.round((B.byProizvodKg[p]||0)/maxProizvodVal*100)}%"></div></div>
+        <div class="pr-bar-val">${(B.byProizvodKg[p]||0).toLocaleString('hr-HR')} kg</div>
+      </div>`).join('');
+
+    const html = `
+      <div class="pr-page">
+        <div class="pr-h1">OPG Ojdanić — Usporedba sezona ${yearA} i ${yearB}</div>
+        <div class="pr-sub">Izvještaj generiran ${new Date().toLocaleDateString('hr-HR')} · isključuje Paula</div>
+
+        <div class="pr-legend">
+          <span><i style="background:#1F3D2B;"></i>${yearA}</span>
+          <span><i style="background:#E2963A;"></i>${yearB}</span>
+        </div>
+
+        <div class="pr-kpi-row">
+          <div class="pr-kpi"><div class="lbl">Prihod ${yearA} → ${yearB}</div><div class="val">${fmt(A.prihod)} → ${fmt(B.prihod)}</div><div class="delta">${pctDelta(A.prihod,B.prihod)}</div></div>
+        </div>
+        <div class="pr-kpi-row">
+          <div class="pr-kpi"><div class="lbl">Troškovi ${yearA} → ${yearB}</div><div class="val">${fmt(A.trosak)} → ${fmt(B.trosak)}</div><div class="delta">${pctDelta(A.trosak,B.trosak)}</div></div>
+        </div>
+        <div class="pr-kpi-row">
+          <div class="pr-kpi"><div class="lbl">Dobit ${yearA} → ${yearB}</div><div class="val">${fmt(A.dobit)} → ${fmt(B.dobit)}</div><div class="delta">${pctDelta(A.dobit,B.dobit)}</div></div>
+        </div>
+
+        <div class="pr-section">Prihod po kupcu</div>
+        ${kupacBars || '<p style="font-size:11px;color:#6B8266;">Nema podataka.</p>'}
+
+        <div class="pr-section">Isporučeno po proizvodu (kg)</div>
+        ${proizvodBars || '<p style="font-size:11px;color:#6B8266;">Nema podataka.</p>'}
+      </div>`;
+
+    document.getElementById('print-report').innerHTML = html;
+    window.print();
+  }
+
   function isArchiveSeason(){
     return currentSeason !== 'sve' && currentSeason !== String(new Date().getFullYear());
   }
@@ -922,6 +1078,17 @@ body {
       const nEl = document.getElementById(notice);
       if (fEl) fEl.style.display = archived ? 'none' : 'block';
       if (nEl) nEl.style.display = archived ? 'block' : 'none';
+    });
+
+    [['prodaja-add-toggle','prodaja-add-card','prodaja-add-icon'], ['troskovi-add-toggle','troskovi-add-card','troskovi-add-icon'], ['paul-add-toggle','paul-add-card','paul-add-icon']].forEach(([toggleId, cardId, iconId])=>{
+      const toggleEl = document.getElementById(toggleId);
+      if (toggleEl) toggleEl.style.display = archived ? 'none' : 'flex';
+      if (archived) {
+        const cardEl = document.getElementById(cardId);
+        const iconEl = document.getElementById(iconId);
+        if (cardEl) cardEl.style.display = 'none';
+        if (iconEl) iconEl.classList.remove('open');
+      }
     });
 
     const vrBlock = document.getElementById('pocetna-vrijeme-block');
@@ -1590,6 +1757,7 @@ body {
   function renderAll(){
     populateSeasonSelect();
     applySeasonMode();
+    populateCompareSelects();
     renderHero();
     renderProizvodList();
     populateFilterOptions();
@@ -1719,6 +1887,8 @@ body {
     document.getElementById('f-proizvod').value = ''; document.getElementById('f-cijena').value = ''; document.getElementById('f-kg').value = ''; document.getElementById('f-pak').value = '';
     renderNetoPreview();
     if (mode==='local') renderAll();
+    document.getElementById('prodaja-add-card').style.display = 'none';
+    document.getElementById('prodaja-add-icon').classList.remove('open');
     toast('Prodaja spremljena');
   });
 
@@ -1734,6 +1904,8 @@ body {
     document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
     renderTrosakPreview();
     if (mode==='local') renderAll();
+    document.getElementById('troskovi-add-card').style.display = 'none';
+    document.getElementById('troskovi-add-icon').classList.remove('open');
     toast('Trošak spremljen');
   });
 
@@ -1747,6 +1919,8 @@ body {
     document.getElementById('pa-proizvod').value = ''; document.getElementById('pa-cijena').value = ''; document.getElementById('pa-kg').value = '';
     renderPaulPreview();
     if (mode==='local') renderAll();
+    document.getElementById('paul-add-card').style.display = 'none';
+    document.getElementById('paul-add-icon').classList.remove('open');
     toast('Spremljeno (Paul)');
   });
 
@@ -1965,6 +2139,7 @@ body {
   document.getElementById('export-troskovi-csv').addEventListener('click', exportTroskoviCSV);
   document.getElementById('export-json').addEventListener('click', exportJSON);
   document.getElementById('import-json').addEventListener('click', ()=> document.getElementById('opg-import-input').click());
+  document.getElementById('cmp-generate').addEventListener('click', generateComparisonReport);
   document.getElementById('opg-import-input').addEventListener('change', (e)=>{ if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
 
   // ---- setup overlay ----
@@ -2017,6 +2192,27 @@ body {
     const icon = document.getElementById('isk-add-icon');
     const opening = form.style.display === 'none';
     form.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
+  document.getElementById('prodaja-add-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('prodaja-add-card');
+    const icon = document.getElementById('prodaja-add-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
+  document.getElementById('troskovi-add-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('troskovi-add-card');
+    const icon = document.getElementById('troskovi-add-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
+  document.getElementById('paul-add-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('paul-add-card');
+    const icon = document.getElementById('paul-add-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
     icon.classList.toggle('open', opening);
   });
   document.getElementById('isk-submit').addEventListener('click', async ()=>{
