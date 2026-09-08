@@ -472,13 +472,18 @@ body {
     <div class="opg-view" data-view="zastita">
       <div class="opg-filter-row" id="zastita-subnav">
         <button class="opg-chip active" data-sub="zalihe">Zalihe</button>
-        <button class="opg-chip" data-sub="prskanje">Prskanje</button>
+        <button class="opg-chip" data-sub="kalkulator">Kalkulator</button>
+        <button class="opg-chip" data-sub="tretiranja">Tretiranja</button>
         <button class="opg-chip" data-sub="vrijeme">Vrijeme</button>
         <button class="opg-chip" data-sub="iskaznica">Iskaznica</button>
       </div>
 
       <div id="sub-zalihe" class="opg-subview active">
-        <div class="opg-card">
+        <button type="button" class="opg-isk-add-toggle" id="zalihe-add-toggle" style="margin-top:0;">
+          <span>Unesi sredstvo</span>
+          <span class="opg-isk-add-icon" id="zalihe-add-icon">+</span>
+        </button>
+        <div class="opg-card" id="zalihe-add-card" style="display:none;">
           <div class="opg-field">
             <label>Naziv sredstva</label>
             <input type="text" id="z-naziv" placeholder="npr. Bordoška juha">
@@ -508,9 +513,14 @@ body {
         <div id="zalihe-list"></div>
       </div>
 
-      <div id="sub-prskanje" class="opg-subview">
-        <div class="opg-card">
-          <div class="opg-section-title" style="margin-top:0;">Kalkulator količine — FIS preporuka</div>
+      <div id="sub-kalkulator" class="opg-subview">
+        <a class="opg-submit ghost opg-fis-link" href="https://fis.mps.hr/TrazilicaSZB/" target="_blank" rel="noopener" style="margin-top:0;">Pretraži službeni FIS registar ↗</a>
+
+        <button type="button" class="opg-isk-add-toggle" id="kalkulator-toggle">
+          <span>Kalkulator</span>
+          <span class="opg-isk-add-icon" id="kalkulator-icon">+</span>
+        </button>
+        <div class="opg-card" id="kalkulator-card" style="display:none;">
           <div class="opg-field">
             <label>Sredstvo (opcionalno — pamti zadnju dozu koju ste koristili)</label>
             <input type="text" id="calc-sredstvo" list="zalihe-list-dl" placeholder="npr. Bordoška juha">
@@ -537,9 +547,14 @@ body {
           <div class="opg-neto-preview">Potrebno sredstva: <b id="calc-rezultat">0 ml</b></div>
           <button class="opg-submit ghost" id="calc-prenesi">Prenesi u dnevnik tretiranja ↓</button>
         </div>
+      </div>
 
-        <div class="opg-card">
-          <div class="opg-section-title" style="margin-top:0;">Novi unos tretiranja</div>
+      <div id="sub-tretiranja" class="opg-subview">
+        <button type="button" class="opg-isk-add-toggle" id="tretiranja-add-toggle" style="margin-top:0;">
+          <span>Novi unos tretiranja</span>
+          <span class="opg-isk-add-icon" id="tretiranja-add-icon">+</span>
+        </button>
+        <div class="opg-card" id="tretiranja-add-card" style="display:none;">
           <div class="opg-row2">
             <div class="opg-field"><label>Datum</label><input type="date" id="pr-datum"></div>
             <div class="opg-field"><label>Sredstvo</label><input type="text" id="pr-sredstvo" list="zalihe-list-dl" placeholder="npr. Bordoška juha"><datalist id="zalihe-list-dl"></datalist></div>
@@ -554,7 +569,12 @@ body {
           <button class="opg-submit" id="pr-submit">Spremi tretiranje</button>
         </div>
 
-        <a class="opg-submit ghost opg-fis-link" href="https://fis.mps.hr/TrazilicaSZB/" target="_blank" rel="noopener">Pretraži službeni FIS registar ↗</a>
+        <div class="opg-filter-row" id="tretiranja-kultura-filter">
+          <button class="opg-chip active" data-kultura-filter="sve">Sve</button>
+          <button class="opg-chip" data-kultura-filter="paprika">Paprika babura</button>
+          <button class="opg-chip" data-kultura-filter="butternut">Butternut tikva</button>
+          <button class="opg-chip" data-kultura-filter="tikvice">Tikvice</button>
+        </div>
 
         <div class="opg-section-title">Povijest tretiranja</div>
         <div id="prskanje-list"></div>
@@ -1499,10 +1519,19 @@ body {
     return d;
   }
 
+  const KULTURA_FILTERS = {
+    sve: () => true,
+    paprika: (k) => (k||'').toUpperCase().includes('PAPRIKA'),
+    butternut: (k) => (k||'').toUpperCase().includes('BUTTERNUT'),
+    tikvice: (k) => (k||'').toUpperCase().includes('TIKVIC'),
+  };
+  let tretiranjaKulturaFilter = 'sve';
+
   function renderPrskanjeList(){
     const el = document.getElementById('prskanje-list');
-    const sorted = [...prskanje].sort((a,b)=>(b.datum||'').localeCompare(a.datum||'') || ((b.ts||0)-(a.ts||0)));
-    if (!sorted.length){ el.innerHTML = '<div class="opg-empty">Još nema unesenih tretiranja.</div>'; return; }
+    const filterFn = KULTURA_FILTERS[tretiranjaKulturaFilter] || KULTURA_FILTERS.sve;
+    const sorted = [...prskanje].filter(r=>filterFn(r.kultura)).sort((a,b)=>(b.datum||'').localeCompare(a.datum||'') || ((b.ts||0)-(a.ts||0)));
+    if (!sorted.length){ el.innerHTML = '<div class="opg-empty">Još nema unesenih tretiranja za ovaj filter.</div>'; return; }
     const today = new Date(); today.setHours(0,0,0,0);
     el.innerHTML = sorted.map(r=>{
       const berba = computeBerbaDate(r.datum, r.karenca_dana);
@@ -2046,7 +2075,8 @@ body {
     document.querySelectorAll('#zastita-subnav .opg-chip').forEach(c=>c.classList.remove('active'));
     e.target.classList.add('active');
     document.getElementById('sub-zalihe').classList.toggle('active', sub==='zalihe');
-    document.getElementById('sub-prskanje').classList.toggle('active', sub==='prskanje');
+    document.getElementById('sub-kalkulator').classList.toggle('active', sub==='kalkulator');
+    document.getElementById('sub-tretiranja').classList.toggle('active', sub==='tretiranja');
     document.getElementById('sub-vrijeme').classList.toggle('active', sub==='vrijeme');
     document.getElementById('sub-iskaznica').classList.toggle('active', sub==='iskaznica');
   });
@@ -2068,6 +2098,8 @@ body {
     await addZaliha({ id: uid('z'), naziv, pocetna_kolicina: kolicina, trenutna_kolicina: kolicina, jedinica, slika: pendingZalihaPhoto, unio: currentUser || null, datum: todayStr() });
     document.getElementById('z-naziv').value = ''; document.getElementById('z-kolicina').value = ''; document.getElementById('z-slika').value = '';
     document.getElementById('z-slika-preview').innerHTML = ''; pendingZalihaPhoto = null;
+    document.getElementById('zalihe-add-card').style.display = 'none';
+    document.getElementById('zalihe-add-icon').classList.remove('open');
     toast('Dodano na zalihe');
   });
   document.getElementById('zalihe-list').addEventListener('click', async (e)=>{
@@ -2092,6 +2124,12 @@ body {
     if (lastCalcResult.sredstvo) document.getElementById('pr-sredstvo').value = lastCalcResult.sredstvo;
     document.getElementById('pr-kolicina').value = lastCalcResult.value;
     renderPrskanjePreview();
+    document.getElementById('tretiranja-add-card').style.display = 'block';
+    document.getElementById('tretiranja-add-icon').classList.add('open');
+    document.querySelectorAll('#zastita-subnav .opg-chip').forEach(c=>c.classList.remove('active'));
+    document.querySelector('#zastita-subnav [data-sub="tretiranja"]').classList.add('active');
+    document.getElementById('sub-kalkulator').classList.remove('active');
+    document.getElementById('sub-tretiranja').classList.add('active');
     toast('Preneseno — samo dodaj kulturu i karencu pa spremi');
   });
 
@@ -2222,6 +2260,8 @@ body {
     await addPrskanje({ id: uid('pr'), datum, sredstvo, kultura, kolicina, karenca_dana, komentar: komentar || null, unio: currentUser || null, ts: Date.now() });
     document.getElementById('pr-sredstvo').value = ''; document.getElementById('pr-kultura').value = ''; document.getElementById('pr-kolicina').value = ''; document.getElementById('pr-karenca').value = ''; document.getElementById('pr-komentar').value = '';
     renderPrskanjePreview();
+    document.getElementById('tretiranja-add-card').style.display = 'none';
+    document.getElementById('tretiranja-add-icon').classList.remove('open');
     toast('Tretiranje spremljeno');
   });
   document.getElementById('prskanje-list').addEventListener('click', async (e)=>{
@@ -2309,6 +2349,35 @@ body {
     const icon = document.getElementById('isk-add-icon');
     const opening = form.style.display === 'none';
     form.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
+  document.getElementById('tretiranja-kultura-filter').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-kultura-filter]');
+    if (!btn) return;
+    document.querySelectorAll('#tretiranja-kultura-filter .opg-chip').forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active');
+    tretiranjaKulturaFilter = btn.dataset.kulturaFilter;
+    renderPrskanjeList();
+  });
+  document.getElementById('zalihe-add-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('zalihe-add-card');
+    const icon = document.getElementById('zalihe-add-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
+  document.getElementById('kalkulator-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('kalkulator-card');
+    const icon = document.getElementById('kalkulator-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
+  document.getElementById('tretiranja-add-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('tretiranja-add-card');
+    const icon = document.getElementById('tretiranja-add-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
     icon.classList.toggle('open', opening);
   });
   document.getElementById('prodaja-add-toggle').addEventListener('click', ()=>{
