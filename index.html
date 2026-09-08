@@ -975,8 +975,20 @@ body {
     const byKupac = {};
     p.forEach(r=>{ byKupac[r.kupac] = (byKupac[r.kupac]||0) + (r.cijena_kg||0)*(r.kg||0); });
     const byProizvodKg = {};
-    p.forEach(r=>{ const pr=r.proizvod||'—'; byProizvodKg[pr] = (byProizvodKg[pr]||0) + (r.kg||0); });
-    return { prihod, trosak, dobit: prihod-trosak, byKupac, byProizvodKg };
+    const byProizvodCijena = {};
+    p.forEach(r=>{
+      const pr=r.proizvod||'—';
+      byProizvodKg[pr] = (byProizvodKg[pr]||0) + (r.kg||0);
+      if (r.cijena_kg!=null) {
+        if (!byProizvodCijena[pr]) byProizvodCijena[pr] = { min:r.cijena_kg, max:r.cijena_kg, prihod:0, kg:0 };
+        const o = byProizvodCijena[pr];
+        o.min = Math.min(o.min, r.cijena_kg);
+        o.max = Math.max(o.max, r.cijena_kg);
+        o.prihod += (r.cijena_kg||0)*(r.kg||0);
+        o.kg += (r.kg||0);
+      }
+    });
+    return { prihod, trosak, dobit: prihod-trosak, byKupac, byProizvodKg, byProizvodCijena };
   }
 
   function pctDelta(a,b){
@@ -1004,8 +1016,7 @@ body {
   }
 
   function generateComparisonReport(){
-    const yearA = document.getElementById('cmp-season-a').value;
-    const yearB = document.getElementById('cmp-season-b').value;
+    const [yearA, yearB] = [document.getElementById('cmp-season-a').value, document.getElementById('cmp-season-b').value].sort();
     const A = dataForYear(yearA);
     const B = dataForYear(yearB);
 
@@ -1078,45 +1089,60 @@ body {
     const selA = document.getElementById('cmp-season-a');
     const selB = document.getElementById('cmp-season-b');
     if (!selA || !selB || !selA.value || !selB.value) { contentEl.innerHTML = ''; return; }
-    const yearA = selA.value, yearB = selB.value;
-    const A = dataForYear(yearA);
-    const B = dataForYear(yearB);
+    // uvijek kronološki: starija sezona je referentna baza, novija se uspoređuje s njom
+    const [stariji, noviji] = [selA.value, selB.value].sort();
+    const S = dataForYear(stariji);
+    const N = dataForYear(noviji);
 
-    const prihodDelta = pctDelta(A.prihod, B.prihod);
-    const trosakDelta = pctDelta(A.trosak, B.trosak);
-    const dobitDelta = pctDelta(A.dobit, B.dobit);
-    const insight = `U sezoni <b>${yearB}</b> prihod je ${B.prihod>=A.prihod?'porastao':'pao'} za <b>${prihodDelta.replace('+','')}</b> u odnosu na <b>${yearA}</b> (${fmt(A.prihod)} → ${fmt(B.prihod)}), a dobit je ${B.dobit>=A.dobit?'porasla':'pala'} za <b>${dobitDelta.replace('+','')}</b>.`;
+    const prihodDelta = pctDelta(S.prihod, N.prihod);
+    const trosakDelta = pctDelta(S.trosak, N.trosak);
+    const dobitDelta = pctDelta(S.dobit, N.dobit);
+    const insight = (stariji === noviji)
+      ? `Odabrane su iste dvije sezone (${noviji}) — odaberite dvije različite godine za usporedbu.`
+      : `U sezoni <b>${noviji}</b> prihod je ${N.prihod>=S.prihod?'porastao':'pao'} za <b>${prihodDelta.replace('+','')}</b> u odnosu na <b>${stariji}</b> (${fmt(S.prihod)} → ${fmt(N.prihod)}), a dobit je ${N.dobit>=S.dobit?'porasla':'pala'} za <b>${dobitDelta.replace('+','')}</b>.`;
 
-    const allKupci = [...new Set([...Object.keys(A.byKupac), ...Object.keys(B.byKupac)])]
-      .sort((k1,k2)=> (B.byKupac[k2]||0)+(A.byKupac[k2]||0) - ((B.byKupac[k1]||0)+(A.byKupac[k1]||0)));
-    const allProizvodi = [...new Set([...Object.keys(A.byProizvodKg), ...Object.keys(B.byProizvodKg)])]
-      .sort((p1,p2)=> (B.byProizvodKg[p2]||0)+(A.byProizvodKg[p2]||0) - ((B.byProizvodKg[p1]||0)+(A.byProizvodKg[p1]||0)));
+    const allKupci = [...new Set([...Object.keys(S.byKupac), ...Object.keys(N.byKupac)])]
+      .sort((k1,k2)=> (N.byKupac[k2]||0)+(S.byKupac[k2]||0) - ((N.byKupac[k1]||0)+(S.byKupac[k1]||0)));
+    const allProizvodi = [...new Set([...Object.keys(S.byProizvodKg), ...Object.keys(N.byProizvodKg)])]
+      .sort((p1,p2)=> (N.byProizvodKg[p2]||0)+(S.byProizvodKg[p2]||0) - ((N.byProizvodKg[p1]||0)+(S.byProizvodKg[p1]||0)));
 
-    const maxKupacVal = Math.max(1, ...allKupci.map(k=>Math.max(A.byKupac[k]||0, B.byKupac[k]||0)));
-    const maxProizvodVal = Math.max(1, ...allProizvodi.map(p=>Math.max(A.byProizvodKg[p]||0, B.byProizvodKg[p]||0)));
+    const maxKupacVal = Math.max(1, ...allKupci.map(k=>Math.max(S.byKupac[k]||0, N.byKupac[k]||0)));
+    const maxProizvodVal = Math.max(1, ...allProizvodi.map(p=>Math.max(S.byProizvodKg[p]||0, N.byProizvodKg[p]||0)));
 
-    function cmpBar(name, valA, valB, maxVal, unit){
-      return `<div class="opg-cmp-bar-row">
+    function cmpBarPair(name, valS, valN, maxVal, unit){
+      return `<div class="opg-cmp-bar-row" style="margin-bottom:3px;">
         <div class="opg-cmp-bar-name">${name}</div>
-        <div style="flex:1;">
-          <div class="opg-cmp-bar-track"><div class="opg-cmp-bar-a" style="width:${Math.round(valA/maxVal*100)}%"></div></div>
-          <div class="opg-cmp-bar-track"><div class="opg-cmp-bar-b" style="width:${Math.round(valB/maxVal*100)}%"></div></div>
-        </div>
-        <div class="opg-cmp-bar-val">${valA.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}<br>${valB.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
+        <div class="opg-cmp-bar-track"><div class="opg-cmp-bar-a" style="width:${Math.round(valS/maxVal*100)}%"></div></div>
+        <div class="opg-cmp-bar-val">${valS.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
+      </div>
+      <div class="opg-cmp-bar-row">
+        <div class="opg-cmp-bar-name"></div>
+        <div class="opg-cmp-bar-track"><div class="opg-cmp-bar-b" style="width:${Math.round(valN/maxVal*100)}%"></div></div>
+        <div class="opg-cmp-bar-val">${valN.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
       </div>`;
     }
 
-    const kupacBarsHtml = allKupci.map(k=>cmpBar(KUPAC_LABEL[k]||k, A.byKupac[k]||0, B.byKupac[k]||0, maxKupacVal, ' €')).join('');
-    const proizvodBarsHtml = allProizvodi.map(p=>cmpBar(p, A.byProizvodKg[p]||0, B.byProizvodKg[p]||0, maxProizvodVal, ' kg')).join('');
+    const kupacBarsHtml = allKupci.map(k=>cmpBarPair(KUPAC_LABEL[k]||k, S.byKupac[k]||0, N.byKupac[k]||0, maxKupacVal, ' €')).join('');
+    const proizvodBarsHtml = allProizvodi.map(p=>cmpBarPair(p, S.byProizvodKg[p]||0, N.byProizvodKg[p]||0, maxProizvodVal, ' kg')).join('');
+
+    const cijenaFmt = (o) => o ? `${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})}–${o.max.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} € (prosj. ${(o.prihod/o.kg).toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} €)` : '–';
+    const cijenaRowsHtml = allProizvodi.map(p=>`
+      <div class="opg-sum-row" style="align-items:flex-start;">
+        <div class="opg-sum-name" style="min-width:100px;">${p}</div>
+        <div class="opg-sum-val" style="text-align:right; line-height:1.7;">
+          <span style="color:var(--forest);">${stariji}:</span> ${cijenaFmt(S.byProizvodCijena[p])}<br>
+          <span style="color:var(--squash);">${noviji}:</span> ${cijenaFmt(N.byProizvodCijena[p])}
+        </div>
+      </div>`).join('');
 
     contentEl.innerHTML = `
-      <div class="opg-cmp-legend"><span><i style="background:var(--forest);"></i>${yearA}</span><span><i style="background:var(--squash);"></i>${yearB}</span></div>
+      <div class="opg-cmp-legend"><span><i style="background:var(--forest);"></i>${stariji}</span><span><i style="background:var(--squash);"></i>${noviji}</span></div>
 
       <div class="opg-sum-card" style="margin-bottom:16px;">
         <p style="font-size:13.5px; color:var(--ink-soft); margin:0 0 12px; line-height:1.55;">${insight}</p>
-        <div class="opg-sum-row"><div class="opg-sum-name">Prihod</div><div class="opg-sum-val">${fmt(A.prihod)} → ${fmt(B.prihod)} <span style="color:${B.prihod>=A.prihod?'var(--forest)':'var(--warn-ink)'};">(${prihodDelta})</span></div></div>
-        <div class="opg-sum-row"><div class="opg-sum-name">Troškovi</div><div class="opg-sum-val">${fmt(A.trosak)} → ${fmt(B.trosak)} <span style="color:${B.trosak<=A.trosak?'var(--forest)':'var(--warn-ink)'};">(${trosakDelta})</span></div></div>
-        <div class="opg-sum-row"><div class="opg-sum-name">Dobit</div><div class="opg-sum-val">${fmt(A.dobit)} → ${fmt(B.dobit)} <span style="color:${B.dobit>=A.dobit?'var(--forest)':'var(--warn-ink)'};">(${dobitDelta})</span></div></div>
+        <div class="opg-sum-row"><div class="opg-sum-name">Prihod</div><div class="opg-sum-val">${fmt(S.prihod)} → ${fmt(N.prihod)} <span style="color:${N.prihod>=S.prihod?'var(--forest)':'var(--warn-ink)'};">(${prihodDelta})</span></div></div>
+        <div class="opg-sum-row"><div class="opg-sum-name">Troškovi</div><div class="opg-sum-val">${fmt(S.trosak)} → ${fmt(N.trosak)} <span style="color:${N.trosak<=S.trosak?'var(--forest)':'var(--warn-ink)'};">(${trosakDelta})</span></div></div>
+        <div class="opg-sum-row"><div class="opg-sum-name">Dobit</div><div class="opg-sum-val">${fmt(S.dobit)} → ${fmt(N.dobit)} <span style="color:${N.dobit>=S.dobit?'var(--forest)':'var(--warn-ink)'};">(${dobitDelta})</span></div></div>
       </div>
 
       <div class="opg-section-title" style="margin-top:0;">Prihod po kupcu</div>
@@ -1124,6 +1150,9 @@ body {
 
       <div class="opg-section-title">Isporučeno po proizvodu</div>
       <div class="opg-sum-card">${proizvodBarsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
+
+      <div class="opg-section-title">Cijena po proizvodu (min–max, prosj.)</div>
+      <div class="opg-sum-card">${cijenaRowsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
     `;
   }
 
