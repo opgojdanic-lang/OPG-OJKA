@@ -232,6 +232,17 @@ body {
 .pr-legend { display: flex; gap: 14px; font-size: 10.5px; margin-bottom: 8px; }
 .pr-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .pr-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.opg-cmp-legend { display: flex; gap: 14px; font-size: 12.5px; margin-bottom: 12px; color: var(--ink-soft); }
+.opg-cmp-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.opg-cmp-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.opg-cmp-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.opg-cmp-bar-row:last-child { margin-bottom: 0; }
+.opg-cmp-bar-name { min-width: 84px; font-size: 12.5px; font-weight: 600; color: var(--ink); flex-shrink: 0; }
+.opg-cmp-bar-track { flex: 1; height: 11px; background: var(--sage-line); border-radius: 6px; overflow: hidden; margin-bottom: 3px; }
+.opg-cmp-bar-track:last-child { margin-bottom: 0; }
+.opg-cmp-bar-a { background: var(--forest); height: 100%; }
+.opg-cmp-bar-b { background: var(--squash); height: 100%; }
+.opg-cmp-bar-val { min-width: 78px; text-align: right; font-size: 11.5px; color: var(--ink-soft); flex-shrink: 0; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -625,16 +636,18 @@ body {
         </div>
         <input type="file" id="opg-import-input" accept="application/json">
       </div>
+    </div>
 
-      <div class="opg-section-title">Usporedba sezona</div>
-      <div class="opg-card">
+    <!-- ANALITIKA -->
+    <div class="opg-view" data-view="analitika">
+      <div class="opg-card" style="margin-bottom:16px;">
         <div class="opg-row2">
           <div class="opg-field"><label>Sezona A</label><select id="cmp-season-a"></select></div>
           <div class="opg-field"><label>Sezona B</label><select id="cmp-season-b"></select></div>
         </div>
-        <button class="opg-submit" id="cmp-generate">📄 Generiraj PDF izvještaj</button>
-        <p class="opg-hint">Otvorit će se prozor za ispis — u njemu odaberite "Save as PDF" / "Spremi kao PDF" umjesto pisača.</p>
+        <button class="opg-submit ghost" id="cmp-print" style="margin-top:4px;">🖨️ Ispiši / spremi kao PDF</button>
       </div>
+      <div id="analitika-content"></div>
     </div>
   </div>
 
@@ -647,6 +660,7 @@ body {
     <button class="opg-tab" data-tab="paul"><span class="ic">🤝</span>Paul</button>
     <button class="opg-tab" data-tab="zastita"><span class="ic"><img src="./icons/sprayer-tab.png" alt="" class="opg-tab-img"></span>Zaštita</button>
     <button class="opg-tab" data-tab="pregled"><span class="ic">📊</span>Pregled</button>
+    <button class="opg-tab" data-tab="analitika"><span class="ic">📈</span>Analitika</button>
   </div>
 
   <div class="opg-pull-indicator" id="opg-pull-indicator">↓ Pusti za osvježavanje</div>
@@ -1056,6 +1070,61 @@ body {
 
     document.getElementById('print-report').innerHTML = html;
     window.print();
+  }
+
+  function renderAnalitika(){
+    const contentEl = document.getElementById('analitika-content');
+    if (!contentEl) return;
+    const selA = document.getElementById('cmp-season-a');
+    const selB = document.getElementById('cmp-season-b');
+    if (!selA || !selB || !selA.value || !selB.value) { contentEl.innerHTML = ''; return; }
+    const yearA = selA.value, yearB = selB.value;
+    const A = dataForYear(yearA);
+    const B = dataForYear(yearB);
+
+    const prihodDelta = pctDelta(A.prihod, B.prihod);
+    const trosakDelta = pctDelta(A.trosak, B.trosak);
+    const dobitDelta = pctDelta(A.dobit, B.dobit);
+    const insight = `U sezoni <b>${yearB}</b> prihod je ${B.prihod>=A.prihod?'porastao':'pao'} za <b>${prihodDelta.replace('+','')}</b> u odnosu na <b>${yearA}</b> (${fmt(A.prihod)} → ${fmt(B.prihod)}), a dobit je ${B.dobit>=A.dobit?'porasla':'pala'} za <b>${dobitDelta.replace('+','')}</b>.`;
+
+    const allKupci = [...new Set([...Object.keys(A.byKupac), ...Object.keys(B.byKupac)])]
+      .sort((k1,k2)=> (B.byKupac[k2]||0)+(A.byKupac[k2]||0) - ((B.byKupac[k1]||0)+(A.byKupac[k1]||0)));
+    const allProizvodi = [...new Set([...Object.keys(A.byProizvodKg), ...Object.keys(B.byProizvodKg)])]
+      .sort((p1,p2)=> (B.byProizvodKg[p2]||0)+(A.byProizvodKg[p2]||0) - ((B.byProizvodKg[p1]||0)+(A.byProizvodKg[p1]||0)));
+
+    const maxKupacVal = Math.max(1, ...allKupci.map(k=>Math.max(A.byKupac[k]||0, B.byKupac[k]||0)));
+    const maxProizvodVal = Math.max(1, ...allProizvodi.map(p=>Math.max(A.byProizvodKg[p]||0, B.byProizvodKg[p]||0)));
+
+    function cmpBar(name, valA, valB, maxVal, unit){
+      return `<div class="opg-cmp-bar-row">
+        <div class="opg-cmp-bar-name">${name}</div>
+        <div style="flex:1;">
+          <div class="opg-cmp-bar-track"><div class="opg-cmp-bar-a" style="width:${Math.round(valA/maxVal*100)}%"></div></div>
+          <div class="opg-cmp-bar-track"><div class="opg-cmp-bar-b" style="width:${Math.round(valB/maxVal*100)}%"></div></div>
+        </div>
+        <div class="opg-cmp-bar-val">${valA.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}<br>${valB.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
+      </div>`;
+    }
+
+    const kupacBarsHtml = allKupci.map(k=>cmpBar(KUPAC_LABEL[k]||k, A.byKupac[k]||0, B.byKupac[k]||0, maxKupacVal, ' €')).join('');
+    const proizvodBarsHtml = allProizvodi.map(p=>cmpBar(p, A.byProizvodKg[p]||0, B.byProizvodKg[p]||0, maxProizvodVal, ' kg')).join('');
+
+    contentEl.innerHTML = `
+      <div class="opg-cmp-legend"><span><i style="background:var(--forest);"></i>${yearA}</span><span><i style="background:var(--squash);"></i>${yearB}</span></div>
+
+      <div class="opg-sum-card" style="margin-bottom:16px;">
+        <p style="font-size:13.5px; color:var(--ink-soft); margin:0 0 12px; line-height:1.55;">${insight}</p>
+        <div class="opg-sum-row"><div class="opg-sum-name">Prihod</div><div class="opg-sum-val">${fmt(A.prihod)} → ${fmt(B.prihod)} <span style="color:${B.prihod>=A.prihod?'var(--forest)':'var(--warn-ink)'};">(${prihodDelta})</span></div></div>
+        <div class="opg-sum-row"><div class="opg-sum-name">Troškovi</div><div class="opg-sum-val">${fmt(A.trosak)} → ${fmt(B.trosak)} <span style="color:${B.trosak<=A.trosak?'var(--forest)':'var(--warn-ink)'};">(${trosakDelta})</span></div></div>
+        <div class="opg-sum-row"><div class="opg-sum-name">Dobit</div><div class="opg-sum-val">${fmt(A.dobit)} → ${fmt(B.dobit)} <span style="color:${B.dobit>=A.dobit?'var(--forest)':'var(--warn-ink)'};">(${dobitDelta})</span></div></div>
+      </div>
+
+      <div class="opg-section-title" style="margin-top:0;">Prihod po kupcu</div>
+      <div class="opg-sum-card">${kupacBarsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
+
+      <div class="opg-section-title">Isporučeno po proizvodu</div>
+      <div class="opg-sum-card">${proizvodBarsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
+    `;
   }
 
   function isArchiveSeason(){
@@ -1758,6 +1827,7 @@ body {
     populateSeasonSelect();
     applySeasonMode();
     populateCompareSelects();
+    renderAnalitika();
     renderHero();
     renderProizvodList();
     populateFilterOptions();
@@ -2139,7 +2209,9 @@ body {
   document.getElementById('export-troskovi-csv').addEventListener('click', exportTroskoviCSV);
   document.getElementById('export-json').addEventListener('click', exportJSON);
   document.getElementById('import-json').addEventListener('click', ()=> document.getElementById('opg-import-input').click());
-  document.getElementById('cmp-generate').addEventListener('click', generateComparisonReport);
+  document.getElementById('cmp-print').addEventListener('click', generateComparisonReport);
+  document.getElementById('cmp-season-a').addEventListener('change', renderAnalitika);
+  document.getElementById('cmp-season-b').addEventListener('change', renderAnalitika);
   document.getElementById('opg-import-input').addEventListener('change', (e)=>{ if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
 
   // ---- setup overlay ----
