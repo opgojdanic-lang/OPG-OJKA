@@ -161,6 +161,7 @@ body {
 .opg-parcela-head { display: flex; justify-content: space-between; align-items: baseline; cursor: pointer; }
 .opg-parcela-name { font-family: 'Fraunces'; font-weight: 600; font-size: 16px; color: var(--forest); }
 .opg-parcela-area { font-size: 12.5px; color: var(--ink-soft); }
+.opg-parcela-area-empty { color: var(--sage); font-weight: 600; }
 .opg-parcela-kultura { font-size: 13.5px; color: var(--ink); margin-top: 4px; }
 .opg-parcela-history { font-size: 11.5px; color: var(--sage); margin-top: 6px; }
 .opg-parcela-edit { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sage-line); }
@@ -1579,7 +1580,7 @@ body {
       return `<div class="opg-parcela-card" data-parcela="${p.id}">
         <div class="opg-parcela-head" data-toggle-parcela="${p.id}">
           <div class="opg-parcela-name">${p.naziv}</div>
-          <div class="opg-parcela-area">${trenutnaOpis || (p.povrsina_ha ? p.povrsina_ha+' ha' : 'površina?')}</div>
+          <div class="opg-parcela-area">${trenutnaOpis || (p.povrsina_ha ? p.povrsina_ha+' ha' : '<span class="opg-parcela-area-empty">+ dodaj podatke</span>')}</div>
         </div>
         <div class="opg-parcela-kultura">${currentSeason}: <b>${trenutnaLabel || 'nije uneseno'}</b></div>
         ${historyTxt ? `<div class="opg-parcela-history">Prijašnje sezone: ${historyTxt}</div>` : ''}
