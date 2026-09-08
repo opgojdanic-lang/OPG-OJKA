@@ -645,7 +645,6 @@ body {
           <div class="opg-field"><label>Sezona A</label><select id="cmp-season-a"></select></div>
           <div class="opg-field"><label>Sezona B</label><select id="cmp-season-b"></select></div>
         </div>
-        <button class="opg-submit ghost" id="cmp-print" style="margin-top:4px;">🖨️ Ispiši / spremi kao PDF</button>
       </div>
       <div id="analitika-content"></div>
     </div>
@@ -1106,38 +1105,30 @@ body {
     const allProizvodi = [...new Set([...Object.keys(S.byProizvodKg), ...Object.keys(N.byProizvodKg)])]
       .sort((p1,p2)=> (N.byProizvodKg[p2]||0)+(S.byProizvodKg[p2]||0) - ((N.byProizvodKg[p1]||0)+(S.byProizvodKg[p1]||0)));
 
-    const maxKupacVal = Math.max(1, ...allKupci.map(k=>Math.max(S.byKupac[k]||0, N.byKupac[k]||0)));
-    const maxProizvodVal = Math.max(1, ...allProizvodi.map(p=>Math.max(S.byProizvodKg[p]||0, N.byProizvodKg[p]||0)));
-
-    function cmpBarPair(name, valS, valN, maxVal, unit){
-      return `<div class="opg-cmp-bar-row" style="margin-bottom:3px;">
-        <div class="opg-cmp-bar-name">${name}</div>
-        <div class="opg-cmp-bar-track"><div class="opg-cmp-bar-a" style="width:${Math.round(valS/maxVal*100)}%"></div></div>
-        <div class="opg-cmp-bar-val">${valS.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
-      </div>
-      <div class="opg-cmp-bar-row">
-        <div class="opg-cmp-bar-name"></div>
-        <div class="opg-cmp-bar-track"><div class="opg-cmp-bar-b" style="width:${Math.round(valN/maxVal*100)}%"></div></div>
-        <div class="opg-cmp-bar-val">${valN.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
+    function cmpValRow(name, valS, valN, unit){
+      return `<div class="opg-sum-row" style="align-items:flex-start;">
+        <div class="opg-sum-name">${name}</div>
+        <div class="opg-sum-val" style="line-height:1.7;">
+          <div style="font-weight:700; color:var(--ink);">${noviji}: ${valN.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
+          <div style="font-weight:400; color:var(--ink-soft); font-size:12.5px;">${stariji}: ${valS.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
+        </div>
       </div>`;
     }
 
-    const kupacBarsHtml = allKupci.map(k=>cmpBarPair(KUPAC_LABEL[k]||k, S.byKupac[k]||0, N.byKupac[k]||0, maxKupacVal, ' €')).join('');
-    const proizvodBarsHtml = allProizvodi.map(p=>cmpBarPair(p, S.byProizvodKg[p]||0, N.byProizvodKg[p]||0, maxProizvodVal, ' kg')).join('');
+    const kupacRowsHtml = allKupci.map(k=>cmpValRow(KUPAC_LABEL[k]||k, S.byKupac[k]||0, N.byKupac[k]||0, ' €')).join('');
+    const proizvodRowsHtml = allProizvodi.map(p=>cmpValRow(p, S.byProizvodKg[p]||0, N.byProizvodKg[p]||0, ' kg')).join('');
 
-    const cijenaFmt = (o) => o ? `${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})}–${o.max.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} € (prosj. ${(o.prihod/o.kg).toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} €)` : '–';
+    const cijenaFmt = (o) => o ? `Min: ${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} € · Maks: ${o.max.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} € · Prosj.: ${(o.prihod/o.kg).toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} €` : '– nema podataka';
     const cijenaRowsHtml = allProizvodi.map(p=>`
       <div class="opg-sum-row" style="align-items:flex-start;">
         <div class="opg-sum-name" style="min-width:100px;">${p}</div>
         <div class="opg-sum-val" style="text-align:right; line-height:1.7;">
-          <span style="color:var(--forest);">${stariji}:</span> ${cijenaFmt(S.byProizvodCijena[p])}<br>
-          <span style="color:var(--squash);">${noviji}:</span> ${cijenaFmt(N.byProizvodCijena[p])}
+          <div style="font-weight:700; color:var(--ink);">${noviji}: ${cijenaFmt(N.byProizvodCijena[p])}</div>
+          <div style="font-weight:400; color:var(--ink-soft); font-size:12px; margin-top:2px;">${stariji}: ${cijenaFmt(S.byProizvodCijena[p])}</div>
         </div>
       </div>`).join('');
 
     contentEl.innerHTML = `
-      <div class="opg-cmp-legend"><span><i style="background:var(--forest);"></i>${stariji}</span><span><i style="background:var(--squash);"></i>${noviji}</span></div>
-
       <div class="opg-sum-card" style="margin-bottom:16px;">
         <p style="font-size:13.5px; color:var(--ink-soft); margin:0 0 12px; line-height:1.55;">${insight}</p>
         <div class="opg-sum-row"><div class="opg-sum-name">Prihod</div><div class="opg-sum-val">${fmt(S.prihod)} → ${fmt(N.prihod)} <span style="color:${N.prihod>=S.prihod?'var(--forest)':'var(--warn-ink)'};">(${prihodDelta})</span></div></div>
@@ -1146,12 +1137,12 @@ body {
       </div>
 
       <div class="opg-section-title" style="margin-top:0;">Prihod po kupcu</div>
-      <div class="opg-sum-card">${kupacBarsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
+      <div class="opg-sum-card">${kupacRowsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
 
       <div class="opg-section-title">Isporučeno po proizvodu</div>
-      <div class="opg-sum-card">${proizvodBarsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
+      <div class="opg-sum-card">${proizvodRowsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
 
-      <div class="opg-section-title">Cijena po proizvodu (min–max, prosj.)</div>
+      <div class="opg-section-title">Cijena po proizvodu</div>
       <div class="opg-sum-card">${cijenaRowsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
     `;
   }
@@ -2238,7 +2229,6 @@ body {
   document.getElementById('export-troskovi-csv').addEventListener('click', exportTroskoviCSV);
   document.getElementById('export-json').addEventListener('click', exportJSON);
   document.getElementById('import-json').addEventListener('click', ()=> document.getElementById('opg-import-input').click());
-  document.getElementById('cmp-print').addEventListener('click', generateComparisonReport);
   document.getElementById('cmp-season-a').addEventListener('change', renderAnalitika);
   document.getElementById('cmp-season-b').addEventListener('change', renderAnalitika);
   document.getElementById('opg-import-input').addEventListener('change', (e)=>{ if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
