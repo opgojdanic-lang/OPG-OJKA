@@ -417,6 +417,11 @@ body {
           <div class="opg-field"><label>Cijena po jedinici (€)</label><input type="number" id="t-cijena" step="0.01" min="0" placeholder="0.00"></div>
         </div>
         <div class="opg-field"><label>Datum</label><input type="date" id="t-datum"></div>
+        <div class="opg-field">
+          <label>Fotografija računa (opcionalno)</label>
+          <input type="file" id="t-racun" accept="image/*" capture="environment">
+          <div id="t-racun-preview"></div>
+        </div>
         <div class="opg-neto-preview">Trošak: <b id="t-trosak-preview">0,00 €</b></div>
         <button class="opg-submit" id="f-trosak-submit">Spremi trošak</button>
         </div>
@@ -640,6 +645,11 @@ body {
       <div id="isk-fullscreen-name" style="font-family:'Fraunces'; font-size:20px; font-weight:600; color:var(--ink); margin-bottom:6px; text-align:center;"></div>
       <div id="isk-fullscreen-meta" style="font-size:13px; color:var(--ink-soft); margin-bottom:24px; text-align:center;"></div>
       <svg id="isk-fullscreen-svg" style="width:100%; max-width:420px;"></svg>
+    </div>
+
+    <div id="racun-fullscreen" style="display:none; position:fixed; inset:0; background:#000; z-index:300; align-items:center; justify-content:center; padding:20px;">
+      <button id="racun-fullscreen-close" style="position:absolute; top:calc(16px + env(safe-area-inset-top)); right:16px; border:none; background:rgba(255,255,255,0.15); width:36px; height:36px; border-radius:50%; font-size:16px; cursor:pointer; color:#fff; z-index:1;">✕</button>
+      <img id="racun-fullscreen-img" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;">
     </div>
 
     <!-- PREGLED -->
@@ -1315,12 +1325,14 @@ body {
     card.innerHTML = sorted.slice(0,60).map(r=>{
       const trosak = (r.kolicina||0)*(r.cijena||0);
       const unioTxt = r.unio ? ` · unio: ${r.unio}` : '';
+      const racunThumb = r.racun ? `<img src="${r.racun}" data-view-racun="${r.id}" style="width:40px; height:40px; object-fit:cover; border-radius:8px; cursor:pointer; margin-left:8px; flex-shrink:0;">` : '';
       return `<div class="opg-entry">
         <div class="opg-entry-main">
           <div class="opg-entry-top">${r.naziv||KAT_LABEL[r.kategorija]}</div>
           <div class="opg-entry-sub">${KAT_LABEL[r.kategorija]||r.kategorija}${r.kultura?' · '+r.kultura:''} · ${dfmt(r.datum)}${unioTxt}</div>
         </div>
         <div class="opg-entry-amt">${fmt(trosak)}</div>
+        ${racunThumb}
         <button class="opg-del" data-del-trosak="${r.id}">✕</button>
       </div>`;
     }).join('');
@@ -2037,6 +2049,15 @@ body {
     toast('Prodaja spremljena');
   });
 
+  let pendingTrosakRacun = null;
+  document.getElementById('t-racun').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      pendingTrosakRacun = await resizeImageFile(file, 900, 0.7);
+      document.getElementById('t-racun-preview').innerHTML = `<img src="${pendingTrosakRacun}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; margin-top:6px;">`;
+    } catch(e) { toast('Fotografija se nije mogla učitati'); }
+  });
   document.getElementById('f-trosak-submit').addEventListener('click', async ()=>{
     const kategorija = document.getElementById('t-kategorija').value;
     const naziv = document.getElementById('t-naziv').value.trim();
@@ -2045,8 +2066,9 @@ body {
     const cijena = parseFloat(document.getElementById('t-cijena').value)||0;
     const datum = document.getElementById('t-datum').value || todayStr();
     if (!naziv || !cijena){ toast('Upiši naziv i cijenu'); return; }
-    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, kolicina, cijena, datum, unio: currentUser || null, ts: Date.now() });
+    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, kolicina, cijena, datum, racun: pendingTrosakRacun, unio: currentUser || null, ts: Date.now() });
     document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
+    document.getElementById('t-racun').value = ''; document.getElementById('t-racun-preview').innerHTML = ''; pendingTrosakRacun = null;
     renderTrosakPreview();
     if (mode==='local') renderAll();
     document.getElementById('troskovi-add-card').style.display = 'none';
@@ -2282,6 +2304,17 @@ body {
   document.getElementById('troskovi-list-card').addEventListener('click', async (e)=>{
     const delId = e.target.dataset.delTrosak;
     if (delId && confirm('Obrisati ovaj trošak?')) await deleteTrosak(delId);
+    const viewId = e.target.dataset.viewRacun;
+    if (viewId) {
+      const r = troskovi.find(t=>t.id===viewId);
+      if (r && r.racun) {
+        document.getElementById('racun-fullscreen-img').src = r.racun;
+        document.getElementById('racun-fullscreen').style.display = 'flex';
+      }
+    }
+  });
+  document.getElementById('racun-fullscreen-close').addEventListener('click', ()=>{
+    document.getElementById('racun-fullscreen').style.display = 'none';
   });
 
   document.getElementById('pf-kupac').addEventListener('change', (e)=>{ prodajaFilterKupac = e.target.value; renderProdajaList(); });
