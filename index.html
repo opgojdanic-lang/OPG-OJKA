@@ -243,6 +243,22 @@ body {
 .opg-cmp-bar-a { background: var(--forest); height: 100%; }
 .opg-cmp-bar-b { background: var(--squash); height: 100%; }
 .opg-cmp-bar-val { min-width: 78px; text-align: right; font-size: 11.5px; color: var(--ink-soft); flex-shrink: 0; line-height: 1.5; }
+.opg-cmp-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--sage-line); }
+.opg-cmp-row:last-child { border-bottom: none; }
+.opg-cmp-row-name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.opg-cmp-row-nums { flex-shrink: 0; text-align: right; line-height: 1.6; }
+.opg-cmp-row-nums .n { font-family: 'Fraunces'; font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.opg-cmp-row-nums .s { font-size: 12px; color: var(--ink-soft); }
+.opg-cmp-row-pct { flex-shrink: 0; min-width: 46px; text-align: right; font-weight: 700; font-size: 12.5px; }
+.opg-cijena-block { background: var(--card); border: 1px solid var(--sage-line); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; }
+.opg-cijena-name { font-size: 14px; font-weight: 700; color: var(--forest); margin-bottom: 8px; }
+.opg-cijena-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.opg-cijena-table th { text-align: right; font-weight: 600; color: var(--sage); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.3px; padding-bottom: 5px; }
+.opg-cijena-table th:first-child { text-align: left; }
+.opg-cijena-table td { text-align: right; padding: 5px 0; }
+.opg-cijena-table td:first-child { text-align: left; }
+.opg-cijena-table tr.cij-noviji td { font-weight: 700; color: var(--ink); font-size: 12.5px; }
+.opg-cijena-table tr.cij-stariji td { font-weight: 400; color: var(--ink-soft); }
 </style>
 </head>
 <body>
@@ -1106,27 +1122,37 @@ body {
       .sort((p1,p2)=> (N.byProizvodKg[p2]||0)+(S.byProizvodKg[p2]||0) - ((N.byProizvodKg[p1]||0)+(S.byProizvodKg[p1]||0)));
 
     function cmpValRow(name, valS, valN, unit){
-      return `<div class="opg-sum-row" style="align-items:flex-start;">
-        <div class="opg-sum-name">${name}</div>
-        <div class="opg-sum-val" style="line-height:1.7;">
-          <div style="font-weight:700; color:var(--ink);">${noviji}: ${valN.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
-          <div style="font-weight:400; color:var(--ink-soft); font-size:12.5px;">${stariji}: ${valS.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
+      const showPct = valS>0 && valN>0;
+      const pct = showPct ? pctDelta(valS, valN) : '';
+      const pctColor = valN>=valS ? 'var(--forest)' : 'var(--warn-ink)';
+      return `<div class="opg-cmp-row">
+        <div class="opg-cmp-row-name">${name}</div>
+        <div class="opg-cmp-row-nums">
+          <div class="n">${noviji}: ${valN.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
+          <div class="s">${stariji}: ${valS.toLocaleString('hr-HR',{maximumFractionDigits:0})}${unit}</div>
         </div>
+        <div class="opg-cmp-row-pct" style="color:${showPct?pctColor:'transparent'};">${showPct?pct:'–'}</div>
       </div>`;
     }
 
     const kupacRowsHtml = allKupci.map(k=>cmpValRow(KUPAC_LABEL[k]||k, S.byKupac[k]||0, N.byKupac[k]||0, ' €')).join('');
     const proizvodRowsHtml = allProizvodi.map(p=>cmpValRow(p, S.byProizvodKg[p]||0, N.byProizvodKg[p]||0, ' kg')).join('');
 
-    const cijenaFmt = (o) => o ? `Min: ${o.min.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} € · Maks: ${o.max.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} € · Prosj.: ${(o.prihod/o.kg).toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} €` : '– nema podataka';
-    const cijenaRowsHtml = allProizvodi.map(p=>`
-      <div class="opg-sum-row" style="align-items:flex-start;">
-        <div class="opg-sum-name" style="min-width:100px;">${p}</div>
-        <div class="opg-sum-val" style="text-align:right; line-height:1.7;">
-          <div style="font-weight:700; color:var(--ink);">${noviji}: ${cijenaFmt(N.byProizvodCijena[p])}</div>
-          <div style="font-weight:400; color:var(--ink-soft); font-size:12px; margin-top:2px;">${stariji}: ${cijenaFmt(S.byProizvodCijena[p])}</div>
-        </div>
-      </div>`).join('');
+    const eur = (v) => v.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const cijenaRowsHtml = allProizvodi.map(p=>{
+      const oN = N.byProizvodCijena[p], oS = S.byProizvodCijena[p];
+      const rowHtml = (o, cls) => o
+        ? `<tr class="${cls}"><td>${cls==='cij-noviji'?noviji:stariji}</td><td>${eur(o.min)} €</td><td>${eur(o.max)} €</td><td>${eur(o.prihod/o.kg)} €</td></tr>`
+        : `<tr class="${cls}"><td>${cls==='cij-noviji'?noviji:stariji}</td><td colspan="3" style="text-align:center; color:var(--sage);">nema podataka</td></tr>`;
+      return `<div class="opg-cijena-block">
+        <div class="opg-cijena-name">${p}</div>
+        <table class="opg-cijena-table">
+          <tr><th></th><th>Min</th><th>Maks</th><th>Prosj.</th></tr>
+          ${rowHtml(oN,'cij-noviji')}
+          ${rowHtml(oS,'cij-stariji')}
+        </table>
+      </div>`;
+    }).join('');
 
     contentEl.innerHTML = `
       <div class="opg-sum-card" style="margin-bottom:16px;">
@@ -1143,7 +1169,7 @@ body {
       <div class="opg-sum-card">${proizvodRowsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
 
       <div class="opg-section-title">Cijena po proizvodu</div>
-      <div class="opg-sum-card">${cijenaRowsHtml || '<div class="opg-empty">Nema podataka.</div>'}</div>
+      ${cijenaRowsHtml || '<div class="opg-sum-card"><div class="opg-empty">Nema podataka.</div></div>'}
     `;
   }
 
