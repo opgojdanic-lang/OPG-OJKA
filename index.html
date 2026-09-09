@@ -651,6 +651,10 @@ body {
             <label>Prskalica (L)</label>
             <input type="number" id="calc-spremnik" step="0.1" min="0" placeholder="npr. 15">
           </div>
+          <div class="opg-field">
+            <label>Parcela (opcionalno — za izračun ukupne količine)</label>
+            <select id="calc-parcela"><option value="">— ne računaj po parceli —</option></select>
+          </div>
 
           <button type="button" class="opg-submit plum" id="calc-photo-btn">📷 Slikaj FIS preporuku</button>
           <input type="file" id="calc-photo-input" accept="image/*" style="display:none;">
@@ -666,7 +670,8 @@ body {
             <div class="opg-field"><label>Voda po ha (L) — od</label><input type="number" id="calc-ha-voda-min" step="1" min="0" placeholder="npr. 600"></div>
             <div class="opg-field"><label>Voda po ha (L) — do</label><input type="number" id="calc-ha-voda-max" step="1" min="0" placeholder="npr. 1400"></div>
           </div>
-          <div class="opg-neto-preview">Potrebno sredstva: <b id="calc-rezultat">0 ml</b></div>
+          <div class="opg-neto-preview">Potrebno sredstva (po punjenju): <b id="calc-rezultat">0 ml</b></div>
+          <div class="opg-card" id="calc-parcela-total" style="display:none; margin-top:10px; background:#F6F2DC;"></div>
           <button class="opg-submit ghost" id="calc-prenesi">Prenesi u dnevnik tretiranja ↓</button>
         </div>
       </div>
@@ -1875,6 +1880,9 @@ body {
       const sel = document.getElementById(id);
       if (sel && sel.dataset.built !== opts) { const cur=sel.value; sel.innerHTML = opts; sel.value = cur; sel.dataset.built = opts; }
     });
+    const calcOpts = '<option value="">— ne računaj po parceli —</option>' + parcele.map(p=>`<option value="${p.id}">${p.naziv}</option>`).join('');
+    const calcSel = document.getElementById('calc-parcela');
+    if (calcSel && calcSel.dataset.built !== calcOpts) { const cur=calcSel.value; calcSel.innerHTML = calcOpts; calcSel.value = cur; calcSel.dataset.built = calcOpts; }
     const sjOpts = '<option value="">— nije iz sjetve u aplikaciji —</option>' + sjetve.filter(s=>s.tip==='sjetva').map(s=>`<option value="${s.id}">${dfmt(s.datum)} — ${s.vrsta||''}${s.sorta?' ('+s.sorta+')':''}</option>`).join('');
     const sdSel = document.getElementById('sd-sjetva-ref');
     if (sdSel && sdSel.dataset.built !== sjOpts) { const cur=sdSel.value; sdSel.innerHTML = sjOpts; sdSel.value = cur; sdSel.dataset.built = sjOpts; }
@@ -2111,6 +2119,28 @@ body {
       : `${rMin.toLocaleString('hr-HR')} ${label}`;
     document.getElementById('calc-rezultat').textContent = text;
     if (sredstvo && (dMin || dMax)) saveSprayDose(sredstvo, { doza_min: dMin, doza_max: dMax, voda_min: vMin, voda_max: vMax });
+
+    const parcelaEl = document.getElementById('calc-parcela-total');
+    const parcelaId = document.getElementById('calc-parcela')?.value;
+    const parcela = parcele.find(p=>p.id===parcelaId);
+    const areaHa = parcela ? parcelaAreaFor(parcela) : 0;
+    if (parcela && areaHa > 0 && (dMin || dMax)) {
+      const dozaAvg = (dMin+dMax)/2;
+      const vodaAvg = (vMin+vMax)/2;
+      const ukupnoSredstva = dozaAvg * areaHa;
+      const ukupnoVode = vodaAvg * areaHa;
+      const brojPunjenja = spremnik > 0 ? Math.ceil(ukupnoVode/spremnik) : null;
+      parcelaEl.style.display = 'block';
+      parcelaEl.innerHTML = `
+        <div style="font-weight:700; font-size:13px; color:var(--forest); margin-bottom:6px;">Za cijelu parcelu "${parcela.naziv}" (${areaHa.toLocaleString('hr-HR',{maximumFractionDigits:3})} ha)</div>
+        <div style="font-size:13.5px; line-height:1.7;">
+          Ukupno sredstva: <b>${ukupnoSredstva.toLocaleString('hr-HR',{maximumFractionDigits:2})} L/kg</b><br>
+          Ukupno vode: <b>${ukupnoVode.toLocaleString('hr-HR',{maximumFractionDigits:0})} L</b>
+          ${brojPunjenja!=null ? `<br>≈ <b>${brojPunjenja}</b> punjenja prskalice od ${spremnik} L` : ''}
+        </div>`;
+    } else {
+      parcelaEl.style.display = 'none';
+    }
   }
   function applyRememberedDose(){
     const sredstvo = document.getElementById('calc-sredstvo').value;
@@ -2704,7 +2734,7 @@ body {
     }
   });
 
-  ['calc-spremnik','calc-ha-doza-min','calc-ha-doza-max','calc-ha-voda-min','calc-ha-voda-max'].forEach(id=>{
+  ['calc-spremnik','calc-ha-doza-min','calc-ha-doza-max','calc-ha-voda-min','calc-ha-voda-max','calc-parcela'].forEach(id=>{
     document.getElementById(id).addEventListener('input', renderCalculator);
     document.getElementById(id).addEventListener('change', renderCalculator);
   });
