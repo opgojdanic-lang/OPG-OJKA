@@ -496,9 +496,15 @@ body {
       <div id="sub-rokovi" class="opg-subview">
       <div class="opg-card" style="margin-top:0;">
         <div class="opg-section-title" style="margin-top:0;">Prag za ulazak u PDV</div>
-        <div class="opg-field"><label>Vaš prag (€, prema knjigovođi)</label><input type="number" id="rok-prag-pdv" step="100" min="0" placeholder="60000"></div>
-        <button class="opg-submit ghost" id="rok-prag-save">Spremi prag</button>
-        <div id="rok-prag-status" style="margin-top:12px;"></div>
+        <div id="rok-prag-status" style="margin-bottom:14px;"></div>
+        <button type="button" class="opg-isk-add-toggle" id="rok-prag-toggle" style="margin:0 0 6px;">
+          <span>Promijeni prag</span>
+          <span class="opg-isk-add-icon" id="rok-prag-icon">+</span>
+        </button>
+        <div id="rok-prag-edit" style="display:none;">
+          <div class="opg-field"><label>Vaš prag (€, prema knjigovođi)</label><input type="number" id="rok-prag-pdv" step="100" min="0" placeholder="60000"></div>
+          <button class="opg-submit ghost" id="rok-prag-save">Spremi prag</button>
+        </div>
       </div>
 
       <div class="opg-section-title">Rokovi ove godine</div>
@@ -1933,8 +1939,7 @@ body {
       </div>`;
     }).join('');
 
-    const pragEl = document.getElementById('rok-prag-status');
-    const prihodSezona = prodaja.filter(nonPaul).reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
+    const pragEl = document.getElementById('rok-prag-status');    const prihodSezona = prodaja.filter(nonPaul).reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
     const prag = getPragPdv();
     const pct = prag ? Math.min(100, Math.round(prihodSezona/prag*100)) : 0;
     const boja = pct>=100 ? 'var(--warn-ink)' : (pct>=80 ? 'var(--squash)' : 'var(--forest)');
@@ -3023,10 +3028,19 @@ body {
       if (confirm('Obrisati ovaj unos?')) await deleteSjetva(delId);
     }
   });
+  document.getElementById('rok-prag-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('rok-prag-edit');
+    const icon = document.getElementById('rok-prag-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
   document.getElementById('rok-prag-save').addEventListener('click', async ()=>{
     const val = parseFloat(document.getElementById('rok-prag-pdv').value) || 60000;
     await setPragPdv(val);
     renderRokovi();
+    document.getElementById('rok-prag-edit').style.display = 'none';
+    document.getElementById('rok-prag-icon').classList.remove('open');
     toast('Prag spremljen');
   });
   document.getElementById('rok-add-toggle').addEventListener('click', ()=>{
