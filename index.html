@@ -696,6 +696,15 @@ body {
       <img id="racun-fullscreen-img" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;">
     </div>
 
+    <div id="activity-modal" style="display:none; position:fixed; inset:0; background:rgba(28,36,25,0.55); z-index:400; align-items:center; justify-content:center; padding:20px;">
+      <div style="background:#fff; border-radius:18px; padding:22px 20px; max-width:420px; width:100%; max-height:78vh; overflow-y:auto;">
+        <div style="font-family:'Fraunces'; font-weight:600; font-size:19px; color:var(--forest); margin-bottom:2px;">🔔 Što je novo</div>
+        <p class="opg-hint" style="margin-top:0;">Od zadnjeg puta kad ste otvorili aplikaciju:</p>
+        <div id="activity-modal-list"></div>
+        <button class="opg-submit" id="activity-modal-close" style="margin-top:16px;">U redu</button>
+      </div>
+    </div>
+
     <!-- PREGLED -->
     <div class="opg-view" data-view="pregled">
       <div class="opg-filter-row" id="pregled-subnav">
@@ -949,6 +958,20 @@ body {
         scheduleRenderAll();
       });
 
+      let activityCheckDone = false;
+      fb.onSnapshot(fb.collection(db, 'aktivnosti'), (snap) => {
+        if (activityCheckDone) return;
+        activityCheckDone = true;
+        const lastSeen = parseInt(localStorage.getItem('opg_last_seen')||'0', 10);
+        const myName = (currentUser||'').trim().toLowerCase();
+        const noviji = snap.docs
+          .map(d => d.data())
+          .filter(a => a.ts > lastSeen && (a.unio||'').trim().toLowerCase() !== myName)
+          .sort((a,b)=>a.ts-b.ts);
+        if (noviji.length) showActivityModal(noviji);
+        localStorage.setItem('opg_last_seen', String(Date.now()));
+      });
+
       fb.onSnapshot(fb.doc(db, 'settings', 'app'), (snap) => {
         sharedSettings = snap.exists() ? snap.data() : {};
         if (sharedSettings.ai_url) localStorage.setItem('opg_ai_url', sharedSettings.ai_url);
@@ -973,11 +996,29 @@ body {
     }
   }
 
+  function showActivityModal(items){
+    const listEl = document.getElementById('activity-modal-list');
+    listEl.innerHTML = items.map(a=>{
+      const dt = new Date(a.ts);
+      return `<div style="padding:10px 0; border-bottom:1px solid var(--sage-line);">
+        <div style="font-size:14px; color:var(--ink); line-height:1.4;">${a.tekst}</div>
+        <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">${a.unio||'Netko'} · ${dt.toLocaleString('hr-HR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('activity-modal').style.display = 'flex';
+  }
+  async function logActivity(text){
+    if (mode !== 'cloud') return;
+    try { await fb.setDoc(fb.doc(fb.db, 'aktivnosti', uid('act')), { tekst: text, unio: currentUser || 'Netko', ts: Date.now() }); }
+    catch(e) {}
+  }
   async function addProdaja(entry){
     prodaja.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prodaja', entry.id), entry); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
     else { saveLocalProdaja(); }
+    if (entry.kupac === 'PAUL') logActivity(`Nova isplata (Paul): ${entry.proizvod||''} ${entry.kg||0}kg`);
+    else logActivity(`Nova prodaja: ${KUPAC_LABEL[entry.kupac]||entry.kupac} — ${entry.proizvod||''} ${entry.kg||0}kg`);
   }
   async function toggleProdajaPlaceno(id){
     const row = prodaja.find(r=>r.id===id);
@@ -998,6 +1039,7 @@ body {
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'troskovi', entry.id), entry); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
     else { saveLocalTroskovi(); }
+    logActivity(`Novi trošak: ${entry.naziv||''} (${fmt((entry.kolicina||0)*(entry.cijena||0))})`);
   }
   async function deleteTrosak(id){
     troskovi = troskovi.filter(r=>r.id!==id);
@@ -1014,6 +1056,7 @@ body {
     zalihe.push(entry);
     renderAll();
     await saveZalihaDoc(entry);
+    logActivity(`Nova zaliha: ${entry.naziv||''}`);
   }
   async function updateZalihaQty(id, newQty){
     const item = zalihe.find(z=>z.id===id);
@@ -1033,6 +1076,7 @@ body {
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'licences', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalLicences(); }
+    logActivity(`Nova vjerodajnica: ${entry.ime||''}`);
   }
   async function deleteLicenca(id){
     licences = licences.filter(l=>l.id!==id);
@@ -1045,6 +1089,7 @@ body {
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'parcele', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalParcele(); }
+    logActivity(`Nova parcela: ${entry.naziv||''}`);
   }
   async function saveParcela(id, updates){
     const p = parcele.find(x=>x.id===id);
@@ -1053,6 +1098,7 @@ body {
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'parcele', id), p); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalParcele(); }
+    logActivity(`Ažurirana parcela: ${p.naziv||''}`);
   }
   async function addPrskanje(entry){
     const match = zalihe.find(z => (z.naziv||'').trim().toLowerCase() === (entry.sredstvo||'').trim().toLowerCase());
@@ -1064,6 +1110,7 @@ body {
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prskanje', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalPrskanje(); }
+    logActivity(`Novo tretiranje: ${entry.sredstvo||''} na ${entry.kultura||''}`);
   }
   async function deletePrskanje(id){
     prskanje = prskanje.filter(r=>r.id!==id);
@@ -2569,6 +2616,9 @@ body {
   });
   document.getElementById('racun-fullscreen-close').addEventListener('click', ()=>{
     document.getElementById('racun-fullscreen').style.display = 'none';
+  });
+  document.getElementById('activity-modal-close').addEventListener('click', ()=>{
+    document.getElementById('activity-modal').style.display = 'none';
   });
 
   document.getElementById('pf-kupac').addEventListener('change', (e)=>{ prodajaFilterKupac = e.target.value; renderProdajaList(); });
