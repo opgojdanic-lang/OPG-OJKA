@@ -534,7 +534,10 @@ body {
       </div>
 
       <div id="sub-parcele" class="opg-subview active">
-      <div class="opg-section-title" style="margin-top:0;">Parcele</div>
+      <div class="opg-section-title" style="margin-top:0;">Ukupno po kulturi (sezona <span id="parcele-summary-season"></span>)</div>
+      <div class="opg-sum-card" id="parcele-summary"></div>
+
+      <div class="opg-section-title">Parcele</div>
       <p class="opg-hint" style="margin-top:0;">Dodirnite parcelu za unos/izmjenu površine i kulture za trenutnu sezonu.</p>
       <div id="parcele-list"></div>
 
@@ -1762,6 +1765,7 @@ body {
   function computeBarcodeValue(oib, modul, vrijediDo){
     return `${(oib||'').trim()}-${(modul||'1').trim()}-${ddmmyyyy(vrijediDo)}`;
   }
+  function fmtM2(ha){ return Math.round((ha||0)*10000).toLocaleString('hr-HR') + ' m²'; }
   function kulturaLabel(v){
     if (!v) return null;
     if (typeof v === 'string') return v;
@@ -1770,9 +1774,21 @@ body {
   function parcelaOpisTxt(v){
     if (!v || typeof v === 'string') return '';
     const bits = [];
-    if (v.povrsina_ha) bits.push(v.povrsina_ha.toLocaleString('hr-HR',{maximumFractionDigits:3})+' ha');
+    if (v.povrsina_ha) bits.push(fmtM2(v.povrsina_ha));
     if (v.broj_sadnica) bits.push(v.broj_sadnica.toLocaleString('hr-HR')+' sadnica');
     return bits.join(' · ');
+  }
+  function parceleKultureSummary(){
+    const by = {};
+    parcele.forEach(p=>{
+      const obj = (p.kulture||{})[currentSeason];
+      if (obj && typeof obj === 'object' && obj.naziv) {
+        if (!by[obj.naziv]) by[obj.naziv] = { ha:0, sadnica:0 };
+        by[obj.naziv].ha += (obj.povrsina_ha||0);
+        by[obj.naziv].sadnica += (obj.broj_sadnica||0);
+      }
+    });
+    return by;
   }
   const PARCELA_KULTURE = ['PAPRIKA BABURA', 'BUTTERNUT TIKVA', 'TIKVICA'];
   function kulturaSelectHtml(selected){
@@ -1796,6 +1812,18 @@ body {
   function renderParceleList(){
     const el = document.getElementById('parcele-list');
     if (!el) return;
+    const seasonLabelEl = document.getElementById('parcele-summary-season');
+    if (seasonLabelEl) seasonLabelEl.textContent = currentSeason;
+    const summaryEl = document.getElementById('parcele-summary');
+    if (summaryEl) {
+      const summary = parceleKultureSummary();
+      const keys = Object.keys(summary);
+      summaryEl.innerHTML = keys.length ? keys.map(k=>`
+        <div class="opg-sum-row">
+          <div class="opg-sum-name">${k}</div>
+          <div class="opg-sum-val">${fmtM2(summary[k].ha)} · ${summary[k].sadnica.toLocaleString('hr-HR')} sadnica</div>
+        </div>`).join('') : '<div class="opg-empty">Još nema podataka za sezonu '+currentSeason+'.</div>';
+    }
     if (!parcele.length){ el.innerHTML = '<div class="opg-empty">Još nema dodanih parcela.</div>'; return; }
     const sorted = [...parcele].sort((a,b)=> parcelaAreaFor(b) - parcelaAreaFor(a));
     el.innerHTML = sorted.map(p=>{
@@ -1809,7 +1837,7 @@ body {
       return `<div class="opg-parcela-card" data-parcela="${p.id}">
         <div class="opg-parcela-head" data-toggle-parcela="${p.id}">
           <div class="opg-parcela-name">${p.naziv}</div>
-          <div class="opg-parcela-area">${trenutnaOpis || (p.povrsina_ha ? p.povrsina_ha+' ha' : '<span class="opg-parcela-area-empty">+ dodaj podatke</span>')}</div>
+          <div class="opg-parcela-area">${trenutnaOpis || (p.povrsina_ha ? fmtM2(p.povrsina_ha) : '<span class="opg-parcela-area-empty">+ dodaj podatke</span>')}</div>
         </div>
         <div class="opg-parcela-kultura">${currentSeason}: <b>${trenutnaLabel || 'nije uneseno'}</b></div>
         ${historyTxt ? `<div class="opg-parcela-history">Prijašnje sezone: ${historyTxt}</div>` : ''}
@@ -1826,7 +1854,7 @@ body {
             <div class="opg-field"><label>Razmak između folija (m)</label><input type="number" class="pcalc-razmak-folija" min="0" step="0.01" value="${d.razmak_folija||''}" placeholder="npr. 1.6"></div>
           </div>
           <p class="opg-hint" style="margin-top:0;">Ukupno folija: <b class="pcalc-out-folija">0</b> · Ukupno redova: <b class="pcalc-out-redova">0</b></p>
-          <p class="opg-hint" style="margin-top:0;">Izračunata površina: <b class="pcalc-out-povrsina">0 ha</b></p>
+          <p class="opg-hint" style="margin-top:0;">Izračunata površina: <b class="pcalc-out-povrsina">0 m²</b></p>
 
           <div class="opg-section-title" style="margin-top:10px; font-size:13px;">Izračun broja sadnica</div>
           <div class="opg-field"><label>Razmak sadnje biljka–biljka (cm)</label><input type="number" class="pcalc-razmak-sadnje" min="0" step="1" value="${d.razmak_sadnje||''}" placeholder="npr. 40"></div>
@@ -1868,7 +1896,7 @@ body {
     const outSadnica = card.querySelector('.pcalc-out-sadnica');
     if (outFolija) outFolija.textContent = ukupnoFolija.toLocaleString('hr-HR');
     if (outRedova) outRedova.textContent = ukupnoRedova.toLocaleString('hr-HR');
-    if (outPovrsina) outPovrsina.textContent = povrsinaHa.toLocaleString('hr-HR',{maximumFractionDigits:3}) + ' ha';
+    if (outPovrsina) outPovrsina.textContent = fmtM2(povrsinaHa);
     if (outSadnica) outSadnica.textContent = ukupnoSadnica.toLocaleString('hr-HR');
 
     return { duljine: grupe, redova_po_foliji: redovi, razmak_folija: razmakFolija, razmak_sadnje: razmakSadnje, ukupno_folija: ukupnoFolija, ukupno_redova: ukupnoRedova, povrsina_ha: povrsinaHa, broj_sadnica: ukupnoSadnica };
@@ -2132,7 +2160,7 @@ body {
       const brojPunjenja = spremnik > 0 ? Math.ceil(ukupnoVode/spremnik) : null;
       parcelaEl.style.display = 'block';
       parcelaEl.innerHTML = `
-        <div style="font-weight:700; font-size:13px; color:var(--forest); margin-bottom:6px;">Za cijelu parcelu "${parcela.naziv}" (${areaHa.toLocaleString('hr-HR',{maximumFractionDigits:3})} ha)</div>
+        <div style="font-weight:700; font-size:13px; color:var(--forest); margin-bottom:6px;">Za cijelu parcelu "${parcela.naziv}" (${fmtM2(areaHa)})</div>
         <div style="font-size:13.5px; line-height:1.7;">
           Ukupno sredstva: <b>${ukupnoSredstva.toLocaleString('hr-HR',{maximumFractionDigits:2})} L/kg</b><br>
           Ukupno vode: <b>${ukupnoVode.toLocaleString('hr-HR',{maximumFractionDigits:0})} L</b>
