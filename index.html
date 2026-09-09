@@ -497,6 +497,7 @@ body {
     <div class="opg-view" data-view="proizvodnja">
       <div class="opg-filter-row" id="proizvodnja-subnav">
         <button class="opg-chip active" data-sub="parcele">Parcele</button>
+        <button class="opg-chip" data-sub="sjetva">Sjetva/Sadnja</button>
       </div>
 
       <div id="sub-parcele" class="opg-subview active">
@@ -513,6 +514,45 @@ body {
         <div class="opg-field"><label>Površina (ha, opcionalno)</label><input type="number" id="parcela-povrsina" step="0.01" min="0" placeholder="npr. 0.35"></div>
         <button class="opg-submit" id="parcela-submit">Spremi parcelu</button>
       </div>
+      </div>
+
+      <div id="sub-sjetva" class="opg-subview">
+      <button type="button" class="opg-isk-add-toggle" id="sjetva-add-toggle" style="margin-top:0;">
+        <span>🌱 Nova sjetva</span>
+        <span class="opg-isk-add-icon" id="sjetva-add-icon">+</span>
+      </button>
+      <div class="opg-card" id="sjetva-add-card" style="display:none;">
+        <div class="opg-field"><label>Datum sjetve</label><input type="date" id="sj-datum"></div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Vrsta povrća</label><select id="sj-vrsta"><option value="">— odaberi —</option><option value="PAPRIKA BABURA">Paprika babura</option><option value="BUTTERNUT TIKVA">Butternut tikva</option><option value="TIKVICA">Tikvica</option></select></div>
+          <div class="opg-field"><label>Sorta</label><input type="text" id="sj-sorta" placeholder="npr. Kurtovska kapija"></div>
+        </div>
+        <div class="opg-field"><label>Parcela (opcionalno — za koju je namijenjeno)</label><select id="sj-parcela"></select></div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Broj kontejnera</label><input type="number" id="sj-kontejneri" min="0" step="1" placeholder="npr. 6"></div>
+          <div class="opg-field"><label>Sadnih mjesta po kontejneru</label><input type="number" id="sj-mjesta" min="0" step="1" placeholder="npr. 104"></div>
+        </div>
+        <p class="opg-hint" style="margin-top:0;">Ukupno sadnih mjesta: <b id="sj-ukupno-mjesta">0</b></p>
+        <div class="opg-field"><label>Komentar (opcionalno)</label><textarea id="sj-komentar" rows="2" placeholder="napomena…" style="width:100%; padding:11px 12px; border-radius:10px; border:1.5px solid var(--sage-line); background:#fff; font-size:16px; font-family:'Inter'; color:var(--ink); resize:vertical;"></textarea></div>
+        <button class="opg-submit" id="sj-submit">Spremi sjetvu</button>
+      </div>
+
+      <button type="button" class="opg-isk-add-toggle" id="sadnja-add-toggle">
+        <span>🌾 Nova sadnja (na otvoreno)</span>
+        <span class="opg-isk-add-icon" id="sadnja-add-icon">+</span>
+      </button>
+      <div class="opg-card" id="sadnja-add-card" style="display:none;">
+        <div class="opg-field"><label>Datum sadnje</label><input type="date" id="sd-datum"></div>
+        <div class="opg-field"><label>Kultura</label><select id="sd-kultura"><option value="">— odaberi —</option><option value="PAPRIKA BABURA">Paprika babura</option><option value="BUTTERNUT TIKVA">Butternut tikva</option><option value="TIKVICA">Tikvica</option></select></div>
+        <div class="opg-field"><label>Parcela</label><select id="sd-parcela"></select></div>
+        <div class="opg-field"><label>Iz koje sjetve (opcionalno)</label><select id="sd-sjetva-ref"><option value="">— nije iz sjetve u aplikaciji —</option></select></div>
+        <div class="opg-field"><label>Broj presađenih sadnica</label><input type="number" id="sd-broj-sadnica" min="0" step="1" placeholder="npr. 480"></div>
+        <div class="opg-field"><label>Komentar (opcionalno)</label><textarea id="sd-komentar" rows="2" placeholder="napomena…" style="width:100%; padding:11px 12px; border-radius:10px; border:1.5px solid var(--sage-line); background:#fff; font-size:16px; font-family:'Inter'; color:var(--ink); resize:vertical;"></textarea></div>
+        <button class="opg-submit" id="sd-submit">Spremi sadnju</button>
+      </div>
+
+      <div class="opg-section-title">Povijest sjetve i sadnje</div>
+      <div id="sjetva-list"></div>
       </div>
     </div>
 
@@ -789,6 +829,7 @@ body {
   let prskanje = [];
   let licences = [];
   let parcele = [];
+  let sjetve = [];
   let pregledFilter = 'sve';
   let prodajaFilterKupac = 'sve';
   let prodajaFilterMjesec = 'sve';
@@ -862,6 +903,8 @@ body {
       parcele = SEED_PARCELE.slice();
       saveLocalParcele();
     }
+    try { const sj = localStorage.getItem('opg_sjetve'); sjetve = sj ? JSON.parse(sj) : []; }
+    catch(e){ sjetve = []; }
   }
   function saveLocalProdaja(){ try { localStorage.setItem('opg_prodaja', JSON.stringify(prodaja)); } catch(e){ toast('Greška pri spremanju'); } }
   function saveLocalTroskovi(){ try { localStorage.setItem('opg_troskovi', JSON.stringify(troskovi)); } catch(e){ toast('Greška pri spremanju'); } }
@@ -869,6 +912,7 @@ body {
   function saveLocalPrskanje(){ try { localStorage.setItem('opg_prskanje', JSON.stringify(prskanje)); } catch(e){ toast('Greška pri spremanju'); } }
   function saveLocalLicences(){ try { localStorage.setItem('opg_licences', JSON.stringify(licences)); } catch(e){ toast('Greška pri spremanju'); } }
   function saveLocalParcele(){ try { localStorage.setItem('opg_parcele', JSON.stringify(parcele)); } catch(e){ toast('Greška pri spremanju'); } }
+  function saveLocalSjetve(){ try { localStorage.setItem('opg_sjetve', JSON.stringify(sjetve)); } catch(e){ toast('Greška pri spremanju'); } }
 
   function setSyncStatus(state){
     const dot = document.getElementById('sync-indicator');
@@ -955,6 +999,11 @@ body {
 
       fb.onSnapshot(fb.collection(db, 'parcele'), (snap) => {
         parcele = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        scheduleRenderAll();
+      });
+
+      fb.onSnapshot(fb.collection(db, 'sjetva_sadnja'), (snap) => {
+        sjetve = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         scheduleRenderAll();
       });
 
@@ -1099,6 +1148,27 @@ body {
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'parcele', id), p); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalParcele(); }
     logActivity(`Ažurirana parcela: ${p.naziv||''}`);
+  }
+  async function addSjetva(entry){
+    sjetve.push(entry);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'sjetva_sadnja', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
+    else { saveLocalSjetve(); }
+    logActivity(entry.tip==='sjetva' ? `Nova sjetva: ${entry.vrsta||''}` : `Nova sadnja: ${entry.kultura||''}`);
+  }
+  async function updateSjetva(id, updates){
+    const s = sjetve.find(x=>x.id===id);
+    if (!s) return;
+    Object.assign(s, updates);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'sjetva_sadnja', id), s); } catch(e){ toast('Greška pri spremanju u oblak'); } }
+    else { saveLocalSjetve(); }
+  }
+  async function deleteSjetva(id){
+    sjetve = sjetve.filter(s=>s.id!==id);
+    renderAll();
+    if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'sjetva_sadnja', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
+    else { saveLocalSjetve(); }
   }
   async function addPrskanje(entry){
     const match = zalihe.find(z => (z.naziv||'').trim().toLowerCase() === (entry.sredstvo||'').trim().toLowerCase());
@@ -1716,6 +1786,60 @@ body {
     return { duljine: grupe, redova_po_foliji: redovi, razmak_folija: razmakFolija, razmak_sadnje: razmakSadnje, ukupno_folija: ukupnoFolija, ukupno_redova: ukupnoRedova, povrsina_ha: povrsinaHa, broj_sadnica: ukupnoSadnica };
   }
 
+  function populateParcelaSelects(){
+    const opts = '<option value="">— nije vezano uz parcelu —</option>' + parcele.map(p=>`<option value="${p.id}">${p.naziv}</option>`).join('');
+    ['sj-parcela','sd-parcela'].forEach(id=>{
+      const sel = document.getElementById(id);
+      if (sel && sel.dataset.built !== opts) { const cur=sel.value; sel.innerHTML = opts; sel.value = cur; sel.dataset.built = opts; }
+    });
+    const sjOpts = '<option value="">— nije iz sjetve u aplikaciji —</option>' + sjetve.filter(s=>s.tip==='sjetva').map(s=>`<option value="${s.id}">${dfmt(s.datum)} — ${s.vrsta||''}${s.sorta?' ('+s.sorta+')':''}</option>`).join('');
+    const sdSel = document.getElementById('sd-sjetva-ref');
+    if (sdSel && sdSel.dataset.built !== sjOpts) { const cur=sdSel.value; sdSel.innerHTML = sjOpts; sdSel.value = cur; sdSel.dataset.built = sjOpts; }
+  }
+  function parcelaNaziv(id){ return parcele.find(p=>p.id===id)?.naziv || null; }
+  function renderSjetvaList(){
+    const el = document.getElementById('sjetva-list');
+    if (!el) return;
+    populateParcelaSelects();
+    if (!sjetve.length){ el.innerHTML = '<div class="opg-empty">Još nema unesene sjetve ni sadnje.</div>'; return; }
+    const sorted = [...sjetve].sort((a,b)=>(b.datum||'').localeCompare(a.datum||'') || ((b.ts||0)-(a.ts||0)));
+    el.innerHTML = sorted.map(s=>{
+      if (s.tip === 'sjetva') {
+        const parcelaTxt = parcelaNaziv(s.parcela_id);
+        const nicanjeTxt = s.datum_nicanja
+          ? `Nicanje: ${dfmt(s.datum_nicanja)}${s.broj_proklijalo ? ' · proklijalo: '+s.broj_proklijalo.toLocaleString('hr-HR')+(s.ukupno_mjesta?' / '+s.ukupno_mjesta.toLocaleString('hr-HR'):'') : ''}`
+          : '';
+        return `<div class="opg-entry">
+          <div class="opg-entry-main">
+            <div class="opg-entry-top">🌱 ${s.vrsta||''}${s.sorta?' — '+s.sorta:''}</div>
+            <div class="opg-entry-sub">${dfmt(s.datum)}${parcelaTxt?' · '+parcelaTxt:''} · ${s.broj_kontejnera||0} kontejnera × ${s.mjesta_po_kontejneru||0} = ${(s.ukupno_mjesta||0).toLocaleString('hr-HR')} mjesta${s.unio?' · unio: '+s.unio:''}</div>
+            ${nicanjeTxt ? `<div class="opg-entry-sub">${nicanjeTxt}</div>` : `<button class="opg-submit ghost" data-nicanje-toggle="${s.id}" style="margin-top:6px; padding:7px 10px; font-size:12.5px;">+ Zabilježi nicanje</button>`}
+            ${s.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${s.komentar}</div>` : ''}
+            <div class="opg-nicanje-edit" id="nicanje-edit-${s.id}" style="display:none; margin-top:8px; padding-top:8px; border-top:1px solid var(--sage-line);">
+              <div class="opg-row2">
+                <div class="opg-field"><label>Datum nicanja</label><input type="date" class="nicanje-datum"></div>
+                <div class="opg-field"><label>Broj proklijalih</label><input type="number" class="nicanje-broj" min="0" step="1" placeholder="npr. ${s.ukupno_mjesta||''}"></div>
+              </div>
+              <button class="opg-submit" data-nicanje-save="${s.id}" style="padding:9px;">Spremi nicanje</button>
+            </div>
+          </div>
+          <button class="opg-del" data-del-sjetva="${s.id}">✕</button>
+        </div>`;
+      }
+      const parcelaTxt = parcelaNaziv(s.parcela_id);
+      const sjetvaRef = sjetve.find(x=>x.id===s.sjetva_ref);
+      return `<div class="opg-entry">
+        <div class="opg-entry-main">
+          <div class="opg-entry-top">🌾 ${s.kultura||''}</div>
+          <div class="opg-entry-sub">${dfmt(s.datum)}${parcelaTxt?' · '+parcelaTxt:''}${s.broj_sadnica?' · '+s.broj_sadnica.toLocaleString('hr-HR')+' sadnica':''}${s.unio?' · unio: '+s.unio:''}</div>
+          ${sjetvaRef ? `<div class="opg-entry-sub">Iz sjetve: ${dfmt(sjetvaRef.datum)} — ${sjetvaRef.vrsta||''}</div>` : ''}
+          ${s.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${s.komentar}</div>` : ''}
+        </div>
+        <button class="opg-del" data-del-sjetva="${s.id}">✕</button>
+      </div>`;
+    }).join('');
+  }
+
   function renderIskaznicaList(){
     const el = document.getElementById('iskaznica-list');
     if (!el) return;
@@ -2209,6 +2333,7 @@ body {
     renderVrijeme();
     renderIskaznicaList();
     renderParceleList();
+    renderSjetvaList();
     renderPocetna();
   }
   let renderScheduled = false;
@@ -2680,6 +2805,73 @@ body {
     btn.classList.add('active');
     document.getElementById('pocetna-vrijeme').style.display = btn.dataset.pvr==='vrijeme' ? 'block' : 'none';
     document.getElementById('pocetna-prognoza').style.display = btn.dataset.pvr==='prognoza' ? 'block' : 'none';
+  });
+  document.getElementById('sjetva-add-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('sjetva-add-card');
+    const icon = document.getElementById('sjetva-add-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
+  document.getElementById('sadnja-add-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('sadnja-add-card');
+    const icon = document.getElementById('sadnja-add-icon');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    icon.classList.toggle('open', opening);
+  });
+  ['sj-kontejneri','sj-mjesta'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', ()=>{
+      const k = parseFloat(document.getElementById('sj-kontejneri').value)||0;
+      const m = parseFloat(document.getElementById('sj-mjesta').value)||0;
+      document.getElementById('sj-ukupno-mjesta').textContent = (k*m).toLocaleString('hr-HR');
+    });
+  });
+  document.getElementById('sj-submit').addEventListener('click', async ()=>{
+    const datum = document.getElementById('sj-datum').value || todayStr();
+    const vrsta = document.getElementById('sj-vrsta').value;
+    const sorta = document.getElementById('sj-sorta').value.trim();
+    const parcela_id = document.getElementById('sj-parcela').value || null;
+    const broj_kontejnera = parseFloat(document.getElementById('sj-kontejneri').value) || 0;
+    const mjesta_po_kontejneru = parseFloat(document.getElementById('sj-mjesta').value) || 0;
+    const komentar = document.getElementById('sj-komentar').value.trim();
+    if (!vrsta){ toast('Odaberi vrstu povrća'); return; }
+    await addSjetva({ id: uid('sj'), tip:'sjetva', datum, vrsta, sorta, parcela_id, broj_kontejnera, mjesta_po_kontejneru, ukupno_mjesta: broj_kontejnera*mjesta_po_kontejneru, datum_nicanja: null, broj_proklijalo: null, komentar: komentar||null, unio: currentUser||null, ts: Date.now() });
+    document.getElementById('sj-sorta').value=''; document.getElementById('sj-kontejneri').value=''; document.getElementById('sj-mjesta').value=''; document.getElementById('sj-komentar').value=''; document.getElementById('sj-ukupno-mjesta').textContent='0';
+    document.getElementById('sjetva-add-card').style.display = 'none';
+    document.getElementById('sjetva-add-icon').classList.remove('open');
+    toast('Sjetva spremljena');
+  });
+  document.getElementById('sd-submit').addEventListener('click', async ()=>{
+    const datum = document.getElementById('sd-datum').value || todayStr();
+    const kultura = document.getElementById('sd-kultura').value;
+    const parcela_id = document.getElementById('sd-parcela').value || null;
+    const sjetva_ref = document.getElementById('sd-sjetva-ref').value || null;
+    const broj_sadnica = parseFloat(document.getElementById('sd-broj-sadnica').value) || 0;
+    const komentar = document.getElementById('sd-komentar').value.trim();
+    if (!kultura){ toast('Odaberi kulturu'); return; }
+    await addSjetva({ id: uid('sd'), tip:'sadnja', datum, kultura, parcela_id, sjetva_ref, broj_sadnica, komentar: komentar||null, unio: currentUser||null, ts: Date.now() });
+    document.getElementById('sd-broj-sadnica').value=''; document.getElementById('sd-komentar').value='';
+    document.getElementById('sadnja-add-card').style.display = 'none';
+    document.getElementById('sadnja-add-icon').classList.remove('open');
+    toast('Sadnja spremljena');
+  });
+  document.getElementById('sjetva-list').addEventListener('click', async (e)=>{
+    const toggleId = e.target.dataset.nicanjeToggle;
+    const saveId = e.target.dataset.nicanjeSave;
+    const delId = e.target.dataset.delSjetva;
+    if (toggleId) {
+      document.getElementById('nicanje-edit-'+toggleId).style.display = 'block';
+      e.target.style.display = 'none';
+    } else if (saveId) {
+      const editEl = document.getElementById('nicanje-edit-'+saveId);
+      const datum_nicanja = editEl.querySelector('.nicanje-datum').value || null;
+      const broj_proklijalo = parseFloat(editEl.querySelector('.nicanje-broj').value) || null;
+      await updateSjetva(saveId, { datum_nicanja, broj_proklijalo });
+      toast('Nicanje zabilježeno');
+    } else if (delId) {
+      if (confirm('Obrisati ovaj unos?')) await deleteSjetva(delId);
+    }
   });
   document.getElementById('parcela-add-toggle').addEventListener('click', ()=>{
     const card = document.getElementById('parcela-add-card');
