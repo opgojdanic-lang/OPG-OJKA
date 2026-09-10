@@ -373,6 +373,7 @@ body {
         <div class="opg-field">
           <label>Kupac</label>
           <select id="f-kupac">
+            <option value="">— izaberi kupca —</option>
             <option value="RIBOLA">Ribola</option>
             <option value="ĐAKULA">Mesnica Đakula</option>
             <option value="BARIČEVIĆ">Mesnica Baričević</option>
@@ -421,6 +422,7 @@ body {
         <div class="opg-field">
           <label>Kategorija</label>
           <select id="t-kategorija">
+            <option value="">— izaberi kategoriju —</option>
             <option value="SJEME">Sjeme</option>
             <option value="GNOJIVO">Gnojivo</option>
             <option value="REPROMATERIJAL">Repromaterijal</option>
@@ -2650,9 +2652,11 @@ body {
     const cijena_kg = parseFloat(document.getElementById('f-cijena').value)||0;
     const kg = parseFloat(document.getElementById('f-kg').value)||0;
     const pak = parseFloat(document.getElementById('f-pak').value)||null;
+    if (!kupac){ toast('Izaberi kupca'); return; }
     if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
     await addProdaja({ id: uid('p'), kupac, datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: placenoVal, pak, unio: currentUser || null, ts: Date.now() });
-    document.getElementById('f-proizvod').value = ''; document.getElementById('f-cijena').value = ''; document.getElementById('f-kg').value = ''; document.getElementById('f-pak').value = '';
+    document.getElementById('f-kupac').value = ''; document.getElementById('f-proizvod').value = ''; document.getElementById('f-cijena').value = ''; document.getElementById('f-kg').value = ''; document.getElementById('f-pak').value = '';
+    document.getElementById('f-placeno-yes').click();
     renderNetoPreview();
     if (mode==='local') renderAll();
     document.getElementById('prodaja-add-card').style.display = 'none';
@@ -2679,9 +2683,10 @@ body {
     const kolicina = parseFloat(document.getElementById('t-kolicina').value)||0;
     const cijena = parseFloat(document.getElementById('t-cijena').value)||0;
     const datum = document.getElementById('t-datum').value || todayStr();
+    if (!kategorija){ toast('Izaberi kategoriju'); return; }
     if (!naziv || !cijena){ toast('Upiši naziv i cijenu'); return; }
     await addTrosak({ id: uid('t'), kategorija, naziv, kultura, trgovac, kolicina, cijena, datum, racun: pendingTrosakRacun, unio: currentUser || null, ts: Date.now() });
-    document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-trgovac').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
+    document.getElementById('t-kategorija').value = ''; document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-trgovac').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
     document.getElementById('t-racun').value = ''; document.getElementById('t-racun-preview').innerHTML = ''; pendingTrosakRacun = null;
     renderTrosakPreview();
     if (mode==='local') renderAll();
@@ -2698,6 +2703,7 @@ body {
     if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
     await addProdaja({ id: uid('pa'), kupac: 'PAUL', datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: paulPlacenoVal, pak: null, unio: currentUser || null, ts: Date.now() });
     document.getElementById('pa-proizvod').value = ''; document.getElementById('pa-cijena').value = ''; document.getElementById('pa-kg').value = '';
+    document.getElementById('pa-placeno-yes').click();
     renderPaulPreview();
     if (mode==='local') renderAll();
     document.getElementById('paul-add-card').style.display = 'none';
@@ -2742,7 +2748,7 @@ body {
     const jedinica = document.getElementById('z-jedinica').value;
     if (!naziv || !kolicina){ toast('Upiši naziv i količinu'); return; }
     await addZaliha({ id: uid('z'), naziv, pocetna_kolicina: kolicina, trenutna_kolicina: kolicina, jedinica, slika: pendingZalihaPhoto, unio: currentUser || null, datum: todayStr() });
-    document.getElementById('z-naziv').value = ''; document.getElementById('z-kolicina').value = ''; document.getElementById('z-slika').value = '';
+    document.getElementById('z-naziv').value = ''; document.getElementById('z-kolicina').value = ''; document.getElementById('z-slika').value = ''; document.getElementById('z-jedinica').value = 'L';
     document.getElementById('z-slika-preview').innerHTML = ''; pendingZalihaPhoto = null;
     document.getElementById('zalihe-add-card').style.display = 'none';
     document.getElementById('zalihe-add-icon').classList.remove('open');
@@ -3051,6 +3057,7 @@ body {
     if (!vrsta){ toast('Odaberi vrstu povrća'); return; }
     await addSjetva({ id: uid('sj'), tip:'sjetva', datum, vrsta, sorta, parcela_id, broj_kontejnera, mjesta_po_kontejneru, ukupno_mjesta: broj_kontejnera*mjesta_po_kontejneru, datum_nicanja: null, broj_proklijalo: null, komentar: komentar||null, unio: currentUser||null, ts: Date.now() });
     document.getElementById('sj-sorta').value=''; document.getElementById('sj-kontejneri').value=''; document.getElementById('sj-mjesta').value=''; document.getElementById('sj-komentar').value=''; document.getElementById('sj-ukupno-mjesta').textContent='0';
+    document.getElementById('sj-vrsta').value=''; document.getElementById('sj-parcela').value='';
     document.getElementById('sjetva-add-card').style.display = 'none';
     document.getElementById('sjetva-add-icon').classList.remove('open');
     toast('Sjetva spremljena');
@@ -3065,6 +3072,7 @@ body {
     if (!kultura){ toast('Odaberi kulturu'); return; }
     await addSjetva({ id: uid('sd'), tip:'sadnja', datum, kultura, parcela_id, sjetva_ref, broj_sadnica, komentar: komentar||null, unio: currentUser||null, ts: Date.now() });
     document.getElementById('sd-broj-sadnica').value=''; document.getElementById('sd-komentar').value='';
+    document.getElementById('sd-kultura').value=''; document.getElementById('sd-parcela').value=''; document.getElementById('sd-sjetva-ref').value='';
     document.getElementById('sadnja-add-card').style.display = 'none';
     document.getElementById('sadnja-add-icon').classList.remove('open');
     toast('Sadnja spremljena');
