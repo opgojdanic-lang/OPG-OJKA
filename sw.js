@@ -1,4 +1,4 @@
-const CACHE_NAME = 'opg-evidencija-v3';
+const CACHE_NAME = 'opg-evidencija-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -37,24 +37,18 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ---- Push obavijesti (Firebase Cloud Messaging) ----
-// Aplikacija šalje firebaseConfig ovamo nakon prijave (config nije tajna —
-// vidljiv je i inače u samoj aplikaciji), tek tad se aktivira FCM.
-let fcmReady = false;
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'INIT_FCM' && !fcmReady) {
-    fcmReady = true;
-    try {
-      importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-      importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-      firebase.initializeApp(event.data.config);
-      const messaging = firebase.messaging();
-      messaging.onBackgroundMessage((payload) => {
-        const title = (payload.notification && payload.notification.title) || 'OPG Ojdanić';
-        const body = (payload.notification && payload.notification.body) || '';
-        self.registration.showNotification(title, { body, icon: './icons/icon-192.png', badge: './icons/icon-192.png' });
-      });
-    } catch (e) {
-      console.error('FCM init greška u service workeru', e);
-    }
-  }
+// Izravno čitamo push payload bez oslanjanja na Firebase SDK unutar service
+// workera — iOS Safari često "ugasi" service worker između obavijesti, pa
+// pristup koji ovisi o tome da je stranica ikad poslala postavke (i time
+// pokrenula firebase.messaging() u ovoj instanci workera) zna zakazati.
+// Ovaj pristup radi bez obzira je li stranica ikad bila otvorena.
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch (e) {}
+  const notif = payload.notification || {};
+  const title = notif.title || 'OPG Ojdanić';
+  const body = notif.body || '';
+  event.waitUntil(
+    self.registration.showNotification(title, { body, icon: './icons/icon-192.png', badge: './icons/icon-192.png' })
+  );
 });

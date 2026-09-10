@@ -1091,9 +1091,6 @@ body {
       mode = 'cloud';
       localStorage.setItem('opg_fb_config', JSON.stringify(config));
       setSyncStatus('connecting');
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'INIT_FCM', config });
-      }
       return true;
     } catch(e) {
       console.error(e);
@@ -2520,9 +2517,6 @@ body {
 
       await fb.setDoc(fb.doc(fb.db, 'fcm_tokens', token), { token, user: currentUser || null, created_at: Date.now() });
 
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'INIT_FCM', config: JSON.parse(localStorage.getItem('opg_fb_config')||'{}') });
-      }
       toast('Obavijesti uključene na ovom telefonu! 🔔');
     } catch(e) {
       toast('Greška: ' + e.message);
