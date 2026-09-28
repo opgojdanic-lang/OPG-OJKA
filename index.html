@@ -1126,6 +1126,25 @@ body {
     try { await fb.setDoc(fb.doc(fb.db, 'aktivnosti', uid('act')), { tekst: text, unio: currentUser || 'Netko', ts: Date.now() }); }
     catch(e) {}
   }
+  // Provjera dupliciranih unosa — ista kombinacija podataka koju bi lako bilo
+  // greškom unijeti dvaput (npr. kad se zaboravi da je unos već spremljen).
+  function findDuplicateProdaja(entry){
+    return prodaja.find(p =>
+      p.kupac === entry.kupac &&
+      p.datum === entry.datum &&
+      (p.proizvod||'').trim().toUpperCase() === (entry.proizvod||'').trim().toUpperCase() &&
+      Number(p.kg||0) === Number(entry.kg||0) &&
+      Number(p.cijena_kg||0) === Number(entry.cijena_kg||0)
+    );
+  }
+  function findDuplicateTrosak(entry){
+    return troskovi.find(t =>
+      t.datum === entry.datum &&
+      (t.naziv||'').trim().toLowerCase() === (entry.naziv||'').trim().toLowerCase() &&
+      Number(t.kolicina||0) === Number(entry.kolicina||0) &&
+      Number(t.cijena||0) === Number(entry.cijena||0)
+    );
+  }
   async function addProdaja(entry){
     prodaja.push(entry);
     renderAll();
@@ -2669,7 +2688,9 @@ body {
     const pak = parseFloat(document.getElementById('f-pak').value)||null;
     if (!kupac){ toast('Izaberi kupca'); return; }
     if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
-    await addProdaja({ id: uid('p'), kupac, datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: placenoVal, pak, unio: currentUser || null, ts: Date.now() });
+    const noviUnosP = { id: uid('p'), kupac, datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: placenoVal, pak, unio: currentUser || null, ts: Date.now() };
+    if (findDuplicateProdaja(noviUnosP) && !confirm(`Izgleda da je ovo već uneseno: ${KUPAC_LABEL[kupac]||kupac} — ${noviUnosP.proizvod} ${kg}kg (${datum}). Spremiti ipak?`)) return;
+    await addProdaja(noviUnosP);
     document.getElementById('f-kupac').value = ''; document.getElementById('f-proizvod').value = ''; document.getElementById('f-cijena').value = ''; document.getElementById('f-kg').value = ''; document.getElementById('f-pak').value = '';
     document.getElementById('f-placeno-yes').click();
     renderNetoPreview();
@@ -2700,7 +2721,9 @@ body {
     const datum = document.getElementById('t-datum').value || todayStr();
     if (!kategorija){ toast('Izaberi kategoriju'); return; }
     if (!naziv || !cijena){ toast('Upiši naziv i cijenu'); return; }
-    await addTrosak({ id: uid('t'), kategorija, naziv, kultura, trgovac, kolicina, cijena, datum, racun: pendingTrosakRacun, unio: currentUser || null, ts: Date.now() });
+    const noviUnosT = { id: uid('t'), kategorija, naziv, kultura, trgovac, kolicina, cijena, datum, racun: pendingTrosakRacun, unio: currentUser || null, ts: Date.now() };
+    if (findDuplicateTrosak(noviUnosT) && !confirm(`Izgleda da je ovo već uneseno: ${naziv} (${fmt(cijena)}, ${datum}). Spremiti ipak?`)) return;
+    await addTrosak(noviUnosT);
     document.getElementById('t-kategorija').value = ''; document.getElementById('t-naziv').value = ''; document.getElementById('t-kultura').value = ''; document.getElementById('t-trgovac').value = ''; document.getElementById('t-kolicina').value = ''; document.getElementById('t-cijena').value = '';
     document.getElementById('t-racun').value = ''; document.getElementById('t-racun-preview').innerHTML = ''; pendingTrosakRacun = null;
     renderTrosakPreview();
@@ -2716,7 +2739,9 @@ body {
     const cijena_kg = parseFloat(document.getElementById('pa-cijena').value)||0;
     const kg = parseFloat(document.getElementById('pa-kg').value)||0;
     if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return; }
-    await addProdaja({ id: uid('pa'), kupac: 'PAUL', datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: paulPlacenoVal, pak: null, unio: currentUser || null, ts: Date.now() });
+    const noviUnosPaul = { id: uid('pa'), kupac: 'PAUL', datum, proizvod: proizvod.toUpperCase(), cijena_kg, kg, placeno: paulPlacenoVal, pak: null, unio: currentUser || null, ts: Date.now() };
+    if (findDuplicateProdaja(noviUnosPaul) && !confirm(`Izgleda da je ovo već uneseno: ${noviUnosPaul.proizvod} ${kg}kg (${datum}). Spremiti ipak?`)) return;
+    await addProdaja(noviUnosPaul);
     document.getElementById('pa-proizvod').value = ''; document.getElementById('pa-cijena').value = ''; document.getElementById('pa-kg').value = '';
     document.getElementById('pa-placeno-yes').click();
     renderPaulPreview();
