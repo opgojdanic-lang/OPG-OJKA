@@ -1071,19 +1071,23 @@ body {
         scheduleRenderAll();
       });
 
-      let activityCheckDone = false;
-      fb.onSnapshot(fb.collection(db, 'aktivnosti'), (snap) => {
-        if (activityCheckDone) return;
-        activityCheckDone = true;
-        const lastSeen = parseInt(localStorage.getItem('opg_last_seen')||'0', 10);
-        const myName = (currentUser||'').trim().toLowerCase();
-        const noviji = snap.docs
-          .map(d => d.data())
-          .filter(a => a.ts > lastSeen && (a.unio||'').trim().toLowerCase() !== myName)
-          .sort((a,b)=>a.ts-b.ts);
-        if (noviji.length) showActivityModal(noviji);
-        localStorage.setItem('opg_last_seen', String(Date.now()));
-      });
+      (async () => {
+        try {
+          // Namjerno getDocs (jednokratno, sa servera) umjesto onSnapshot —
+          // onSnapshot bi na uređaju s puno lokalnog cachea (IndexedDB) prvi put
+          // gotovo uvijek okinuo ODMAH iz cachea, prije nego stignu najnoviji
+          // unosi drugih ukućana, pa bi se ta obavijest tiho izgubila zauvijek.
+          const snap = await fb.getDocs(fb.collection(db, 'aktivnosti'));
+          const lastSeen = parseInt(localStorage.getItem('opg_last_seen')||'0', 10);
+          const myName = (currentUser||'').trim().toLowerCase();
+          const noviji = snap.docs
+            .map(d => d.data())
+            .filter(a => a.ts > lastSeen && (a.unio||'').trim().toLowerCase() !== myName)
+            .sort((a,b)=>a.ts-b.ts);
+          if (noviji.length) showActivityModal(noviji);
+          localStorage.setItem('opg_last_seen', String(Date.now()));
+        } catch(e) {}
+      })();
 
       fb.onSnapshot(fb.doc(db, 'settings', 'app'), (snap) => {
         sharedSettings = snap.exists() ? snap.data() : {};
