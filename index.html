@@ -982,12 +982,24 @@ body {
 
   async function initCloud(config){
     try {
-      const [{ initializeApp }, fsMod] = await Promise.all([
+      const [{ initializeApp }, fsMod, authMod] = await Promise.all([
         import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
-        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
+        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'),
+        import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js')
       ]);
       const app = initializeApp(config);
       firebaseApp = app;
+      // Tiha (bez ikakve forme za prijavu) anonimna autentikacija — potrebna
+      // da Firestore pravila mogu tražiti "prijavljenog" korisnika umjesto da
+      // baza ostane potpuno otvorena bilo kome na internetu.
+      const auth = authMod.getAuth(app);
+      await new Promise((resolve) => {
+        const unsub = authMod.onAuthStateChanged(auth, (user) => {
+          unsub();
+          if (user) { resolve(); }
+          else { authMod.signInAnonymously(auth).then(resolve).catch(resolve); }
+        });
+      });
       const db = fsMod.getFirestore(app);
       try { await fsMod.enableIndexedDbPersistence(db); } catch(e) {}
       fb = { db, ...fsMod };
