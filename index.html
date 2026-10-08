@@ -464,6 +464,9 @@ body { font-size: 15px; }
 .pt-val.ok { color: var(--forest); } .pt-val.warn { color: var(--warn-ink); }
 .pt-sub { font-size: 13px; color: var(--ink-soft); }
 .opg-toast { z-index: 300; }
+.pt-wide { width: 100%; margin-top: 10px; }
+.opg-filter-row { scrollbar-width: none; -ms-overflow-style: none; }
+.opg-filter-row::-webkit-scrollbar, .opg-forecast-row::-webkit-scrollbar { display: none; }
 </style>
 </head>
 <body>
@@ -529,18 +532,9 @@ body { font-size: 15px; }
       <div class="opg-hero-card"><div class="lbl">Prihod</div><div class="val" id="hero-prihod">–</div></div>
       <div class="opg-hero-card"><div class="lbl">Troškovi</div><div class="val" id="hero-troskovi">–</div></div>
       <div class="opg-hero-card profit"><div class="lbl">Dobit</div><div class="val" id="hero-dobit">–</div></div>
-    </div></div>
-      <div class="opg-section-title" style="margin-top:0;">Poslovni pregled</div>
-      <div class="opg-sum-card" id="pocetna-financije"></div>
-
-      <div class="opg-filter-row" id="pocetna-kp-toggle">
-        <button class="opg-chip active" data-pkp="kupci">Prihod po kupcu</button>
-        <button class="opg-chip" data-pkp="proizvodi">Isporučeno po proizvodu</button>
-        <button class="opg-chip" data-pkp="zarada">Zarada po proizvodu</button>
-      </div>
-      <div class="opg-sum-card" id="pocetna-kupci"></div>
-      <div class="opg-sum-card" id="pocetna-proizvodi" style="display:none;"></div>
-      <div class="opg-sum-card" id="pocetna-zarada" style="display:none;"></div>
+    </div>
+      <button type="button" class="pt-tile pt-wide" id="pocetna-top" style="display:none;"></button></div>
+      <div id="pocetna-financije" style="display:none;"></div>
 
       <div id="pocetna-vrijeme-block">
         <div class="opg-filter-row" id="pocetna-vr-toggle">
@@ -1104,6 +1098,17 @@ body { font-size: 15px; }
 
       <div id="sub-pregled-glavni" class="opg-subview active">
       <div class="opg-filter-row" id="pregled-filters"></div>
+
+      <div class="opg-section-title" style="margin-top:4px;">Sezona u kratkim crtama</div>
+      <div class="opg-filter-row" id="pocetna-kp-toggle">
+        <button class="opg-chip active" data-pkp="kupci">Prihod po kupcu</button>
+        <button class="opg-chip" data-pkp="proizvodi">Isporučeno po proizvodu</button>
+        <button class="opg-chip" data-pkp="zarada">Zarada po proizvodu</button>
+      </div>
+      <div class="opg-sum-card" id="pocetna-kupci"></div>
+      <div class="opg-sum-card" id="pocetna-proizvodi" style="display:none;"></div>
+      <div class="opg-sum-card" id="pocetna-zarada" style="display:none;"></div>
+
 
       <div class="opg-section-title" style="margin-top:0;">Prihod po kupcu</div>
       <div class="opg-sum-card" id="sum-by-kupac"></div>
@@ -2642,6 +2647,15 @@ body { font-size: 15px; }
     pFiltered.forEach(r=>{ byKupac[r.kupac] = (byKupac[r.kupac]||0) + (r.cijena_kg||0)*(r.kg||0); });
     const totalP = Object.values(byKupac).reduce((a,b)=>a+b,0) || 1;
     const kupacKeys = Object.keys(byKupac).sort((a,b)=>byKupac[b]-byKupac[a]);
+    // najbolji kupac (Početna → Pregled)
+    (function(){
+      const top = document.getElementById('pocetna-top');
+      if (!top) return;
+      if (!kupacKeys.length) { top.style.display = 'none'; return; }
+      const k = kupacKeys[0];
+      top.style.display = '';
+      top.innerHTML = `<span class="pt-lbl">Najbolji kupac ove sezone</span><span class="pt-val">${KUPAC_LABEL[k]||k} · ${fmt(byKupac[k])}</span><span class="pt-sub">Više u tabu Pregled →</span>`;
+    })();
     const kupciEl = document.getElementById('pocetna-kupci');
     kupciEl.innerHTML = kupacKeys.length ? kupacKeys.map(k=>`
       <div class="opg-sum-row">
@@ -3623,6 +3637,7 @@ body { font-size: 15px; }
       ${f ? `<button type="button" class="pt-tile" data-pt="vrijeme"><span class="pt-lbl">Sutra</span><span class="pt-val">${planEsc(f.icon||'')} ${planEsc(String(f.max))}</span><span class="pt-sub">min ${planEsc(String(f.min))}</span></button>` : ''}
     </div>`;
   }
+  document.getElementById('pocetna-top').addEventListener('click', ()=>goTab('pregled'));
   document.getElementById('pocetna-tiles').addEventListener('click', (e)=>{ if (e.target.closest('[data-pt]')) goTab('zastita','vrijeme'); });
 
   // ---- Početna: Danas + rizik ----
