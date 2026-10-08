@@ -425,6 +425,44 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
 .opg-quick-sheet { position: absolute; left: 0; right: 0; bottom: 0; max-width: 480px; margin: 0 auto; background: #fff; border-radius: 26px 26px 0 0; padding: 18px 16px calc(20px + env(safe-area-inset-bottom)); }
 .opg-quick-sheet h3 { font-family: 'Fraunces', serif; font-size: 20px; margin: 0 4px 12px; }
 .opg-quick-sheet button { display: flex; align-items: center; width: 100%; text-align: left; border: none; background: #F6F4EE; border-radius: 16px; padding: 15px 16px; margin-bottom: 8px; font-size: 16px; font-weight: 600; color: var(--ink); cursor: pointer; }
+
+/* ===== NOVI IZGLED v2: zračniji raspored ===== */
+.opg-view { padding: 10px 20px 8px; }
+.opg-header { padding: calc(18px + env(safe-area-inset-top)) 20px 4px; }
+.opg-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.opg-head-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.opg-greet { border: none; background: none; padding: 0; text-align: left; font-size: 14px; color: var(--ink-soft); font-weight: 500; cursor: pointer; }
+.opg-title { font-size: 28px; line-height: 1.15; margin: 0; }
+.opg-head-actions { display: flex; align-items: center; gap: 8px; flex: none; padding-top: 2px; }
+.opg-season-pill { height: 36px; padding: 0 12px; border-radius: 18px; background: var(--ok-bg); color: var(--forest); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.opg-season-pill .opg-season-select { color: var(--forest); font-weight: 700; font-size: 13px; text-decoration: none; }
+.opg-sync-dot { position: absolute; top: calc(8px + env(safe-area-inset-top)); right: 20px; margin: 0; }
+.opg-sync-dot #sync-label { display: none; }
+.opg-label { font-size: 12.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 8px; }
+.opg-card, .opg-sum-card { padding: 18px; margin-bottom: 14px; }
+.opg-sum-row { padding: 11px 0; }
+.opg-stock-item, .opg-isk-card, .opg-parcela-card, .opg-cijena-block { margin-bottom: 12px; padding: 14px 16px; }
+.opg-filter-row { margin-bottom: 16px; gap: 8px; }
+.opg-field { margin-bottom: 14px; }
+.opg-entry { padding: 14px 4px; }
+.opg-isk-add-toggle { margin-bottom: 14px; }
+.opg-section-title { margin: 26px 0 12px; }
+.plan-item { margin-bottom: 10px; padding: 13px 14px; }
+body { font-size: 15px; }
+
+/* Početna: novi redoslijed i sadržaj */
+#pocetna-danas { order: 0; } #pocetna-rizik { order: 1; } #pocetna-tiles { order: 2; } #pocetna-sezona { order: 3; margin-bottom: 14px; } #pocetna-vrijeme-block { order: 4; }
+.opg-view[data-view="pocetna"] > :not(#pocetna-danas):not(#pocetna-rizik):not(#pocetna-tiles):not(#pocetna-sezona):not(#pocetna-vrijeme-block) { order: 5; }
+#pocetna-vrijeme-block > .opg-filter-row, #pocetna-vrijeme, #pocetna-prognoza, #pocetna-plan, #pocetna-plan-title { display: none !important; }
+#pocetna-vrijeme-block > .opg-section-title { margin-top: 4px; }
+#pocetna-sezona .opg-hero-row { gap: 10px; }
+#pocetna-sezona .opg-hero-card { border-radius: 18px; padding: 12px; }
+.pt-row { display: flex; gap: 10px; margin-bottom: 14px; }
+.pt-tile { flex: 1; min-width: 0; text-align: left; background: #fff; border: 1px solid var(--sage-line); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; color: var(--ink); }
+.pt-lbl { font-size: 12.5px; color: var(--ink-soft); font-weight: 500; }
+.pt-val { font-size: 18px; font-weight: 700; }
+.pt-val.ok { color: var(--forest); } .pt-val.warn { color: var(--warn-ink); }
+.pt-sub { font-size: 13px; color: var(--ink-soft); }
 </style>
 </head>
 <body>
@@ -462,21 +500,18 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
   </div>
 
   <div class="opg-header">
-    <div class="opg-brand-row">
-      <img class="opg-brand-logo" src="./icons/icon-192.png" alt="Logo">
-      <div class="opg-brand-text">
-        <p class="opg-eyebrow">OPG · sezona <select id="season-select" class="opg-season-select"></select></p>
-        <h1 class="opg-title">OPG Ojdanić</h1>
-        <div class="opg-sync-dot" id="sync-indicator"><span class="dot"></span><span id="sync-label">Lokalno (bez sinkronizacije)</span></div>
-        <button class="opg-user-chip" id="user-chip">👤 <span id="user-name-label">Postavi ime</span></button>
+    <div class="opg-head-row">
+      <div class="opg-head-text">
+        <button type="button" class="opg-greet" id="hdr-greet">Dobro jutro</button>
+        <h1 class="opg-title" id="hdr-title">OPG Ojdanić</h1>
       </div>
-      <button class="opg-gear" id="open-setup">⚙</button>
+      <div class="opg-head-actions">
+        <span class="opg-season-pill">Sezona <select id="season-select" class="opg-season-select"></select></span>
+        <button class="opg-gear" id="open-setup" aria-label="Postavke">⚙</button>
+      </div>
     </div>
-    <div class="opg-hero-row">
-      <div class="opg-hero-card"><div class="lbl">Prihod</div><div class="val" id="hero-prihod">–</div></div>
-      <div class="opg-hero-card"><div class="lbl">Troškovi</div><div class="val" id="hero-troskovi">–</div></div>
-      <div class="opg-hero-card profit"><div class="lbl">Dobit</div><div class="val" id="hero-dobit">–</div></div>
-    </div>
+    <div class="opg-sync-dot" id="sync-indicator"><span class="dot"></span><span id="sync-label">Lokalno (bez sinkronizacije)</span></div>
+    <button class="opg-user-chip" id="user-chip" style="display:none;">👤 <span id="user-name-label">Postavi ime</span></button>
   </div>
 
   <div id="opg-loading" class="opg-loading">Učitavanje podataka…</div>
@@ -487,6 +522,12 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
     <div class="opg-view active" data-view="pocetna">
       <div id="pocetna-danas"></div>
       <div id="pocetna-rizik"></div>
+      <div id="pocetna-tiles"></div>
+      <div id="pocetna-sezona"><div class="opg-label">Sezona do sada</div><div class="opg-hero-row">
+      <div class="opg-hero-card"><div class="lbl">Prihod</div><div class="val" id="hero-prihod">–</div></div>
+      <div class="opg-hero-card"><div class="lbl">Troškovi</div><div class="val" id="hero-troskovi">–</div></div>
+      <div class="opg-hero-card profit"><div class="lbl">Dobit</div><div class="val" id="hero-dobit">–</div></div>
+    </div></div>
       <div class="opg-section-title" style="margin-top:0;">Poslovni pregled</div>
       <div class="opg-sum-card" id="pocetna-financije"></div>
 
@@ -507,10 +548,10 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
         <div class="opg-card" id="pocetna-vrijeme"></div>
         <div class="opg-card" id="pocetna-prognoza" style="display:none;"></div>
 
-        <div class="opg-section-title">Plan — idućih 7 dana</div>
+        <div class="opg-section-title" id="pocetna-plan-title">Plan — idućih 7 dana</div>
         <div class="opg-card" id="pocetna-plan"></div>
 
-        <div class="opg-section-title">Obavijesti</div>
+        <div class="opg-section-title" id="pocetna-obavijesti-title">Obavijesti</div>
         <div class="opg-card" id="pocetna-obavijesti"></div>
       </div>
     </div>
@@ -1171,6 +1212,7 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
 
   function updateUserChip(){
     document.getElementById('user-name-label').textContent = currentUser || 'Postavi ime';
+    try { updateHeader(); } catch(e) {}
   }
   function ensureUserName(){
     if (!currentUser) {
@@ -3442,6 +3484,7 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
       });
     }
     window.scrollTo(0,0);
+    updateHeader();
   }
   function planGoTretiranje(o){
     const el = (id)=>document.getElementById(id);
@@ -3542,6 +3585,44 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
 
   // ---- Početna: idućih 7 dana ----
 
+
+  // ---- zaglavlje (pozdrav / naslov taba) ----
+  const HDR_TABS = { plan:'Plan', financije:'Novac', proizvodnja:'Uzgoj', zastita:'Zaštita', pregled:'Pregled' };
+  function updateHeader(){
+    const g = document.getElementById('hdr-greet'), t = document.getElementById('hdr-title');
+    if (!g || !t) return;
+    const at = document.querySelector('.opg-tab.active');
+    const tab = at ? at.dataset.tab : 'pocetna';
+    if (tab === 'pocetna') {
+      const h = new Date().getHours();
+      const hello = h < 11 ? 'Dobro jutro' : (h < 18 ? 'Dobar dan' : 'Dobra večer');
+      const name = (currentUser || '').trim().split(/\s+/)[0];
+      g.textContent = name ? `${hello}, ${name}` : `${hello} · postavi ime`;
+      const d = new Date().toLocaleDateString('hr-HR', { weekday:'long', day:'numeric', month:'long' });
+      t.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+    } else {
+      g.textContent = 'OPG Ojdanić';
+      t.textContent = HDR_TABS[tab] || 'OPG Ojdanić';
+    }
+  }
+  document.getElementById('hdr-greet').addEventListener('click', ()=>document.getElementById('user-chip').click());
+
+  // ---- Početna: pločice vremena ----
+  function renderPocetnaTiles(){
+    const el = document.getElementById('pocetna-tiles');
+    if (!el) return;
+    const sc = sprayConditions || {};
+    if (!sc.last_checked_at) { el.innerHTML = ''; return; }
+    const lab = { idealno:'Idealno', prihvatljivo:'Prihvatljivo', nije:'Nije povoljno' };
+    const ok = sc.last_status === 'idealno' || sc.last_status === 'prihvatljivo';
+    const f = (sc.forecast || [])[1];
+    el.innerHTML = `<div class="pt-row">
+      <button type="button" class="pt-tile" data-pt="vrijeme"><span class="pt-lbl">Prskanje</span><span class="pt-val ${ok?'ok':'warn'}">${lab[sc.last_status]||'–'}</span><span class="pt-sub">${planEsc(String(sc.last_temp))} °C · vjetar ${planEsc(String(sc.last_wind))} m/s</span></button>
+      ${f ? `<button type="button" class="pt-tile" data-pt="vrijeme"><span class="pt-lbl">Sutra</span><span class="pt-val">${planEsc(f.icon||'')} ${planEsc(String(f.max))}</span><span class="pt-sub">min ${planEsc(String(f.min))}</span></button>` : ''}
+    </div>`;
+  }
+  document.getElementById('pocetna-tiles').addEventListener('click', (e)=>{ if (e.target.closest('[data-pt]')) goTab('zastita','vrijeme'); });
+
   // ---- Početna: Danas + rizik ----
   function renderPocetnaDanas(){
     const el = document.getElementById('pocetna-danas');
@@ -3566,6 +3647,7 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
       + (total ? `<div class="dz-bar"><i style="width:${pct}%"></i></div>${rows}${total>5?`<div class="dz-sub" style="padding:8px 0;">+${total-5} još u planu</div>`:''}` : '<div class="dz-empty">Nema zadataka za danas.</div>')
       + '<button type="button" class="dz-foot" data-dz="plan">Otvori plan →</button>';
 
+    renderPocetnaTiles();
     const rz = document.getElementById('pocetna-rizik');
     if (rz) {
       const fresh = rizikData && rizikData.checked_at && (Date.now()-rizikData.checked_at) < 6*3600000;
@@ -3838,6 +3920,7 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
       document.querySelectorAll('.opg-view').forEach(v=>v.classList.remove('active'));
       btn.classList.add('active');
       document.querySelector(`.opg-view[data-view="${btn.dataset.tab}"]`).classList.add('active');
+      updateHeader();
     });
   });
 
