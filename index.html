@@ -489,6 +489,29 @@ body { font-size: 15px; }
 .plan-day-head h3 { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 600; color: var(--ink); }
 .opg-view[data-view="plan"] > .opg-card:first-child { padding: 14px 10px 8px; border-radius: 22px; }
 .plan-notif-box { margin: 0; }
+
+/* Rizik: sklopivi redovi po kulturi */
+.rk-banner { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; padding: 11px 14px; border-radius: 14px; margin-bottom: 12px; }
+.rk-banner.ok { background: var(--ok-bg); color: var(--forest); }
+.rk-banner.up { background: #FBE4DF; color: #7E2112; }
+.rk-banner svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.rk-crop { border: 1px solid var(--sage-line); border-radius: 16px; margin-bottom: 8px; overflow: hidden; }
+.rk-crop > summary, .rk-item > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.rk-crop > summary::-webkit-details-marker, .rk-item > summary::-webkit-details-marker { display: none; }
+.rk-crop > summary { padding: 14px 14px; }
+.rk-crop > summary::after { content: ''; width: 8px; height: 8px; border-right: 2px solid var(--ink-soft); border-bottom: 2px solid var(--ink-soft); transform: rotate(45deg); margin: -3px 2px 0 4px; transition: transform .15s; }
+.rk-crop[open] > summary::after { transform: rotate(-135deg); margin-top: 3px; }
+.rk-cname { flex: 1; font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; }
+.rk-badge { font-size: 12px; font-weight: 700; border-radius: 10px; padding: 3px 10px; }
+.rk-body { padding: 0 14px 10px; }
+.rk-last { font-size: 13px; color: var(--ink-soft); padding: 0 0 8px; }
+.rk-item { border-top: 1px solid rgba(23,35,27,0.08); }
+.rk-item > summary { padding: 11px 0; }
+.rk-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.rk-name { flex: 1; font-size: 15px; font-weight: 600; }
+.rk-lvl { font-size: 13px; font-weight: 700; }
+.rk-det { font-size: 13px; color: var(--ink-soft); padding: 0 0 12px 20px; line-height: 1.5; }
+.rk-det a { color: var(--forest); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -2881,41 +2904,50 @@ body { font-size: 15px; }
     const list = prskanje.filter(r => r.kultura && (String(r.kultura).toLowerCase().includes(kk) || kk.includes(String(r.kultura).toLowerCase()))).sort((a,b)=>String(b.datum).localeCompare(String(a.datum)));
     return list[0] || null;
   }
+  const RIZIK_KRATKO = { peronospora_tikvice:'Plamenjača', pepelnica_tikvice:'Pepelnica', bakterijska_pjegavost_paprike:'Bakterijska pjegavost', phytophthora_paprika:'Phytophthora (trulež)', grinje:'Grinje' };
+  const RIZIK_KULTURE = ['PAPRIKA BABURA','BUTTERNUT TIKVA','TIKVICA'];
   function renderRizik(){
     const el = document.getElementById('rizik-list');
     if (!el) return;
     if (!rizikData || !rizikData.items) return;
     const esc = (t)=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    const lab = ['Nizak','Umjeren','Visok'], col = ['#5A8A4B','#E0962F','#C1432B'];
     const cap = (k)=>k.charAt(0)+k.slice(1).toLowerCase();
+    const lab = ['Nizak','Umjeren','Visok'], col = ['#8CA08F','#D9822B','#B3341F'], bg = ['#EEF1EC','#FBEADD','#FBE4DF'], ink = ['#5C6B61','#7A3E0E','#7E2112'];
     const groups = {};
     rizikData.items.forEach(r=>(r.kulture||[]).forEach(k=>{ (groups[k]=groups[k]||[]).push(r); }));
     const keys = Object.keys(groups).sort((x,y)=>{
-      const mx=Math.max(...groups[x].map(r=>r.razina)), my=Math.max(...groups[y].map(r=>r.razina));
-      return my-mx || x.localeCompare(y,'hr');
+      const ix = RIZIK_KULTURE.indexOf(x), iy = RIZIK_KULTURE.indexOf(y);
+      return (ix<0?99:ix) - (iy<0?99:iy) || x.localeCompare(y,'hr');
     });
-    el.innerHTML = keys.map(k=>{
+    const anyUp = rizikData.items.some(r=>r.razina>0);
+    const head = anyUp
+      ? `<div class="rk-banner up">Povišen rizik: ${keys.filter(k=>groups[k].some(r=>r.razina>0)).map(cap).join(', ')}</div>`
+      : `<div class="rk-banner ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Nema povišenog rizika</div>`;
+    const cropsHtml = keys.map(k=>{
       const list = groups[k].slice().sort((p,q)=>q.razina-p.razina);
       const top = Math.max(...list.map(r=>r.razina));
       const ls = rizikLastSpray(k);
-      const lsTxt = ls ? (()=>{ const dana=Math.floor((Date.now()-new Date(ls.datum+'T12:00:00').getTime())/86400000); return `Zadnje tretiranje: ${esc(ls.sredstvo)}, ${esc(ls.datum.split('-').reverse().join('.'))} (prije ${dana} d). Za iduće tretiranje razmisli o drugoj djelatnoj tvari (izmjena).`; })() : 'Nema zabilježenog tretiranja za ovu kulturu.';
-      return `<div style="margin-bottom:14px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <strong style="font-size:15px;">${esc(cap(k))}</strong>
-          <span style="font-size:12px; color:${col[top]}; font-weight:600;">${top?lab[top]+' rizik':'Nizak rizik'}</span>
-        </div>${top?`<div class="opg-hint" style="margin:0 0 6px;">${lsTxt}</div>`:''}` + list.map(r=>`
-        <details style="border-left:4px solid ${col[r.razina]}; padding:6px 10px; margin-bottom:6px; background:rgba(0,0,0,.03); border-radius:6px;">
-          <summary style="cursor:pointer;"><strong>${esc(r.naziv)}</strong> — ${lab[r.razina]}${r.prognoza?' (prognoza)':''}
-            ${r.razlog?`<div class="opg-hint" style="margin:2px 0 0;">${esc(r.razlog)}</div>`:''}</summary>
-          <div class="opg-hint" style="margin-top:6px;"><strong>Uvjeti:</strong> ${esc(r.uvjeti)}<br><strong>Izvor:</strong> ${esc(r.izvor)}
-            ${r.razina>0?`<div style="margin-top:8px;"><strong>Sredstva:</strong> provjeri što je registrirano za <em>${esc(cap(k))}</em> i <em>${esc(RIZIK_FIS[r.id]||r.naziv)}</em> u FIS-u (obavezno provjeri kulturu, dozu, karencu i broj tretiranja).<br><a href="https://fis.mps.hr/TrazilicaSZB/" target="_blank" rel="noopener" style="display:inline-block; margin-top:4px;">Otvori FIS registar ↗</a></div>`:''}
+      const lsTxt = ls ? (()=>{ const dana=Math.floor((Date.now()-new Date(ls.datum+'T12:00:00').getTime())/86400000); return `Zadnje tretiranje: ${esc(ls.sredstvo)}, ${esc(ls.datum.split('-').reverse().join('.'))} (prije ${dana} d). Razmisli o drugoj djelatnoj tvari.`; })() : 'Nema zabilježenog tretiranja za ovu kulturu.';
+      const rows = list.map(r=>`
+        <details class="rk-item">
+          <summary><span class="rk-dot" style="background:${col[r.razina]}"></span><span class="rk-name">${esc(RIZIK_KRATKO[r.id]||r.naziv)}</span><span class="rk-lvl" style="color:${ink[r.razina]}">${r.razina?lab[r.razina]+(r.prognoza?' (prognoza)':''):''}</span></summary>
+          <div class="rk-det">
+            ${r.razlog?`<div><strong>Zašto:</strong> ${esc(r.razlog)}</div>`:''}
+            <div><strong>Uvjeti:</strong> ${esc(r.uvjeti)}</div>
+            <div><strong>Izvor:</strong> ${esc(r.izvor)}</div>
+            ${r.razina>0?`<div style="margin-top:6px;"><strong>Sredstva:</strong> provjeri što je registrirano za <em>${esc(cap(k))}</em> i <em>${esc(RIZIK_FIS[r.id]||r.naziv)}</em> u FIS-u (kultura, doza, karenca, broj tretiranja).<br><a href="https://fis.mps.hr/TrazilicaSZB/" target="_blank" rel="noopener">Otvori FIS registar ↗</a></div>`:''}
           </div>
-        </details>`).join('') + '</div>';
+        </details>`).join('');
+      return `<details class="rk-crop"${top>0?' open':''} style="background:${top>0?bg[top]:'#fff'}">
+        <summary><span class="rk-cname">${esc(cap(k))}</span><span class="rk-badge" style="background:${top>0?col[top]:'#EEF1EC'}; color:${top>0?'#fff':ink[0]}">${lab[top]}</span></summary>
+        <div class="rk-body">${top>0?`<div class="rk-last">${lsTxt}</div>`:''}${rows}</div>
+      </details>`;
     }).join('');
     const zl = zalihe.filter(z=>(z.trenutna_kolicina||0)>0).map(z=>esc(z.naziv));
-    if (zl.length && rizikData.items.some(r=>r.razina>0)) el.innerHTML += `<div class="opg-hint"><strong>Na zalihi imaš:</strong> ${zl.join(', ')}. Provjeri u FIS-u je li neko od njih registrirano za ovu kulturu i bolest.</div>`;
+    const zalTxt = (anyUp && zl.length) ? `<div class="opg-hint">Na zalihi imaš: ${zl.join(', ')}. Provjeri u FIS-u je li neko registrirano za tu kulturu i bolest.</div>` : '';
+    el.innerHTML = head + cropsHtml + zalTxt;
     const foot = document.getElementById('rizik-foot');
-    if (foot && rizikData.checked_at) foot.textContent = 'Zadnja procjena: ' + new Date(rizikData.checked_at).toLocaleString('hr-HR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '. Pokazatelj je povoljnih uvjeta, a ne dijagnoza — uvijek pregledaj biljke.';
+    if (foot && rizikData.checked_at) foot.textContent = 'Zadnja procjena ' + new Date(rizikData.checked_at).toLocaleString('hr-HR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + ' · pokazatelj je povoljnih uvjeta, ne dijagnoza.';
   }
 
   function renderVrijeme(){
