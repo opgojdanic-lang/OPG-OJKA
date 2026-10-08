@@ -2662,6 +2662,18 @@ body {
       </div>`).join('')}</div>`;
   }
 
+  const RIZIK_FIS = {
+    peronospora_tikvice: 'plamenjača bundevastog povrća (Pseudoperonospora cubensis)',
+    pepelnica_tikvice: 'pepelnica bundevastog povrća (Podosphaera xanthii)',
+    bakterijska_pjegavost_paprike: 'bakterijska pjegavost (Xanthomonas)',
+    phytophthora_paprika: 'plamenjača / trulež korijena (Phytophthora capsici)',
+    grinje: 'grinje, običan paučinar (Tetranychus urticae)',
+  };
+  function rizikLastSpray(k){
+    const kk = String(k||'').toLowerCase();
+    const list = prskanje.filter(r => r.kultura && (String(r.kultura).toLowerCase().includes(kk) || kk.includes(String(r.kultura).toLowerCase()))).sort((a,b)=>String(b.datum).localeCompare(String(a.datum)));
+    return list[0] || null;
+  }
   function renderRizik(){
     const el = document.getElementById('rizik-list');
     if (!el) return;
@@ -2678,17 +2690,23 @@ body {
     el.innerHTML = keys.map(k=>{
       const list = groups[k].slice().sort((p,q)=>q.razina-p.razina);
       const top = Math.max(...list.map(r=>r.razina));
+      const ls = rizikLastSpray(k);
+      const lsTxt = ls ? (()=>{ const dana=Math.floor((Date.now()-new Date(ls.datum+'T12:00:00').getTime())/86400000); return `Zadnje tretiranje: ${esc(ls.sredstvo)}, ${esc(ls.datum.split('-').reverse().join('.'))} (prije ${dana} d). Za iduće tretiranje razmisli o drugoj djelatnoj tvari (izmjena).`; })() : 'Nema zabilježenog tretiranja za ovu kulturu.';
       return `<div style="margin-bottom:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <strong style="font-size:15px;">${esc(cap(k))}</strong>
           <span style="font-size:12px; color:${col[top]}; font-weight:600;">${top?lab[top]+' rizik':'Nizak rizik'}</span>
-        </div>` + list.map(r=>`
+        </div>${top?`<div class="opg-hint" style="margin:0 0 6px;">${lsTxt}</div>`:''}` + list.map(r=>`
         <details style="border-left:4px solid ${col[r.razina]}; padding:6px 10px; margin-bottom:6px; background:rgba(0,0,0,.03); border-radius:6px;">
           <summary style="cursor:pointer;"><strong>${esc(r.naziv)}</strong> — ${lab[r.razina]}${r.prognoza?' (prognoza)':''}
             ${r.razlog?`<div class="opg-hint" style="margin:2px 0 0;">${esc(r.razlog)}</div>`:''}</summary>
-          <div class="opg-hint" style="margin-top:6px;"><strong>Uvjeti:</strong> ${esc(r.uvjeti)}<br><strong>Izvor:</strong> ${esc(r.izvor)}</div>
+          <div class="opg-hint" style="margin-top:6px;"><strong>Uvjeti:</strong> ${esc(r.uvjeti)}<br><strong>Izvor:</strong> ${esc(r.izvor)}
+            ${r.razina>0?`<div style="margin-top:8px;"><strong>Sredstva:</strong> provjeri što je registrirano za <em>${esc(cap(k))}</em> i <em>${esc(RIZIK_FIS[r.id]||r.naziv)}</em> u FIS-u (obavezno provjeri kulturu, dozu, karencu i broj tretiranja).<br><a href="https://fis.mps.hr/TrazilicaSZB/" target="_blank" rel="noopener" style="display:inline-block; margin-top:4px;">Otvori FIS registar ↗</a></div>`:''}
+          </div>
         </details>`).join('') + '</div>';
     }).join('');
+    const zl = zalihe.filter(z=>(z.trenutna_kolicina||0)>0).map(z=>esc(z.naziv));
+    if (zl.length && rizikData.items.some(r=>r.razina>0)) el.innerHTML += `<div class="opg-hint"><strong>Na zalihi imaš:</strong> ${zl.join(', ')}. Provjeri u FIS-u je li neko od njih registrirano za ovu kulturu i bolest.</div>`;
     const foot = document.getElementById('rizik-foot');
     if (foot && rizikData.checked_at) foot.textContent = 'Zadnja procjena: ' + new Date(rizikData.checked_at).toLocaleString('hr-HR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '. Pokazatelj je povoljnih uvjeta, a ne dijagnoza — uvijek pregledaj biljke.';
   }
