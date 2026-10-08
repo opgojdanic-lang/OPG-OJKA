@@ -13,7 +13,7 @@
 <link rel="icon" href="./icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700;800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <style>
 * { box-sizing: border-box; }
@@ -338,6 +338,93 @@ body {
 .plan-week-items .none { color: var(--sage); }
 .plan-week-count { flex: 0 0 auto; font-size: 11px; font-weight: 700; background: #EEF0E4; color: var(--ink-soft); border-radius: 9px; padding: 2px 8px; }
 .plan-notif-box { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
+
+/* ===== NOVI IZGLED ===== */
+body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest:#1E4D35; --forest-2:#2A6347; --sage:#5F7366; --sage-line:#E7E3D6; --ok-bg:#E3EEE5; --ok-ink:#1E4D35; font-family:'Figtree','Inter',-apple-system,sans-serif; }
+#opg-root input, #opg-root select, #opg-root textarea, #opg-root button, .opg-field input, .opg-field select, .opg-field textarea, .opg-chip, .opg-submit { font-family:'Figtree','Inter',-apple-system,sans-serif; }
+#opg-root { padding-bottom: 120px; }
+.opg-header { background: transparent; color: var(--ink); border-radius: 0; padding: calc(16px + env(safe-area-inset-top)) 20px 6px; overflow: visible; }
+.opg-brand-row { margin-bottom: 12px; }
+.opg-brand-logo { width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--sage-line); }
+.opg-eyebrow, .opg-season-select { color: var(--ink-soft); }
+.opg-title { font-family:'Fraunces',serif; font-size: 24px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+.opg-gear { background: #fff; border: 1px solid var(--sage-line); color: var(--ink); border-radius: 50%; width: 38px; height: 38px; }
+.opg-sync-dot { color: var(--ink-soft); }
+.opg-user-chip { background: var(--ok-bg); color: var(--forest); font-weight: 600; font-size: 12px; padding: 4px 10px; }
+.opg-hero-row { gap: 8px; }
+.opg-hero-card { background: #fff; border: 1px solid var(--sage-line); border-radius: 16px; padding: 10px 10px; }
+.opg-hero-card .lbl { color: var(--ink-soft); font-size: 12px; }
+.opg-hero-card .val { color: var(--ink); }
+.opg-hero-card.profit { background: var(--ok-bg); border-color: transparent; }
+.opg-hero-card.profit .val { color: var(--forest); }
+.opg-hero-card.profit .lbl { color: var(--forest); }
+
+.opg-tabbar { left: 50%; transform: translateX(-50%); width: calc(100% - 24px); max-width: 456px; bottom: calc(14px + env(safe-area-inset-bottom)); border-radius: 24px; border: 1px solid var(--sage-line); box-shadow: 0 6px 24px rgba(23,35,27,0.10); padding: 6px 4px; gap: 2px; background: #fff; }
+.opg-tab { font-size: 11px; padding: 7px 0; border-radius: 16px; color: var(--ink-soft); font-weight: 600; gap: 3px; }
+.opg-tab .ic { height: 22px; }
+.opg-tab .ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.opg-tab.active { background: var(--ok-bg); color: var(--forest); font-weight: 700; }
+.opg-toast { bottom: 110px; }
+
+.opg-section-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; color: var(--ink); margin: 24px 0 10px; }
+.opg-card, .opg-sum-card, .opg-stock-item, .opg-isk-card, .opg-parcela-card, .opg-cijena-block { border-radius: 20px; border-color: var(--sage-line); background: #fff; }
+.opg-chip { border: none; background: #E4EDE6; color: var(--ink-soft); height: 36px; padding: 0 15px; border-radius: 18px; font-size: 13.5px; font-weight: 600; }
+.opg-chip.active { background: var(--forest); color: #fff; font-weight: 700; }
+.opg-submit { background: var(--forest); border-radius: 14px; padding: 14px; font-weight: 700; }
+.opg-submit.secondary { background: var(--forest-2); }
+.opg-submit.ghost { background: #fff; color: var(--forest); border: 1.5px solid var(--forest); }
+.opg-isk-add-toggle { border-radius: 16px; border: 1.5px dashed #C9D6C4; background: #fff; }
+.opg-field input, .opg-field select, .opg-field textarea { border-radius: 12px; border-width: 1.5px; }
+.opg-field input:focus, .opg-field select:focus, .opg-field textarea:focus { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(30,77,53,0.12); }
+.opg-sum-val, .opg-entry-amt, .opg-stock-name { font-variant-numeric: tabular-nums; }
+.opg-sum-bar-wrap { height: 8px; background: #EFEBDD; }
+.opg-empty { color: var(--ink-soft); }
+.plan-item, .plan-weather { border-radius: 18px; }
+.plan-cell { border-radius: 14px; }
+.plan-cell.sel { background: var(--forest); }
+
+/* Početna: redoslijed blokova */
+.opg-view[data-view="pocetna"].active { display: flex; flex-direction: column; }
+#pocetna-danas { order: 0; } #pocetna-rizik { order: 1; } #pocetna-vrijeme-block { order: 2; }
+.opg-view[data-view="pocetna"] > :not(#pocetna-danas):not(#pocetna-rizik):not(#pocetna-vrijeme-block) { order: 3; }
+.opg-view[data-view="pocetna"] > .opg-section-title { margin-top: 24px !important; }
+#pocetna-danas { background: var(--forest); color: #fff; border-radius: 24px; padding: 18px 18px 6px; margin-bottom: 14px; }
+.dz-head { display: flex; align-items: baseline; justify-content: space-between; }
+.dz-title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; }
+.dz-count { font-size: 13px; color: #BFD6C6; }
+.dz-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.18); margin: 8px 0 6px; overflow: hidden; }
+.dz-bar i { display: block; height: 6px; border-radius: 3px; background: #F2B866; }
+.dz-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid rgba(255,255,255,0.14); }
+.dz-check { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #BFD6C6; background: transparent; color: var(--forest); padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.dz-check svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.dz-row.done .dz-check { background: #F2B866; border-color: #F2B866; }
+.dz-row.done .dz-check svg { opacity: 1; }
+.dz-main { flex: 1; min-width: 0; display: flex; flex-direction: column; cursor: pointer; }
+.dz-name { font-size: 15px; font-weight: 600; word-break: break-word; }
+.dz-row.done .dz-name { text-decoration: line-through; opacity: .7; }
+.dz-sub { font-size: 12.5px; color: #BFD6C6; }
+.dz-foot { display: block; width: 100%; text-align: left; border: none; background: none; color: #F2B866; font-weight: 700; font-size: 13.5px; padding: 12px 0 10px; border-top: 1px solid rgba(255,255,255,0.14); cursor: pointer; }
+.dz-empty { padding: 12px 0 14px; color: #BFD6C6; font-size: 14px; }
+#pocetna-rizik:empty { display: none; }
+#pocetna-rizik { margin-bottom: 14px; }
+.rz-strip { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: none; border-radius: 20px; padding: 13px 15px; cursor: pointer; }
+.rz-strip.hi { background: #FBE4DF; color: #7E2112; }
+.rz-strip.mid { background: #FBEADD; color: #7A3E0E; }
+.rz-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; }
+.rz-strip.hi .rz-ic { background: #B3341F; } .rz-strip.mid .rz-ic { background: #C2681A; }
+.rz-ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.rz-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rz-t { font-size: 15px; font-weight: 700; } .rz-s { font-size: 13px; }
+
+/* Brzi unos (+) */
+.opg-fab { position: fixed; right: max(20px, calc(50% - 220px)); bottom: calc(100px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; border: none; background: var(--forest); color: #fff; box-shadow: 0 8px 20px rgba(30,77,53,0.35); z-index: 55; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.opg-fab svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
+.opg-quick { position: fixed; inset: 0; z-index: 120; display: none; }
+.opg-quick.show { display: block; }
+.opg-quick-bg { position: absolute; inset: 0; background: rgba(23,35,27,0.45); }
+.opg-quick-sheet { position: absolute; left: 0; right: 0; bottom: 0; max-width: 480px; margin: 0 auto; background: #fff; border-radius: 26px 26px 0 0; padding: 18px 16px calc(20px + env(safe-area-inset-bottom)); }
+.opg-quick-sheet h3 { font-family: 'Fraunces', serif; font-size: 20px; margin: 0 4px 12px; }
+.opg-quick-sheet button { display: flex; align-items: center; width: 100%; text-align: left; border: none; background: #F6F4EE; border-radius: 16px; padding: 15px 16px; margin-bottom: 8px; font-size: 16px; font-weight: 600; color: var(--ink); cursor: pointer; }
 </style>
 </head>
 <body>
@@ -398,6 +485,8 @@ body {
     <!-- PRODAJA -->
     <!-- POCETNA -->
     <div class="opg-view active" data-view="pocetna">
+      <div id="pocetna-danas"></div>
+      <div id="pocetna-rizik"></div>
       <div class="opg-section-title" style="margin-top:0;">Poslovni pregled</div>
       <div class="opg-sum-card" id="pocetna-financije"></div>
 
@@ -672,14 +761,14 @@ body {
     <!-- ZASTITA -->
     <div class="opg-view" data-view="zastita">
       <div class="opg-filter-row" id="zastita-subnav">
-        <button class="opg-chip active" data-sub="zalihe">Zalihe</button>
-        <button class="opg-chip" data-sub="kalkulator">Kalkulator</button>
+        <button class="opg-chip active" data-sub="iskaznica">Iskaznica</button>
+        <button class="opg-chip" data-sub="vrijeme">Vrijeme i rizik</button>
         <button class="opg-chip" data-sub="tretiranja">Tretiranja</button>
-        <button class="opg-chip" data-sub="vrijeme">Vrijeme</button>
-        <button class="opg-chip" data-sub="iskaznica">Iskaznica</button>
+        <button class="opg-chip" data-sub="kalkulator">Kalkulator</button>
+        <button class="opg-chip" data-sub="zalihe">Zalihe</button>
       </div>
 
-      <div id="sub-zalihe" class="opg-subview active">
+      <div id="sub-zalihe" class="opg-subview">
         <button type="button" class="opg-isk-add-toggle" id="zalihe-add-toggle" style="margin-top:0;">
           <span>Unesi sredstvo</span>
           <span class="opg-isk-add-icon" id="zalihe-add-icon">+</span>
@@ -791,10 +880,10 @@ body {
         <div class="opg-card" id="vrijeme-status-card">
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0;">
             <div class="opg-section-title" style="margin-top:0; margin-bottom:0;">Trenutni uvjeti</div>
-            <button class="opg-submit secondary" id="vrijeme-check-now" style="width:auto; padding:8px 14px; font-size:13px; margin:0;">🔄 Ažuriraj</button>
+            <span class="opg-hint" id="vrijeme-auto" style="margin:0;">Ažurira se automatski</span>
           </div>
           <div id="vrijeme-status" style="margin-top:12px;">
-            <div class="opg-empty">Još nema podataka — kliknite "Ažuriraj" iznad ili pričekajte automatsku provjeru.</div>
+            <div class="opg-empty">Još nema podataka — stanica se provjerava automatski svakih 15 minuta.</div>
           </div>
           <div id="vrijeme-check-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
         </div>
@@ -833,7 +922,7 @@ body {
         </div>
       </div>
 
-      <div id="sub-iskaznica" class="opg-subview">
+      <div id="sub-iskaznica" class="opg-subview active">
         <div class="opg-section-title" style="margin-top:0;">Vjerodajnice za kupnju pesticida</div>
         <p class="opg-hint" style="margin-top:0;">Dodirnite karticu za prikaz barkoda preko cijelog zaslona, spremno za skeniranje u poljoapoteci.</p>
         <div id="iskaznica-list"></div>
@@ -1016,14 +1105,27 @@ body {
   <div id="print-report"></div>
 
   <div class="opg-tabbar">
-    <button class="opg-tab active" data-tab="pocetna"><span class="ic">🏠</span>Početna</button>
-    <button class="opg-tab" data-tab="plan"><span class="ic">📅</span>Plan</button>
-    <button class="opg-tab" data-tab="financije"><span class="ic">🧺</span>Financije</button>
-    <button class="opg-tab" data-tab="proizvodnja"><span class="ic">🌱</span>Proizvodnja</button>
-    <button class="opg-tab" data-tab="zastita"><span class="ic"><img src="./icons/sprayer-tab.png" alt="" class="opg-tab-img"></span>Zaštita</button>
-    <button class="opg-tab" data-tab="pregled"><span class="ic">📊</span>Pregled</button>
+    <button class="opg-tab active" data-tab="pocetna"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg></span>Početna</button>
+    <button class="opg-tab" data-tab="plan"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span>Plan</button>
+    <button class="opg-tab" data-tab="financije"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 7l2-3h10"/><circle cx="16" cy="13.5" r="1"/></svg></span>Novac</button>
+    <button class="opg-tab" data-tab="proizvodnja"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9"/><path d="M12 12c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2-5-6-5 0 3 2 5 6 5z"/></svg></span>Uzgoj</button>
+    <button class="opg-tab" data-tab="zastita"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span>Zaštita</button>
+    <button class="opg-tab" data-tab="pregled"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7"/></svg></span>Pregled</button>
   </div>
 
+
+  <button class="opg-fab" id="opg-fab" aria-label="Brzi unos"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <div class="opg-quick" id="opg-quick">
+    <div class="opg-quick-bg" id="opg-quick-bg"></div>
+    <div class="opg-quick-sheet">
+      <h3>Brzi unos</h3>
+      <button type="button" data-quick="prodaja">Nova prodaja</button>
+      <button type="button" data-quick="trosak">Novi trošak</button>
+      <button type="button" data-quick="zadatak">Novi zadatak u planu</button>
+      <button type="button" data-quick="tretiranje">Novo tretiranje</button>
+      <button type="button" data-quick="zaliha">Nova zaliha</button>
+    </div>
+  </div>
   <div class="opg-pull-indicator" id="opg-pull-indicator">↓ Pusti za osvježavanje</div>
   <div class="opg-toast" id="opg-toast"></div>
 </div>
@@ -2481,6 +2583,7 @@ body {
   function renderPocetna(){
     const finEl = document.getElementById('pocetna-financije');
     if (!finEl) return;
+    try { renderPocetnaDanas(); } catch(e) {}
 
     const pFiltered = prodaja.filter(nonPaul);
     const prihod = pFiltered.reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
@@ -2602,13 +2705,6 @@ body {
       notices.push({ icon:'🧴', text:`Zaliha pri kraju: ${lowStock.map(z=>z.naziv).join(', ')}.` });
     }
 
-    // rizik od bolesti i štetnika
-    if (rizikData && rizikData.checked_at && (Date.now()-rizikData.checked_at) < 6*3600000) {
-      (rizikData.items||[]).filter(r=>r.razina>0).forEach(r=>{
-        notices.push({ icon: r.razina===2 ? '🚨' : '⚠️', text:`${r.razina===2?'Visok':'Umjeren'} rizik: ${r.naziv}. ${r.razlog||''}` });
-      });
-    }
-
     // vrijeme za prskanje
     if (sprayConditions.last_status === 'idealno') {
       notices.push({ icon:'🌿', text:'Trenutno je idealno vrijeme za prskanje.' });
@@ -2715,7 +2811,7 @@ body {
     const el = document.getElementById('vrijeme-status');
     if (!el) return;
     if (!sprayConditions.last_checked_at) {
-      el.innerHTML = '<div class="opg-empty">Još nema podataka — kliknite "Ažuriraj" ili pričekajte automatsku provjeru.</div>';
+      el.innerHTML = '<div class="opg-empty">Još nema podataka — stanica se provjerava automatski svakih 15 minuta.</div>';
     } else {
       const statusLabel = { idealno: '🟢 Idealno za prskanje', prihvatljivo: '🟡 Prihvatljivo za prskanje', nije: '🔴 Nije idealno' };
       const dt = new Date(sprayConditions.last_checked_at);
@@ -3445,6 +3541,81 @@ body {
   }
 
   // ---- Početna: idućih 7 dana ----
+
+  // ---- Početna: Danas + rizik ----
+  function renderPocetnaDanas(){
+    const el = document.getElementById('pocetna-danas');
+    if (!el) return;
+    const planTab = document.querySelector('.opg-tab[data-tab="plan"]');
+    if (planTab && planTab.style.display === 'none') { el.style.display = 'none'; return; }
+    el.style.display = '';
+    const today = planLocalDate();
+    const list = PlanLogic.dayOccurrences(planCtx(), today, today).filter(o=>!String(o.key).startsWith('rizik:'));
+    const done = list.filter(o=>o.status==='done').length;
+    const open = list.filter(o=>!o.status || o.status==='done');
+    const rows = open.slice(0,5).map(o=>{
+      planOccMap[o.key] = o;
+      const pk = encodeURIComponent(o.key);
+      const d = o.status==='done';
+      const sub = [o.vrijeme, o.napomena].filter(Boolean).join(' · ');
+      return `<div class="dz-row${d?' done':''}"><button type="button" class="dz-check" data-dz="toggle" data-pk="${pk}" aria-label="Odrađeno"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button><div class="dz-main" data-dz="plan"><span class="dz-name">${planEsc(o.naziv)}</span>${sub?`<span class="dz-sub">${planEsc(sub)}</span>`:''}</div></div>`;
+    }).join('');
+    const total = open.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    el.innerHTML = `<div class="dz-head"><span class="dz-title">Danas</span><span class="dz-count">${total ? done+' od '+total+' gotovo' : ''}</span></div>`
+      + (total ? `<div class="dz-bar"><i style="width:${pct}%"></i></div>${rows}${total>5?`<div class="dz-sub" style="padding:8px 0;">+${total-5} još u planu</div>`:''}` : '<div class="dz-empty">Nema zadataka za danas.</div>')
+      + '<button type="button" class="dz-foot" data-dz="plan">Otvori plan →</button>';
+
+    const rz = document.getElementById('pocetna-rizik');
+    if (rz) {
+      const fresh = rizikData && rizikData.checked_at && (Date.now()-rizikData.checked_at) < 6*3600000;
+      const hi = fresh ? (rizikData.items||[]).filter(r=>r.razina>0).sort((a,b)=>b.razina-a.razina) : [];
+      if (!hi.length) rz.innerHTML = '';
+      else {
+        const t = hi[0];
+        const cult = (t.kulture||[]).map(k=>k.charAt(0)+k.slice(1).toLowerCase()).join(', ');
+        rz.innerHTML = `<button type="button" class="rz-strip ${t.razina===2?'hi':'mid'}" data-rz="open"><span class="rz-ic"><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg></span><span class="rz-main"><span class="rz-t">${t.razina===2?'Visok':'Umjeren'} rizik: ${planEsc(t.naziv)}</span><span class="rz-s">${planEsc(cult)}${hi.length>1?' · još '+(hi.length-1):''}</span></span></button>`;
+      }
+    }
+  }
+  document.getElementById('pocetna-danas').addEventListener('click', async (e)=>{
+    const b = e.target.closest('[data-dz]');
+    if (!b) return;
+    if (b.dataset.dz === 'plan') { goTab('plan'); return; }
+    const o = planOccMap[decodeURIComponent(b.dataset.pk||'')];
+    if (!o) return;
+    if (o.status === 'done') await clearPlanStatus(o);
+    else {
+      await setPlanStatus(o, 'done');
+      if (o.tip==='prskanje' && confirm('Zabilježiti i tretiranje u Zaštita → Tretiranja?')) planGoTretiranje(o);
+    }
+  });
+  document.getElementById('pocetna-rizik').addEventListener('click', (e)=>{ if (e.target.closest('[data-rz]')) goTab('zastita','vrijeme'); });
+
+  // ---- Brzi unos (+) ----
+  (function(){
+    const q = document.getElementById('opg-quick');
+    const close = ()=>q.classList.remove('show');
+    document.getElementById('opg-fab').addEventListener('click', ()=>q.classList.add('show'));
+    document.getElementById('opg-quick-bg').addEventListener('click', close);
+    const openCard = (toggleId, cardId)=>{
+      const card = document.getElementById(cardId);
+      if (card && card.style.display === 'none') document.getElementById(toggleId).click();
+      if (card) setTimeout(()=>card.scrollIntoView({behavior:'smooth', block:'start'}), 60);
+    };
+    q.querySelector('.opg-quick-sheet').addEventListener('click', (e)=>{
+      const b = e.target.closest('[data-quick]');
+      if (!b) return;
+      close();
+      const k = b.dataset.quick;
+      if (k==='prodaja') { goTab('financije','prodaja'); openCard('prodaja-add-toggle','prodaja-add-card'); }
+      else if (k==='trosak') { goTab('financije','troskovi'); openCard('troskovi-add-toggle','troskovi-add-card'); }
+      else if (k==='zadatak') { goTab('plan'); openCard('plan-add-toggle','plan-add-card'); }
+      else if (k==='tretiranje') { planGoTretiranje({}); }
+      else if (k==='zaliha') { goTab('zastita','zalihe'); openCard('zalihe-add-toggle','zalihe-add-card'); }
+    });
+  })();
+
   function renderPocetnaPlan(today){
     const el = document.getElementById('pocetna-plan');
     if (!el) return;
@@ -3502,6 +3673,7 @@ body {
     renderPlanCalendar(today);
     renderPlanDay(today);
     renderPocetnaPlan(today);
+    renderPocetnaDanas();
     planFillSelects();
     planFillSettings();
     planNotifBox();
@@ -4039,7 +4211,7 @@ body {
     renderAll();
     toast(currentSeason === 'sve' ? 'Prikaz: sve sezone' : 'Prikaz: sezona ' + currentSeason);
   });
-  document.getElementById('vrijeme-check-now').addEventListener('click', checkSprayNow);
+  const _vcn = document.getElementById('vrijeme-check-now'); if (_vcn) _vcn.addEventListener('click', checkSprayNow);
   document.getElementById('vrijeme-enable-btn').addEventListener('click', enableWeatherNotifications);
   document.getElementById('obavijesti-toggle').addEventListener('click', ()=>{
     const card = document.getElementById('obavijesti-card');
