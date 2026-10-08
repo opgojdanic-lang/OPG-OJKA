@@ -623,6 +623,11 @@ body { font-size: 15px; }
       </div>
 
       <div class="opg-section-title">Pregled unosa <span id="prodaja-count" style="font-weight:400; color:var(--sage); font-size:12px;"></span></div>
+      <div class="opg-filter-row" id="pf-status" style="margin-bottom:10px;">
+        <button class="opg-chip active" data-st="sve">Sve</button>
+        <button class="opg-chip" data-st="placeno">Plaćeno</button>
+        <button class="opg-chip" data-st="neplaceno">Neplaćeno</button>
+      </div>
       <div class="opg-inline-filters">
         <select id="pf-kupac"><option value="sve">Svi kupci</option></select>
         <select id="pf-mjesec"><option value="sve">Svi mjeseci</option></select>
@@ -712,6 +717,11 @@ body { font-size: 15px; }
       </div>
 
       <div class="opg-section-title">Svi unosi — Paul</div>
+      <div class="opg-filter-row" id="paul-status-row" style="margin-bottom:10px;">
+        <button class="opg-chip active" data-st="sve">Sve</button>
+        <button class="opg-chip" data-st="placeno">Plaćeno</button>
+        <button class="opg-chip" data-st="neplaceno">Neplaćeno</button>
+      </div>
       <div class="opg-inline-filters" id="paul-filters">
         <select id="paul-mjesec"><option value="sve">Svi mjeseci</option></select>
       </div>
@@ -1228,6 +1238,9 @@ body { font-size: 15px; }
   let prodajaFilterKupac = 'sve';
   let prodajaFilterMjesec = 'sve';
   let paulFilterMjesec = 'sve';
+  let prodajaFilterStatus = 'sve';
+  let paulFilterStatus = 'sve';
+  const stOk = (r, st)=> st==='sve' || (st==='placeno' ? !!r.placeno : !r.placeno);
   let troskoviFilterKat = 'sve';
   let troskoviFilterMjesec = 'sve';
 
@@ -1979,7 +1992,8 @@ body { font-size: 15px; }
   function getFilteredProdaja(){
     return prodaja.filter(nonPaul).filter(r =>
       (prodajaFilterKupac==='sve' || r.kupac===prodajaFilterKupac) &&
-      (prodajaFilterMjesec==='sve' || (r.datum||'').startsWith(prodajaFilterMjesec))
+      (prodajaFilterMjesec==='sve' || (r.datum||'').startsWith(prodajaFilterMjesec)) &&
+      stOk(r, prodajaFilterStatus)
     );
   }
   function getFilteredTroskovi(){
@@ -2011,11 +2025,20 @@ body { font-size: 15px; }
   function renderProdajaList(){
     const card = document.getElementById('prodaja-list-card');
     const sorted = getFilteredProdaja().sort((a,b)=> (b.datum||'').localeCompare(a.datum||'') || ((b.ts||0)-(a.ts||0)));
-    card.innerHTML = sorted.length ? sorted.slice(0,60).map(r=>entryRow(r,'prodaja')).join('') : '<div class="opg-empty">Nema unosa za odabrani filter.</div>';
+    const sumSt = sorted.reduce((a,r)=>a+(r.cijena_kg||0)*(r.kg||0),0);
+    const sumLine = prodajaFilterStatus==='sve' || !sorted.length ? '' : `<div class="opg-hint" style="margin:0 0 6px; font-size:13.5px; color:var(--ink); font-weight:600;">${prodajaFilterStatus==='neplaceno'?'Neplaćeno':'Plaćeno'}: ${fmt(sumSt)} u ${sorted.length} unosa</div>`;
+    card.innerHTML = sumLine + (sorted.length ? sorted.slice(0,60).map(r=>entryRow(r,'prodaja')).join('') : '<div class="opg-empty">Nema unosa za odabrani filter.</div>');
+    const stRow = document.getElementById('pf-status');
+    if (stRow) {
+      const base = prodaja.filter(nonPaul).filter(r => (prodajaFilterKupac==='sve' || r.kupac===prodajaFilterKupac) && (prodajaFilterMjesec==='sve' || (r.datum||'').startsWith(prodajaFilterMjesec)));
+      const cnt = { sve: base.length, placeno: base.filter(r=>!!r.placeno).length, neplaceno: base.filter(r=>!r.placeno).length };
+      const names = { sve:'Sve', placeno:'Plaćeno', neplaceno:'Neplaćeno' };
+      stRow.querySelectorAll('[data-st]').forEach(b=>{ b.textContent = `${names[b.dataset.st]} (${cnt[b.dataset.st]})`; b.classList.toggle('active', b.dataset.st===prodajaFilterStatus); });
+    }
     const countEl = document.getElementById('prodaja-count');
     if (countEl) {
       const totalNonPaul = prodaja.filter(nonPaul).length;
-      countEl.textContent = (prodajaFilterKupac==='sve' && prodajaFilterMjesec==='sve')
+      countEl.textContent = (prodajaFilterKupac==='sve' && prodajaFilterMjesec==='sve' && prodajaFilterStatus==='sve')
         ? `(${totalNonPaul})`
         : `(${sorted.length} od ${totalNonPaul})`;
     }
@@ -2051,7 +2074,14 @@ body { font-size: 15px; }
     setSelectOptions(document.getElementById('paul-mjesec'), 'paul-mjesec',
       [['sve','Svi mjeseci'], ...months.map(m=>[m, monthLabel(m)])], paulFilterMjesec);
 
-    const rows = paulFilterMjesec==='sve' ? allRows : allRows.filter(r=>(r.datum||'').startsWith(paulFilterMjesec));
+    const baseRows = paulFilterMjesec==='sve' ? allRows : allRows.filter(r=>(r.datum||'').startsWith(paulFilterMjesec));
+    const rows = baseRows.filter(r=>stOk(r, paulFilterStatus));
+    const stRowP = document.getElementById('paul-status-row');
+    if (stRowP) {
+      const cnt = { sve: baseRows.length, placeno: baseRows.filter(r=>!!r.placeno).length, neplaceno: baseRows.filter(r=>!r.placeno).length };
+      const names = { sve:'Sve', placeno:'Plaćeno', neplaceno:'Neplaćeno' };
+      stRowP.querySelectorAll('[data-st]').forEach(b=>{ b.textContent = `${names[b.dataset.st]} (${cnt[b.dataset.st]})`; b.classList.toggle('active', b.dataset.st===paulFilterStatus); });
+    }
     const totalKg = allRows.reduce((s,r)=>s+(r.kg||0),0);
     const totalVal = allRows.reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
     const dugVal = allRows.filter(r=>!r.placeno).reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0);
@@ -2064,7 +2094,7 @@ body { font-size: 15px; }
       </div>`;
 
     const list = document.getElementById('paul-list-card');
-    list.innerHTML = rows.length ? rows.slice(0,60).map(r=>entryRow(r,'paul')).join('') : '<div class="opg-empty">Još nema unosa za Paula.</div>';
+    list.innerHTML = rows.length ? rows.slice(0,60).map(r=>entryRow(r,'paul')).join('') : `<div class="opg-empty">${allRows.length ? 'Nema unosa za odabrani filter.' : 'Još nema unosa za Paula.'}</div>`;
   }
 
   function renderPregled(){
@@ -4312,6 +4342,8 @@ body { font-size: 15px; }
   });
 
   document.getElementById('pf-kupac').addEventListener('change', (e)=>{ prodajaFilterKupac = e.target.value; renderProdajaList(); });
+  document.getElementById('pf-status').addEventListener('click', (e)=>{ const b=e.target.closest('[data-st]'); if (!b) return; prodajaFilterStatus = b.dataset.st; renderProdajaList(); });
+  document.getElementById('paul-status-row').addEventListener('click', (e)=>{ const b=e.target.closest('[data-st]'); if (!b) return; paulFilterStatus = b.dataset.st; renderPaul(); });
   document.getElementById('pf-mjesec').addEventListener('change', (e)=>{ prodajaFilterMjesec = e.target.value; renderProdajaList(); });
   document.getElementById('paul-mjesec').addEventListener('change', (e)=>{ paulFilterMjesec = e.target.value; renderPaul(); });
   document.getElementById('tf-kat').addEventListener('change', (e)=>{ troskoviFilterKat = e.target.value; renderTroskoviList(); });
