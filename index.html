@@ -467,6 +467,28 @@ body { font-size: 15px; }
 .pt-wide { width: 100%; margin-top: 10px; }
 .opg-filter-row { scrollbar-width: none; -ms-overflow-style: none; }
 .opg-filter-row::-webkit-scrollbar, .opg-forecast-row::-webkit-scrollbar { display: none; }
+
+/* Plan: kompaktan kalendar */
+.plan-cal-head { margin-bottom: 8px; }
+.plan-cal-title { text-align: left; font-size: 22px; font-weight: 600; color: var(--ink); }
+.plan-cal-nav { display: flex; align-items: center; gap: 8px; }
+.plan-nav { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--sage-line); font-size: 18px; line-height: 1; padding: 0 0 2px; }
+.plan-today-btn { border: none; background: var(--ok-bg); color: var(--forest); height: 34px; padding: 0 12px; border-radius: 17px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.plan-dow span { font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink-soft); }
+.plan-grid { gap: 2px; row-gap: 0; }
+.plan-cell { min-height: 40px; padding: 3px 0; border-radius: 12px; border-width: 1.5px; background: transparent; justify-content: center; gap: 2px; }
+.plan-cell .plan-num { font-size: 14px; font-weight: 500; }
+.plan-cell.today:not(.sel) { border-color: var(--forest); }
+.plan-cell.today .plan-num { color: var(--forest); font-weight: 800; }
+.plan-cell.sel { background: var(--forest); border-color: var(--forest); }
+.plan-cell.sel .plan-num { color: #fff; font-weight: 700; }
+.plan-dot { width: 5px; height: 5px; }
+.plan-dots { min-height: 5px; }
+.plan-allok { display: none; }
+.plan-day-head { margin: 22px 0 10px; }
+.plan-day-head h3 { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 600; color: var(--ink); }
+.opg-view[data-view="plan"] > .opg-card:first-child { padding: 14px 10px 8px; border-radius: 22px; }
+.plan-notif-box { margin: 0; }
 </style>
 </head>
 <body>
@@ -1007,21 +1029,23 @@ body { font-size: 15px; }
     <div class="opg-view" data-view="plan">
       <div class="opg-card">
         <div class="plan-cal-head">
-          <button type="button" class="plan-nav" id="plan-prev" aria-label="Prethodni mjesec">‹</button>
           <div class="plan-cal-title" id="plan-month-title"></div>
-          <button type="button" class="plan-nav" id="plan-next" aria-label="Sljedeći mjesec">›</button>
+          <div class="plan-cal-nav">
+            <button type="button" class="plan-today-btn" id="plan-today-btn">Danas</button>
+            <button type="button" class="plan-nav" id="plan-prev" aria-label="Prethodni mjesec">‹</button>
+            <button type="button" class="plan-nav" id="plan-next" aria-label="Sljedeći mjesec">›</button>
+          </div>
         </div>
         <div class="plan-dow"><span>Pon</span><span>Uto</span><span>Sri</span><span>Čet</span><span>Pet</span><span>Sub</span><span>Ned</span></div>
         <div class="plan-grid" id="plan-grid"></div>
-        <div class="plan-legend" id="plan-legend"></div>
-        <div style="text-align:center;"><button type="button" class="plan-today-btn" id="plan-today-btn">⟲ Idi na danas</button></div>
+        <div class="plan-legend" id="plan-legend" style="display:none;"></div>
       </div>
 
       <div class="plan-day-head"><h3 id="plan-day-title"></h3></div>
       <div id="plan-day-weather"></div>
       <div id="plan-day-list"></div>
 
-      <button type="button" class="opg-isk-add-toggle" id="plan-add-toggle" style="margin-top:14px;">
+      <button type="button" class="opg-isk-add-toggle" id="plan-add-toggle" style="display:none;">
         <span>Novi zadatak</span>
         <span class="opg-isk-add-icon" id="plan-add-icon">+</span>
       </button>
@@ -1069,14 +1093,13 @@ body { font-size: 15px; }
         <button class="opg-submit" id="plan-submit">Spremi zadatak</button>
       </div>
 
-      <div class="opg-section-title">Obavijesti</div>
-      <div class="opg-card plan-notif-box" id="plan-notif-box"></div>
-
       <button type="button" class="opg-isk-add-toggle" id="plan-set-toggle">
-        <span>Postavke plana</span>
+        <span>Obavijesti i postavke plana</span>
         <span class="opg-isk-add-icon" id="plan-set-icon">+</span>
       </button>
       <div class="opg-card" id="plan-set-card" style="display:none;">
+        <div class="plan-notif-box" id="plan-notif-box"></div>
+        <div class="opg-label" style="margin-top:18px;">Automatski zadaci</div>
         <div class="opg-row2">
           <div class="opg-field"><label>Razmak između prskanja (dana)</label><input type="number" id="plan-set-razmak" min="1" step="1"></div>
           <div class="opg-field"><label>Nicanje: provjeri nakon (dana)</label><input type="number" id="plan-set-nicanje" min="1" step="1"></div>
@@ -3695,7 +3718,11 @@ body { font-size: 15px; }
   (function(){
     const q = document.getElementById('opg-quick');
     const close = ()=>q.classList.remove('show');
-    document.getElementById('opg-fab').addEventListener('click', ()=>q.classList.add('show'));
+    document.getElementById('opg-fab').addEventListener('click', ()=>{
+      const at = document.querySelector('.opg-tab.active');
+      if (at && at.dataset.tab === 'plan') { openCard('plan-add-toggle','plan-add-card'); return; }
+      q.classList.add('show');
+    });
     document.getElementById('opg-quick-bg').addEventListener('click', close);
     const openCard = (toggleId, cardId)=>{
       const card = document.getElementById(cardId);
@@ -3739,10 +3766,12 @@ body { font-size: 15px; }
     let state = '';
     if (typeof Notification !== 'undefined') {
       state = Notification.permission === 'granted'
-        ? '✅ Obavijesti su dopuštene na ovom uređaju.'
-        : '⚠️ Obavijesti još nisu uključene na ovom uređaju.';
+        ? 'Obavijesti su uključene na ovom uređaju.'
+        : 'Obavijesti još nisu uključene na ovom uređaju.';
     } else state = 'ℹ️ Ovaj preglednik ne podržava obavijesti (na iPhoneu aplikaciju prvo dodaj na početni zaslon).';
-    el.innerHTML = `Dobivaš pregled sutrašnjih zadataka <b>u 20:00 večer prije</b> i podsjetnik <b>sat vremena prije</b> zadatka kojem si upisao vrijeme. Zadaci dodijeljeni nekome drugome šalju se samo njemu.<br><br>${state}<br><button type="button" class="opg-submit ghost" id="plan-open-notif" style="margin-top:10px;">Uključi / provjeri obavijesti</button>
+    el.innerHTML = `<div style="font-size:14px; color:var(--ink-soft); line-height:1.5;">Večer prije u <b>20:00</b> stiže pregled sutrašnjih zadataka, a <b>sat prije</b> podsjetnik za zadatke s upisanim vremenom. Zadaci dodijeljeni nekome šalju se samo njemu.</div>
+      <div style="margin:12px 0 4px; font-size:13.5px; font-weight:600; color:${typeof Notification !== 'undefined' && Notification.permission === 'granted' ? 'var(--ok-ink)' : 'var(--warn-ink)'};">${state}</div>
+      <button type="button" class="opg-submit ghost" id="plan-open-notif" style="margin-top:8px;">Uključi / provjeri obavijesti</button>
       <button type="button" class="opg-submit ghost" id="plan-test-notif" style="margin-top:8px;">Pošalji probni pregled za sutra</button>
       <div id="plan-test-status" style="margin-top:8px;"></div>`;
   }
