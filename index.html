@@ -463,6 +463,7 @@ body { font-size: 15px; }
 .pt-val { font-size: 18px; font-weight: 700; }
 .pt-val.ok { color: var(--forest); } .pt-val.warn { color: var(--warn-ink); }
 .pt-sub { font-size: 13px; color: var(--ink-soft); }
+.opg-toast { z-index: 300; }
 </style>
 </head>
 <body>
@@ -494,6 +495,7 @@ body { font-size: 15px; }
 };'></textarea>
       </div>
       <button class="opg-submit" id="setup-connect">Spremi i poveži</button>
+      <div id="setup-status" class="opg-hint" style="font-size:13.5px; color:var(--ink); margin-top:10px;"></div>
       <button class="opg-submit ghost" id="setup-skip" style="margin-top:10px;">Nastavi bez sinkronizacije (samo ovaj uređaj)</button>
       <p class="opg-hint" style="margin-top:16px;">Napomena: u test modu baza je otvorena svima tko ima ovaj config — sasvim dovoljno sigurno za obiteljsku evidenciju, ali izbjegavajte dijeliti config izvan obitelji.</p>
     </div>
@@ -4605,14 +4607,20 @@ body { font-size: 15px; }
   document.getElementById('setup-connect').addEventListener('click', async ()=>{
     const raw = document.getElementById('setup-config').value.trim();
     if (!raw){ toast('Zalijepi firebaseConfig kod'); return; }
-    let jsSrc = raw.replace(/^\s*(export\s+)?(const|let|var)\s+firebaseConfig\s*=\s*/, '').replace(/;?\s*$/, '');
+    const setStatus = (t)=>{ const e=document.getElementById('setup-status'); if (e) e.textContent = t || ''; };
+    setStatus('');
+    // izvuci samo objekt {...}; ostalo (import redovi, komentari) ignoriraj
+    const mm = raw.match(/firebaseConfig\s*=\s*(\{[\s\S]*?\})/) || raw.match(/(\{[\s\S]*?\})/);
+    let jsSrc = mm ? mm[1] : raw;
+    jsSrc = jsSrc.replace(/^\s*\/\/.*$/gm, '');
     let cfg;
     try { cfg = new Function('return (' + jsSrc + ')')(); }
-    catch(e){ toast('Nije prepoznat format — provjeri da si zalijepio cijeli objekt'); return; }
-    setSyncStatus('connecting');
+    catch(e){ setStatus('Nije prepoznat format — zalijepi cijeli objekt od "const firebaseConfig = {" do "};".'); toast('Nije prepoznat format'); return; }
+    if (!cfg || !cfg.apiKey || !cfg.projectId) { setStatus('U kodu nedostaju apiKey ili projectId — kopiraj cijeli blok iz Firebase konzole.'); toast('Config nije potpun'); return; }
+    setSyncStatus('connecting'); setStatus('Povezivanje…');
     const ok = await initCloud(cfg);
-    if (ok){ closeSetup(); toast('Povezano! Sinkronizacija uživo aktivna.'); }
-    else { setSyncStatus('local'); toast('Povezivanje nije uspjelo — provjeri config i pokušaj ponovno'); }
+    if (ok){ setStatus(''); closeSetup(); toast('Povezano! Sinkronizacija uživo aktivna.'); }
+    else { setSyncStatus('local'); setStatus('Povezivanje nije uspjelo — provjeri config i internet pa pokušaj ponovno.'); toast('Povezivanje nije uspjelo'); }
   });
 
   document.getElementById('user-chip').addEventListener('click', ()=>{
