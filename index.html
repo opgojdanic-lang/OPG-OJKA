@@ -269,6 +269,75 @@ body {
 .opg-cijena-table td:first-child { text-align: left; }
 .opg-cijena-table tr.cij-noviji td { font-weight: 700; color: var(--ink); font-size: 12.5px; }
 .opg-cijena-table tr.cij-stariji td { font-weight: 400; color: var(--ink-soft); }
+
+/* ===== PLAN ===== */
+.plan-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.plan-cal-title { font-family: 'Fraunces'; font-weight: 600; font-size: 17px; color: var(--forest); text-align: center; flex: 1; }
+.plan-nav { width: 38px; height: 38px; border-radius: 12px; border: 1.5px solid var(--sage-line); background: #fff; color: var(--forest); font-size: 20px; font-weight: 700; cursor: pointer; line-height: 1; }
+.plan-nav:active { background: var(--sage-line); }
+.plan-dow, .plan-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.plan-dow { margin-bottom: 4px; }
+.plan-dow span { text-align: center; font-size: 10.5px; font-weight: 700; color: var(--sage); text-transform: uppercase; letter-spacing: .03em; }
+.plan-cell { border: 1.5px solid transparent; background: #fff; border-radius: 12px; min-height: 50px; padding: 5px 2px 4px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; cursor: pointer; font-family: 'Inter'; color: var(--ink); }
+.plan-cell.empty { background: transparent; border: none; cursor: default; }
+.plan-cell .plan-num { font-size: 14px; font-weight: 600; line-height: 1; }
+.plan-cell.today { border-color: var(--sage); }
+.plan-cell.today .plan-num { color: var(--paprika); font-weight: 800; }
+.plan-cell.sel { background: var(--forest); border-color: var(--forest); color: #fff; }
+.plan-cell.sel.today .plan-num { color: #fff; }
+.plan-dots { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; min-height: 7px; }
+.plan-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.plan-cell.sel .plan-dot { box-shadow: 0 0 0 1px rgba(255,255,255,.7); }
+.plan-allok { font-size: 10px; color: var(--sage); line-height: 7px; }
+.plan-cell.sel .plan-allok { color: #cfe3c8; }
+.plan-today-btn { border: none; background: none; color: var(--forest); font-weight: 700; font-size: 12.5px; cursor: pointer; padding: 8px 4px 0; font-family: 'Inter'; }
+.plan-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; font-size: 11px; color: var(--ink-soft); }
+.plan-legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+.plan-day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 18px 0 8px; }
+.plan-day-head h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--forest); }
+.plan-weather { font-size: 12.5px; color: var(--ink-soft); background: #F6F2DC; border: 1px solid var(--sage-line); border-radius: 10px; padding: 7px 10px; margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.plan-weather b { color: var(--forest); }
+.plan-weather .warn { color: var(--paprika); font-weight: 700; }
+
+.plan-item { background: var(--card); border: 1px solid var(--sage-line); border-radius: 14px; padding: 11px 12px; margin-bottom: 8px; }
+.plan-item.done { opacity: .62; }
+.plan-item.skipped { opacity: .5; }
+.plan-item.late { border-color: #E3B3A6; background: #FDF1EC; }
+.plan-item-row { display: flex; gap: 10px; align-items: flex-start; }
+.plan-check { flex: 0 0 26px; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--sage); background: #fff; color: #fff; font-size: 15px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.plan-item.done .plan-check { background: var(--forest); border-color: var(--forest); }
+.plan-item-main { flex: 1; min-width: 0; }
+.plan-item-title { font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.3; word-break: break-word; }
+.plan-item.done .plan-item-title { text-decoration: line-through; }
+.plan-item-time { font-weight: 700; color: var(--forest); font-variant-numeric: tabular-nums; margin-right: 6px; }
+.plan-item-note { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; line-height: 1.35; }
+.plan-item-warn { font-size: 12.5px; color: var(--paprika); font-weight: 600; margin-top: 4px; }
+.plan-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.plan-tag { font-size: 10.5px; font-weight: 700; border-radius: 8px; padding: 2px 7px; background: #EEF0E4; color: var(--ink-soft); }
+.plan-tag.late { background: #F6D5CB; color: #9A2F1B; }
+.plan-tag.auto { background: #E3EEF5; color: #2F6A8F; }
+.plan-tag.who { background: #EFE3EA; color: var(--plum); }
+.plan-more { flex: 0 0 auto; border: none; background: none; font-size: 20px; color: var(--sage); cursor: pointer; padding: 0 4px; line-height: 1; font-weight: 800; }
+.plan-menu { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--sage-line); display: flex; flex-wrap: wrap; gap: 6px; }
+.plan-menu button { border: 1.5px solid var(--sage-line); background: #fff; border-radius: 10px; padding: 7px 10px; font-size: 12.5px; font-weight: 600; color: var(--forest); cursor: pointer; font-family: 'Inter'; }
+.plan-menu button.danger { color: var(--paprika); }
+.plan-menu .plan-move { display: flex; gap: 6px; align-items: center; width: 100%; }
+.plan-menu .plan-move input { flex: 1; min-width: 0; padding: 7px 8px; border: 1.5px solid var(--sage-line); border-radius: 10px; font-size: 14px; font-family: 'Inter'; background: #fff; }
+
+.plan-pon-extra { background: #F6F2DC; border: 1px solid var(--sage-line); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; display: none; }
+.plan-dani { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+.plan-dani button { border: 1.5px solid var(--sage-line); background: #fff; border-radius: 10px; padding: 6px 9px; font-size: 12px; font-weight: 700; color: var(--ink-soft); cursor: pointer; font-family: 'Inter'; }
+.plan-dani button.on { background: var(--forest); border-color: var(--forest); color: #fff; }
+
+.plan-week-row { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--sage-line); cursor: pointer; }
+.plan-week-row:last-child { border-bottom: none; }
+.plan-week-day { flex: 0 0 62px; font-size: 12.5px; font-weight: 700; color: var(--forest); }
+.plan-week-day small { display: block; font-weight: 500; color: var(--sage); font-size: 11px; }
+.plan-week-items { flex: 1; min-width: 0; font-size: 13px; color: var(--ink); line-height: 1.4; }
+.plan-week-items .none { color: var(--sage); }
+.plan-week-count { flex: 0 0 auto; font-size: 11px; font-weight: 700; background: #EEF0E4; color: var(--ink-soft); border-radius: 9px; padding: 2px 8px; }
+.plan-notif-box { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
 </style>
 </head>
 <body>
@@ -348,6 +417,9 @@ body {
         </div>
         <div class="opg-card" id="pocetna-vrijeme"></div>
         <div class="opg-card" id="pocetna-prognoza" style="display:none;"></div>
+
+        <div class="opg-section-title">Plan — idućih 7 dana</div>
+        <div class="opg-card" id="pocetna-plan"></div>
 
         <div class="opg-section-title">Obavijesti</div>
         <div class="opg-card" id="pocetna-obavijesti"></div>
@@ -799,6 +871,92 @@ body {
       </div>
     </div>
 
+    <!-- PLAN -->
+    <div class="opg-view" data-view="plan">
+      <div class="opg-card">
+        <div class="plan-cal-head">
+          <button type="button" class="plan-nav" id="plan-prev" aria-label="Prethodni mjesec">‹</button>
+          <div class="plan-cal-title" id="plan-month-title"></div>
+          <button type="button" class="plan-nav" id="plan-next" aria-label="Sljedeći mjesec">›</button>
+        </div>
+        <div class="plan-dow"><span>Pon</span><span>Uto</span><span>Sri</span><span>Čet</span><span>Pet</span><span>Sub</span><span>Ned</span></div>
+        <div class="plan-grid" id="plan-grid"></div>
+        <div class="plan-legend" id="plan-legend"></div>
+        <div style="text-align:center;"><button type="button" class="plan-today-btn" id="plan-today-btn">⟲ Idi na danas</button></div>
+      </div>
+
+      <div class="plan-day-head"><h3 id="plan-day-title"></h3></div>
+      <div id="plan-day-weather"></div>
+      <div id="plan-day-list"></div>
+
+      <button type="button" class="opg-isk-add-toggle" id="plan-add-toggle" style="margin-top:14px;">
+        <span>Novi zadatak</span>
+        <span class="opg-isk-add-icon" id="plan-add-icon">+</span>
+      </button>
+      <div class="opg-card" id="plan-add-card" style="display:none;">
+        <div class="opg-field"><label>Vrsta</label>
+          <select id="plan-tip">
+            <option value="navodnjavanje">💧 Navodnjavanje</option>
+            <option value="prehrana">🌿 Prehrana</option>
+            <option value="prskanje">🧪 Prskanje</option>
+            <option value="berba">🧺 Berba</option>
+            <option value="ostalo" selected>📌 Ostalo</option>
+          </select>
+        </div>
+        <div class="opg-field"><label>Naziv</label><input type="text" id="plan-naziv" placeholder="npr. Pustiti navodnjavanje, prehrana paprike…"></div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Datum</label><input type="date" id="plan-datum"></div>
+          <div class="opg-field"><label>Vrijeme (opcionalno)</label><input type="time" id="plan-vrijeme"></div>
+        </div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Kultura (opcionalno)</label>
+            <select id="plan-kultura"><option value="">—</option><option value="PAPRIKA BABURA">Paprika babura</option><option value="BUTTERNUT TIKVA">Butternut tikva</option><option value="TIKVICA">Tikvica</option></select>
+          </div>
+          <div class="opg-field"><label>Parcela (opcionalno)</label><select id="plan-parcela"><option value="">—</option></select></div>
+        </div>
+        <div class="opg-field"><label>Dodijeli osobi (obavijest ide samo njoj)</label><select id="plan-dodijeli"><option value="">Svi</option></select></div>
+        <div class="opg-field"><label>Ponavljanje</label>
+          <select id="plan-pon">
+            <option value="">Ne ponavlja se</option>
+            <option value="dnevno">Svaki dan</option>
+            <option value="svakih">Svakih N dana</option>
+            <option value="tjedno">Određeni dani u tjednu</option>
+          </select>
+        </div>
+        <div class="plan-pon-extra" id="plan-pon-extra">
+          <div class="opg-field" id="plan-pon-n-wrap" style="display:none;"><label>Svakih koliko dana</label><input type="number" id="plan-pon-n" min="1" step="1" value="7"></div>
+          <div id="plan-pon-dani-wrap" style="display:none;">
+            <label style="display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;">Dani u tjednu</label>
+            <div class="plan-dani" id="plan-pon-dani">
+              <button type="button" data-d="1">Pon</button><button type="button" data-d="2">Uto</button><button type="button" data-d="3">Sri</button><button type="button" data-d="4">Čet</button><button type="button" data-d="5">Pet</button><button type="button" data-d="6">Sub</button><button type="button" data-d="0">Ned</button>
+            </div>
+          </div>
+          <div class="opg-field" style="margin-bottom:0;"><label>Ponavljaj do (opcionalno)</label><input type="date" id="plan-pon-do"></div>
+        </div>
+        <div class="opg-field"><label>Napomena (opcionalno)</label><input type="text" id="plan-napomena" placeholder="npr. 20 min po parceli, doza 2 l"></div>
+        <button class="opg-submit" id="plan-submit">Spremi zadatak</button>
+      </div>
+
+      <div class="opg-section-title">Obavijesti</div>
+      <div class="opg-card plan-notif-box" id="plan-notif-box"></div>
+
+      <button type="button" class="opg-isk-add-toggle" id="plan-set-toggle">
+        <span>Postavke plana</span>
+        <span class="opg-isk-add-icon" id="plan-set-icon">+</span>
+      </button>
+      <div class="opg-card" id="plan-set-card" style="display:none;">
+        <div class="opg-row2">
+          <div class="opg-field"><label>Razmak između prskanja (dana)</label><input type="number" id="plan-set-razmak" min="1" step="1"></div>
+          <div class="opg-field"><label>Nicanje: provjeri nakon (dana)</label><input type="number" id="plan-set-nicanje" min="1" step="1"></div>
+        </div>
+        <div class="opg-row2">
+          <div class="opg-field"><label>Sadnja: podsjeti nakon sjetve (dana)</label><input type="number" id="plan-set-pres" min="1" step="1"></div>
+          <div class="opg-field"><label>Upozorenje na mraz kad min. ≤ (°C)</label><input type="number" id="plan-set-mraz" step="1"></div>
+        </div>
+        <button class="opg-submit secondary" id="plan-set-save">Spremi postavke</button>
+      </div>
+    </div>
+
     <!-- PREGLED -->
     <div class="opg-view" data-view="pregled">
       <div class="opg-filter-row" id="pregled-subnav">
@@ -853,6 +1011,7 @@ body {
 
   <div class="opg-tabbar">
     <button class="opg-tab active" data-tab="pocetna"><span class="ic">🏠</span>Početna</button>
+    <button class="opg-tab" data-tab="plan"><span class="ic">📅</span>Plan</button>
     <button class="opg-tab" data-tab="financije"><span class="ic">🧺</span>Financije</button>
     <button class="opg-tab" data-tab="proizvodnja"><span class="ic">🌱</span>Proizvodnja</button>
     <button class="opg-tab" data-tab="zastita"><span class="ic"><img src="./icons/sprayer-tab.png" alt="" class="opg-tab-img"></span>Zaštita</button>
@@ -885,6 +1044,7 @@ body {
   let parcele = [];
   let sjetve = [];
   let rokovi = [];
+  // (plan: planTasks / planStatuses definirani u PLAN odjeljku)
   let pregledFilter = 'sve';
   let prodajaFilterKupac = 'sve';
   let prodajaFilterMjesec = 'sve';
@@ -913,7 +1073,7 @@ body {
 
   const fmt = (n) => (Math.round((n||0)*100)/100).toLocaleString('hr-HR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
   const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-  const todayStr = () => new Date().toISOString().slice(0,10);
+  const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
   const dfmt = (d) => { const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit', year:'2-digit'}); };
   const monthLabel = (m) => new Date(m+'-01').toLocaleDateString('hr-HR',{month:'long', year:'numeric'});
   const nonPaul = (r) => r.kupac !== 'PAUL' && inSeason(r.datum);
@@ -963,6 +1123,10 @@ body {
     catch(e){ sjetve = []; }
     try { const rk = localStorage.getItem('opg_rokovi'); rokovi = rk ? JSON.parse(rk) : []; }
     catch(e){ rokovi = []; }
+    try { const pl = localStorage.getItem('opg_plan'); planTasks = pl ? JSON.parse(pl) : []; }
+    catch(e){ planTasks = []; }
+    try { const ps = localStorage.getItem('opg_plan_status'); planStatuses = ps ? JSON.parse(ps) : []; }
+    catch(e){ planStatuses = []; }
   }
   function saveLocalProdaja(){ try { localStorage.setItem('opg_prodaja', JSON.stringify(prodaja)); } catch(e){ toast('Greška pri spremanju'); } }
   function saveLocalTroskovi(){ try { localStorage.setItem('opg_troskovi', JSON.stringify(troskovi)); } catch(e){ toast('Greška pri spremanju'); } }
@@ -1075,6 +1239,16 @@ body {
 
       fb.onSnapshot(fb.collection(db, 'sjetva_sadnja'), (snap) => {
         sjetve = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        scheduleRenderAll();
+      });
+
+      fb.onSnapshot(fb.collection(db, 'plan'), (snap) => {
+        planTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        scheduleRenderAll();
+      });
+
+      fb.onSnapshot(fb.collection(db, 'plan_status'), (snap) => {
+        planStatuses = snap.docs.map(d => ({ ...d.data(), id: d.id }));
         scheduleRenderAll();
       });
 
@@ -1552,7 +1726,9 @@ body {
 
     const zastitaTab = document.querySelector('.opg-tab[data-tab="zastita"]');
     if (zastitaTab) zastitaTab.style.display = archived ? 'none' : '';
-    if (archived && document.querySelector('.opg-view[data-view="zastita"]')?.classList.contains('active')) {
+    const planTab = document.querySelector('.opg-tab[data-tab="plan"]');
+    if (planTab) planTab.style.display = archived ? 'none' : '';
+    if (archived && (document.querySelector('.opg-view[data-view="zastita"]')?.classList.contains('active') || document.querySelector('.opg-view[data-view="plan"]')?.classList.contains('active'))) {
       document.querySelectorAll('.opg-tab').forEach(b=>b.classList.remove('active'));
       document.querySelectorAll('.opg-view').forEach(v=>v.classList.remove('active'));
       document.querySelector('.opg-tab[data-tab="pocetna"]').classList.add('active');
@@ -2587,6 +2763,7 @@ body {
     renderSjetvaList();
     renderRokovi();
     renderPocetna();
+    renderPlan();
   }
   let renderScheduled = false;
   function scheduleRenderAll(){
@@ -2665,6 +2842,738 @@ body {
     };
     reader.readAsText(file);
   }
+
+  /* ===== PLAN LOGIKA (zajednička za aplikaciju i Cloud Function) =====
+   * Sve funkcije su čiste: dobiju podatke (ctx) i datume kao 'YYYY-MM-DD' stringove.
+   * ctx = { tasks, statuses, prskanje, sjetve, rokovi, zalihe, forecast, settings }
+   */
+  const PlanLogic = (function(){
+    const MS_DAY = 86400000;
+    const pad = (n) => String(n).padStart(2, '0');
+    const utc = (s) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+    const fromUtc = (ms) => { const d = new Date(ms); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); };
+    const addDays = (s, n) => fromUtc(utc(s) + n * MS_DAY);
+    const diffDays = (a, b) => Math.round((utc(b) - utc(a)) / MS_DAY); // b - a
+    const weekday = (s) => new Date(utc(s)).getUTCDay(); // 0 = nedjelja
+  
+    const TIPOVI = {
+      navodnjavanje: { ikona: '💧', label: 'Navodnjavanje' },
+      prehrana:      { ikona: '🌿', label: 'Prehrana' },
+      prskanje:      { ikona: '🧪', label: 'Prskanje' },
+      berba:         { ikona: '🧺', label: 'Berba' },
+      nicanje:       { ikona: '🌱', label: 'Nicanje / sadnja' },
+      rok:           { ikona: '📅', label: 'Rok' },
+      zaliha:        { ikona: '📦', label: 'Zaliha' },
+      vrijeme:       { ikona: '❄️', label: 'Vrijeme' },
+      ostalo:        { ikona: '📌', label: 'Ostalo' },
+    };
+  
+    const DEFAULTS = { razmak_prskanja: 7, nicanje_dana: 7, presadjivanje_dana: 35, mraz_prag: 2 };
+    const setting = (ctx, k) => {
+      const v = ctx && ctx.settings ? parseFloat(ctx.settings['plan_' + k]) : NaN;
+      return Number.isFinite(v) ? v : DEFAULTS[k];
+    };
+  
+    const FIXED_ROKOVI = [
+      { naziv: 'PO-SD obrazac (paušalno oporezivanje)', m: 1, d: 15 },
+      { naziv: 'Jedinstveni zahtjev — početak prijave', m: 1, d: 7 },
+      { naziv: 'Jedinstveni zahtjev — krajnji rok', m: 5, d: 15 },
+      { naziv: 'Paušalni porez — I. tromjesečje', m: 3, d: 31 },
+      { naziv: 'Paušalni porez — II. tromjesečje', m: 6, d: 30 },
+      { naziv: 'Paušalni porez — III. tromjesečje', m: 9, d: 30 },
+      { naziv: 'Paušalni porez — IV. tromjesečje', m: 12, d: 31 },
+    ];
+  
+    // id dokumenta u plan_status iz ključa (Firestore ne dopušta '/')
+    const statusId = (key) => String(key).replace(/[\/\s.#\[\]*?]+/g, '_').slice(0, 300);
+    const norm = (s) => String(s || '').trim().toLowerCase();
+  
+    // ---- ponavljanje ----
+    function occursOn(task, ds) {
+      if (!task || !task.datum || ds < task.datum) return false;
+      const p = task.ponavljanje;
+      if (!p || !p.tip) return ds === task.datum;
+      if (p.do && ds > p.do) return false;
+      const n = Math.max(1, parseInt(p.n, 10) || 1);
+      if (p.tip === 'dnevno') return true;
+      if (p.tip === 'svakih') return diffDays(task.datum, ds) % n === 0;
+      if (p.tip === 'tjedno') {
+        const dani = (p.dani && p.dani.length) ? p.dani : [weekday(task.datum)];
+        return dani.includes(weekday(ds));
+      }
+      return ds === task.datum;
+    }
+  
+    function statusMap(ctx) {
+      const m = {};
+      (ctx.statuses || []).forEach((s) => { if (s && s.key) m[s.key] = s; });
+      return m;
+    }
+  
+    function mkOcc(o) {
+      const t = TIPOVI[o.tip] || TIPOVI.ostalo;
+      return Object.assign({
+        vrijeme: null, kultura: null, parcela: null, dodijeljeno: null, napomena: null,
+        izvor: 'auto', auto: true, status: null, done_by: null, kasni: false, upozorenja: [],
+      }, o, { ikona: o.ikona || t.ikona });
+    }
+  
+    // ---- vrijeme ----
+    function weatherFor(ctx, today, ds) {
+      const f = ctx.forecast || [];
+      const i = diffDays(ctx.forecastStart || today, ds);
+      if (i < 0 || i >= f.length) return null;
+      const x = f[i];
+      const max = parseFloat(String(x.max).replace(',', '.'));
+      const min = parseFloat(String(x.min).replace(',', '.'));
+      const icon = x.icon || '';
+      return {
+        icon, max: Number.isFinite(max) ? max : null, min: Number.isFinite(min) ? min : null,
+        frost: Number.isFinite(min) && min <= setting(ctx, 'mraz_prag'),
+        rain: /🌧|🌦|⛈|☔|🌨|💧/.test(icon),
+      };
+    }
+  
+    // ---- automatski zadaci ----
+    function latestPrskanjePoKulturi(ctx) {
+      const by = {};
+      (ctx.prskanje || []).forEach((r) => {
+        const k = norm(r.kultura || r.sredstvo);
+        if (!k || !r.datum) return;
+        if (!by[k] || r.datum > by[k].datum) by[k] = r;
+      });
+      return Object.values(by);
+    }
+  
+    function autoOccurrences(ctx, ds, today) {
+      const out = [];
+      const razmak = setting(ctx, 'razmak_prskanja');
+  
+      latestPrskanjePoKulturi(ctx).forEach((r) => {
+        const kult = r.kultura || r.sredstvo;
+        const due = addDays(r.datum, razmak);
+        const prije = diffDays(r.datum, ds);
+        if (ds === due || (ds === today && due < today && diffDays(due, today) <= 14)) {
+          out.push(mkOcc({
+            key: 'pr:' + norm(kult) + ':' + r.datum, datum: ds, tip: 'prskanje', kultura: kult,
+            naziv: 'Prskanje: ' + kult + (ds === due ? ' — razmak od ' + razmak + ' dana istekao' : ' — kasni'),
+            napomena: 'Zadnje tretiranje: ' + (r.sredstvo || '?') + ', prije ' + prije + ' dana.' +
+              (r.karenca_dana ? ' Karenca prošlog tretmana: ' + r.karenca_dana + ' d.' : ''),
+            kasni: ds === today && due < today,
+            akcija: 'tretiranje',
+          }));
+        }
+        // berba moguća (kraj karence) — isti izračun kao Početna: datum + karenca
+        if (r.karenca_dana > 0) {
+          const berba = addDays(r.datum, parseInt(r.karenca_dana, 10));
+          if (ds === berba) {
+            out.push(mkOcc({
+              key: 'berba:' + norm(kult) + ':' + r.datum, datum: ds, tip: 'berba', kultura: kult,
+              naziv: 'Berba moguća: ' + kult,
+              napomena: 'Karenca nakon ' + (r.sredstvo || 'tretiranja') + ' (' + r.datum + ') je istekla.',
+            }));
+          }
+        }
+      });
+  
+      // nicanje i presađivanje
+      const nicDana = setting(ctx, 'nicanje_dana');
+      const presDana = setting(ctx, 'presadjivanje_dana');
+      (ctx.sjetve || []).forEach((s) => {
+        if (s.tip !== 'sjetva' || !s.datum) return;
+        const naz = (s.vrsta || '') + (s.sorta ? ' ' + s.sorta : '');
+        if (!s.datum_nicanja) {
+          const chk = addDays(s.datum, nicDana);
+          if (ds === chk || (ds === today && chk < today && diffDays(chk, today) <= 21)) {
+            out.push(mkOcc({
+              key: 'nic:' + s.id, datum: ds, tip: 'nicanje', kultura: s.vrsta || null,
+              naziv: 'Provjeri nicanje: ' + naz.trim(),
+              napomena: 'Sjetva ' + s.datum + ' (prije ' + diffDays(s.datum, ds) + ' dana). Upiši nicanje u Proizvodnja → Sjetva.',
+              kasni: ds === today && chk < today, akcija: 'nicanje',
+            }));
+          }
+        }
+        const posadjeno = (ctx.sjetve || []).some((x) => x.tip === 'sadnja' && x.sjetva_ref === s.id);
+        if (!posadjeno) {
+          const pd = addDays(s.datum, presDana);
+          if (ds === pd || (ds === today && pd < today && diffDays(pd, today) <= 14)) {
+            out.push(mkOcc({
+              key: 'pres:' + s.id, datum: ds, tip: 'nicanje', ikona: '🌾', kultura: s.vrsta || null,
+              naziv: 'Razmisli o sadnji: ' + naz.trim(),
+              napomena: 'Posijano prije ' + diffDays(s.datum, ds) + ' dana, još nije posađeno.',
+              kasni: ds === today && pd < today, akcija: 'sadnja',
+            }));
+          }
+        }
+      });
+  
+      // rokovi (fiksni + vlastiti), na dan i podsjetnik 7 dana ranije
+      const y = parseInt(ds.slice(0, 4), 10);
+      const rokList = [];
+      FIXED_ROKOVI.forEach((r) => {
+        [y, y + 1].forEach((yy) => rokList.push({ id: 'f' + r.m + '-' + r.d, naziv: r.naziv, datum: yy + '-' + pad(r.m) + '-' + pad(r.d) }));
+      });
+      (ctx.rokovi || []).forEach((r) => { if (r.datum && !r.zavrseno) rokList.push({ id: 'c' + r.id, naziv: r.naziv, datum: r.datum }); });
+      rokList.forEach((r) => {
+        if (ds === r.datum) {
+          out.push(mkOcc({ key: 'rok:' + r.id + ':' + r.datum, datum: ds, tip: 'rok', naziv: 'Rok danas: ' + r.naziv }));
+        } else if (ds === addDays(r.datum, -7)) {
+          out.push(mkOcc({ key: 'rok7:' + r.id + ':' + r.datum, datum: ds, tip: 'rok', ikona: '⏰', naziv: 'Za 7 dana rok: ' + r.naziv, napomena: 'Rok je ' + r.datum.split('-').reverse().join('.') + '.' }));
+        }
+      });
+  
+      // niske zalihe (samo danas i sutra, da ne šumi kalendar)
+      if (ds === today || ds === addDays(today, 1)) {
+        (ctx.zalihe || []).forEach((z) => {
+          if (z.pocetna_kolicina && (z.trenutna_kolicina || 0) / z.pocetna_kolicina <= 0.2) {
+            out.push(mkOcc({
+              key: 'zal:' + z.id + ':' + (z.trenutna_kolicina || 0), datum: ds, tip: 'zaliha',
+              naziv: 'Naruči: ' + z.naziv, napomena: 'Ostalo ' + (z.trenutna_kolicina || 0) + ' ' + (z.jedinica || '') + ' od ' + z.pocetna_kolicina + '.',
+            }));
+          }
+        });
+      }
+  
+      // mraz
+      const w = weatherFor(ctx, today, ds);
+      if (w && w.frost) {
+        out.push(mkOcc({
+          key: 'mraz:' + ds, datum: ds, tip: 'vrijeme',
+          naziv: 'Mraz u prognozi (min ' + w.min + '°C)', napomena: 'Zaštiti osjetljive kulture (pokrivanje, navodnjavanje prije mraza).',
+        }));
+      }
+      return out;
+    }
+  
+    // ---- ručni / ponavljajući zadaci ----
+    function manualOccurrences(ctx, ds, today) {
+      const sm = statusMap(ctx);
+      const out = [];
+      (ctx.tasks || []).forEach((t) => {
+        if (!occursOn(t, ds)) return;
+        const key = t.id + '@' + ds;
+        const st = sm[key];
+        if (st && st.status === 'moved') return; // prebačeno na drugi dan
+        out.push(mkOcc({
+          key, datum: ds, taskId: t.id, tip: t.tip || 'ostalo', naziv: t.naziv, vrijeme: t.vrijeme || null,
+          kultura: t.kultura || null, parcela: t.parcela || null, dodijeljeno: t.dodijeljeno || null,
+          napomena: t.napomena || null, izvor: t.ponavljanje ? 'ponavljanje' : 'rucno', auto: false,
+          ponavlja: !!t.ponavljanje,
+        }));
+      });
+      // jednokratni zaostali (samo danas)
+      if (ds === today) {
+        (ctx.tasks || []).forEach((t) => {
+          if (t.ponavljanje || !t.datum || t.datum >= today) return;
+          if (diffDays(t.datum, today) > 30) return;
+          const key = t.id + '@' + t.datum;
+          const st = sm[key];
+          if (st) return; // već odrađeno / preskočeno / prebačeno
+          out.push(mkOcc({
+            key, datum: ds, taskId: t.id, tip: t.tip || 'ostalo', naziv: t.naziv, vrijeme: t.vrijeme || null,
+            kultura: t.kultura || null, parcela: t.parcela || null, dodijeljeno: t.dodijeljeno || null,
+            napomena: t.napomena || null, izvor: 'rucno', auto: false, kasni: true, orig_datum: t.datum,
+          }));
+        });
+      }
+      return out;
+    }
+  
+    // zadaci prebačeni (odgođeni) NA ovaj dan
+    function movedInto(ctx, ds) {
+      const out = [];
+      (ctx.statuses || []).forEach((s) => {
+        if (s.status !== 'moved' || !s.moved_to || s.moved_to.datum !== ds || !s.snapshot) return;
+        out.push(mkOcc(Object.assign({}, s.snapshot, {
+          key: s.key + '>' + ds, datum: ds, vrijeme: s.moved_to.vrijeme || s.snapshot.vrijeme || null,
+          odgodeno: true, auto: !!s.snapshot.auto,
+        })));
+      });
+      return out;
+    }
+  
+    function dayOccurrences(ctx, ds, today) {
+      const sm = statusMap(ctx);
+      let list = manualOccurrences(ctx, ds, today)
+        .concat(autoOccurrences(ctx, ds, today))
+        .concat(movedInto(ctx, ds));
+      const w = weatherFor(ctx, today, ds);
+      list = list.filter((o) => {
+        const st = sm[o.key];
+        if (st && st.status === 'moved') return false;
+        if (st) { o.status = st.status; o.done_by = st.by || null; }
+        return true;
+      });
+      list.forEach((o) => {
+        if (o.tip === 'prskanje' && w) {
+          if (w.rain) o.upozorenja.push('🌧 Kiša u prognozi — prskanje nije preporučljivo');
+          if (w.frost) o.upozorenja.push('❄️ Mraz u prognozi (min ' + w.min + '°C)');
+        }
+      });
+      list.sort((a, b) => {
+        if (a.kasni !== b.kasni) return a.kasni ? -1 : 1;
+        if (!!a.vrijeme !== !!b.vrijeme) return a.vrijeme ? -1 : 1;
+        if (a.vrijeme && b.vrijeme && a.vrijeme !== b.vrijeme) return a.vrijeme < b.vrijeme ? -1 : 1;
+        return String(a.tip).localeCompare(String(b.tip));
+      });
+      return list;
+    }
+  
+    // točkice za kalendar: jedinstvene vrste neodrađenih (i odrađenih) zadataka
+    function dayDots(ctx, ds, today) {
+      const list = dayOccurrences(ctx, ds, today);
+      const open = list.filter((o) => !o.status);
+      const kinds = [];
+      open.forEach((o) => { if (!kinds.includes(o.tip)) kinds.push(o.tip); });
+      return { kinds, open: open.length, done: list.length - open.length, total: list.length };
+    }
+  
+    const forUser = (list, name) => list.filter((o) => !o.dodijeljeno || norm(o.dodijeljeno) === norm(name));
+  
+    // ---- obavijesti ----
+    function zadatakForm(n) {
+      const a = n % 10, b = n % 100;
+      if (a === 1 && b !== 11) return 'zadatak';
+      if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'zadatka';
+      return 'zadataka';
+    }
+    function digestText(list, ds) {
+      const open = list.filter((o) => !o.status);
+      if (!open.length) return null;
+      const items = open.slice(0, 5).map((o) => o.ikona + ' ' + o.naziv + (o.vrijeme ? ' (' + o.vrijeme + ')' : ''));
+      if (open.length > 5) items.push('+' + (open.length - 5) + ' još');
+      const [y, m, d] = ds.split('-');
+      return { title: '📋 Sutra (' + d + '.' + m + '.) — ' + open.length + ' ' + zadatakForm(open.length), body: items.join('\n') };
+    }
+  
+    // zadaci s vremenom koji su na redu za podsjetnik "sat vremena prije"
+    function dueReminders(ctx, today, nowMin, leadMin) {
+      const lead = leadMin == null ? 60 : leadMin;
+      return dayOccurrences(ctx, today, today).filter((o) => {
+        if (o.status || !o.vrijeme || o.auto) return false;
+        const [h, m] = o.vrijeme.split(':').map(Number);
+        const tMin = h * 60 + m;
+        return nowMin >= tMin - lead && nowMin < tMin;
+      });
+    }
+  
+    return {
+      TIPOVI, DEFAULTS, FIXED_ROKOVI, MS_DAY,
+      pad, addDays, diffDays, weekday, statusId, norm,
+      occursOn, autoOccurrences, manualOccurrences, dayOccurrences, dayDots, weatherFor,
+      forUser, digestText, dueReminders, setting, zadatakForm,
+    };
+  })();
+  if (typeof module !== 'undefined' && module.exports) module.exports = PlanLogic;
+
+  // ================= PLAN (kalendar + zadaci) =================
+  let planTasks = [];
+  let planStatuses = [];
+  let planMonth = null;   // 'YYYY-MM'
+  let planSel = null;     // 'YYYY-MM-DD'
+  let planOpenMenu = null;
+  let planOccMap = {};
+
+  const PLAN_MJESECI = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
+  const PLAN_MJESECI_GEN = ['siječnja','veljače','ožujka','travnja','svibnja','lipnja','srpnja','kolovoza','rujna','listopada','studenoga','prosinca'];
+  const PLAN_DANI = ['Nedjelja','Ponedjeljak','Utorak','Srijeda','Četvrtak','Petak','Subota'];
+  const PLAN_KRATKI = ['ned','pon','uto','sri','čet','pet','sub'];
+  const PLAN_BOJE = { navodnjavanje:'#4A90C2', prehrana:'#6B9A4B', prskanje:'#C1432B', berba:'#E0962F', nicanje:'#8DB86B', rok:'#7A2E4D', zaliha:'#8A8F7E', vrijeme:'#5FA8B8', ostalo:'#5A6B50' };
+  const planEsc = (s) => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const planDmy = (ds) => { const [y,m,d] = ds.split('-'); return `${d}.${m}.`; };
+  const planLabelDay = (ds) => { const wd = PlanLogic.weekday(ds); const [y,m,d] = ds.split('-').map(Number); return `${PLAN_DANI[wd]}, ${d}. ${PLAN_MJESECI_GEN[m-1]}`; };
+
+  function planLocalDate(ts){
+    const d = ts ? new Date(ts) : new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function getPlanSettings(){
+    const o = {};
+    ['razmak_prskanja','nicanje_dana','presadjivanje_dana','mraz_prag'].forEach(k=>{
+      const sv = sharedSettings ? sharedSettings['plan_'+k] : null;
+      const lv = localStorage.getItem('opg_plan_'+k);
+      const v = (sv != null && sv !== '') ? sv : lv;
+      if (v != null && v !== '') o['plan_'+k] = v;
+    });
+    return o;
+  }
+  function planCtx(){
+    const f = (sprayConditions && sprayConditions.forecast) || [];
+    const checked = sprayConditions && sprayConditions.last_checked_at;
+    const fresh = checked && (Date.now() - checked) < 2*86400000;
+    return {
+      tasks: planTasks, statuses: planStatuses, prskanje, sjetve, rokovi, zalihe,
+      forecast: fresh ? f : [], forecastStart: fresh ? planLocalDate(checked) : null,
+      settings: getPlanSettings(),
+    };
+  }
+
+  // ---- spremanje ----
+  function saveLocalPlan(){ try { localStorage.setItem('opg_plan', JSON.stringify(planTasks)); } catch(e){ toast('Greška pri spremanju'); } }
+  function saveLocalPlanStatus(){ try { localStorage.setItem('opg_plan_status', JSON.stringify(planStatuses)); } catch(e){} }
+
+  async function addPlanTask(t){
+    planTasks.push(t);
+    renderPlan();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'plan', t.id), t); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
+    else { saveLocalPlan(); }
+    logActivity(`Novi zadatak: ${t.naziv} (${planDmy(t.datum)}${t.vrijeme ? ' ' + t.vrijeme : ''})${t.ponavljanje ? ' — ponavlja se' : ''}`);
+  }
+  async function deletePlanTask(id){
+    planTasks = planTasks.filter(t=>t.id!==id);
+    renderPlan();
+    if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'plan', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
+    else { saveLocalPlan(); }
+  }
+  function planSnapshot(o){
+    return { tip:o.tip, naziv:o.naziv, vrijeme:o.vrijeme||null, kultura:o.kultura||null, parcela:o.parcela||null,
+      dodijeljeno:o.dodijeljeno||null, napomena:o.napomena||null, ikona:o.ikona||null, auto:!!o.auto, taskId:o.taskId||null, akcija:o.akcija||null };
+  }
+  async function setPlanStatus(o, status, extra){
+    const id = PlanLogic.statusId(o.key);
+    const doc = Object.assign({ id, key:o.key, datum:o.datum, status, by:currentUser||null, ts:Date.now(), snapshot:planSnapshot(o) }, extra||{});
+    planStatuses = planStatuses.filter(s=>s.key!==o.key);
+    planStatuses.push(doc);
+    renderPlan();
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'plan_status', id), doc); } catch(e){ toast('Greška pri spremanju u oblak'); } }
+    else { saveLocalPlanStatus(); }
+  }
+  async function clearPlanStatus(o){
+    const id = PlanLogic.statusId(o.key);
+    planStatuses = planStatuses.filter(s=>s.key!==o.key);
+    renderPlan();
+    if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'plan_status', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
+    else { saveLocalPlanStatus(); }
+  }
+  async function setPlanSetting(k, v){
+    if (v === '' || v == null || Number.isNaN(v)) { localStorage.removeItem('opg_plan_'+k); return; }
+    localStorage.setItem('opg_plan_'+k, String(v));
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { ['plan_'+k]: v }, { merge: true }); } catch(e) {} }
+  }
+
+  // ---- navigacija ----
+  function goTab(tab, sub){
+    document.querySelectorAll('.opg-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+    document.querySelectorAll('.opg-view').forEach(v=>v.classList.toggle('active', v.dataset.view===tab));
+    if (sub) {
+      const nav = document.getElementById(tab+'-subnav');
+      if (nav) nav.querySelectorAll('.opg-chip').forEach(c=>{
+        const on = c.dataset.sub===sub;
+        c.classList.toggle('active', on);
+        const t = document.getElementById('sub-'+c.dataset.sub);
+        if (t) t.classList.toggle('active', on);
+      });
+    }
+    window.scrollTo(0,0);
+  }
+  function planGoTretiranje(o){
+    const el = (id)=>document.getElementById(id);
+    el('pr-datum').value = todayStr();
+    if (o.kultura) el('pr-kultura').value = o.kultura;
+    el('tretiranja-add-card').style.display = 'block';
+    el('tretiranja-add-icon').classList.add('open');
+    renderPrskanjePreview();
+    goTab('zastita', 'tretiranja');
+  }
+
+  // ---- kalendar ----
+  function planKindsLegend(){
+    const L = [['navodnjavanje','Navodnjavanje'],['prehrana','Prehrana'],['prskanje','Prskanje'],['berba','Berba'],['nicanje','Nicanje/sadnja'],['rok','Rok'],['vrijeme','Vrijeme'],['ostalo','Ostalo']];
+    return L.map(([k,l])=>`<span><i class="plan-dot" style="background:${PLAN_BOJE[k]}"></i>${l}</span>`).join('');
+  }
+  function renderPlanCalendar(today){
+    const ctx = planCtx();
+    const [y, m] = planMonth.split('-').map(Number);
+    document.getElementById('plan-month-title').textContent = `${PLAN_MJESECI[m-1]} ${y}`;
+    const first = `${y}-${String(m).padStart(2,'0')}-01`;
+    const lead = (PlanLogic.weekday(first) + 6) % 7;
+    const dim = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    let html = '';
+    for (let i=0;i<lead;i++) html += '<div class="plan-cell empty"></div>';
+    for (let d=1; d<=dim; d++){
+      const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dots = PlanLogic.dayDots(ctx, ds, today);
+      const dotHtml = dots.kinds.slice(0,4).map(k=>`<i class="plan-dot" style="background:${PLAN_BOJE[k]||PLAN_BOJE.ostalo}"></i>`).join('')
+        + (dots.open===0 && dots.total>0 ? '<span class="plan-allok">✓</span>' : '');
+      html += `<button type="button" class="plan-cell${ds===planSel?' sel':''}${ds===today?' today':''}" data-plan-day="${ds}"><span class="plan-num">${d}</span><span class="plan-dots">${dotHtml}</span></button>`;
+    }
+    document.getElementById('plan-grid').innerHTML = html;
+    document.getElementById('plan-legend').innerHTML = planKindsLegend();
+  }
+
+  // ---- popis dana ----
+  function planOccHtml(o){
+    planOccMap[o.key] = o;
+    const pk = encodeURIComponent(o.key);
+    const done = o.status === 'done', skipped = o.status === 'skipped';
+    const tags = [];
+    if (o.kasni) tags.push('<span class="plan-tag late">kasni</span>');
+    if (o.odgodeno) tags.push('<span class="plan-tag">odgođeno</span>');
+    if (o.ponavlja) tags.push('<span class="plan-tag">ponavlja se</span>');
+    if (o.auto && !o.odgodeno) tags.push('<span class="plan-tag auto">predloženo</span>');
+    if (o.dodijeljeno) tags.push(`<span class="plan-tag who">👤 ${planEsc(o.dodijeljeno)}</span>`);
+    if (o.kultura && o.tip!=='prskanje' && o.tip!=='berba') tags.push(`<span class="plan-tag">${planEsc(o.kultura)}</span>`);
+    if (o.parcela) tags.push(`<span class="plan-tag">${planEsc(o.parcela)}</span>`);
+    if (done && o.done_by) tags.push(`<span class="plan-tag">✔ ${planEsc(o.done_by)}</span>`);
+    if (skipped) tags.push('<span class="plan-tag">preskočeno</span>');
+    const warn = (o.upozorenja||[]).map(w=>`<div class="plan-item-warn">${planEsc(w)}</div>`).join('');
+    const open = planOpenMenu === o.key;
+    let menu = '';
+    if (open) {
+      const b = [];
+      b.push(o.status ? `<button type="button" data-plan-act="undo" data-pk="${pk}">↩ Vrati</button>` : `<button type="button" data-plan-act="done" data-pk="${pk}">✔ Odrađeno</button>`);
+      if (!o.status) b.push(`<button type="button" data-plan-act="skip" data-pk="${pk}">⏭ Preskoči</button>`);
+      if (!o.status) b.push(`<button type="button" data-plan-act="tomorrow" data-pk="${pk}">➡ Sutra</button>`);
+      if (o.tip==='prskanje' || o.akcija==='tretiranje') b.push(`<button type="button" data-plan-act="tretiranje" data-pk="${pk}">🧪 Zabilježi tretiranje</button>`);
+      if (o.akcija==='nicanje' || o.akcija==='sadnja') b.push(`<button type="button" data-plan-act="sjetva" data-pk="${pk}">🌱 Otvori Sjetvu/Sadnju</button>`);
+      if (o.tip==='berba' && o.auto) b.push(`<button type="button" data-plan-act="prodaja" data-pk="${pk}">🧺 Nova prodaja</button>`);
+      if (o.taskId && !o.auto) b.push(`<button type="button" class="danger" data-plan-act="delete" data-pk="${pk}">🗑 Obriši${o.ponavlja?' cijeli niz':''}</button>`);
+      menu = `<div class="plan-menu">${b.join('')}`
+        + (!o.status ? `<div class="plan-move"><span style="font-size:12.5px;color:var(--ink-soft);">Odgodi na:</span><input type="date" class="plan-move-date" value="${PlanLogic.addDays(o.datum,1)}"><button type="button" data-plan-act="move" data-pk="${pk}">OK</button></div>` : '')
+        + '</div>';
+    }
+    return `<div class="plan-item${done?' done':''}${skipped?' skipped':''}${o.kasni&&!o.status?' late':''}">
+      <div class="plan-item-row">
+        <button type="button" class="plan-check" data-plan-act="${o.status?'undo':'done'}" data-pk="${pk}" aria-label="Odrađeno">${done?'✓':''}</button>
+        <div class="plan-item-main">
+          <div class="plan-item-title">${o.vrijeme?`<span class="plan-item-time">${planEsc(o.vrijeme)}</span>`:''}${planEsc(o.ikona||'')} ${planEsc(o.naziv)}</div>
+          ${o.napomena?`<div class="plan-item-note">${planEsc(o.napomena)}</div>`:''}
+          ${warn}
+          ${tags.length?`<div class="plan-tags">${tags.join('')}</div>`:''}
+        </div>
+        <button type="button" class="plan-more" data-plan-act="menu" data-pk="${pk}" aria-label="Više">⋯</button>
+      </div>
+      ${menu}
+    </div>`;
+  }
+  function renderPlanDay(today){
+    const ctx = planCtx();
+    planOccMap = {};
+    document.getElementById('plan-day-title').textContent = (planSel===today ? 'Danas — ' : (planSel===PlanLogic.addDays(today,1) ? 'Sutra — ' : '')) + planLabelDay(planSel);
+    const w = PlanLogic.weatherFor(ctx, today, planSel);
+    const wEl = document.getElementById('plan-day-weather');
+    if (w) {
+      wEl.innerHTML = `<div class="plan-weather"><span>${planEsc(w.icon)} <b>${w.max!=null?Math.round(w.max)+'°':'–'}</b> / ${w.min!=null?Math.round(w.min)+'°':'–'}</span>`
+        + (w.rain?'<span class="warn">🌧 kiša</span>':'') + (w.frost?'<span class="warn">❄️ mraz</span>':'')
+        + (!w.rain && !w.frost ? '<span>bez kiše i mraza u prognozi</span>' : '') + '</div>';
+    } else wEl.innerHTML = '';
+    const list = PlanLogic.dayOccurrences(ctx, planSel, today);
+    document.getElementById('plan-day-list').innerHTML = list.length
+      ? list.map(planOccHtml).join('')
+      : '<div class="opg-card"><div class="opg-empty" style="padding:14px 6px;">Nema zadataka za ovaj dan.</div></div>';
+  }
+
+  // ---- Početna: idućih 7 dana ----
+  function renderPocetnaPlan(today){
+    const el = document.getElementById('pocetna-plan');
+    if (!el) return;
+    const ctx = planCtx();
+    let html = '';
+    for (let i=0;i<7;i++){
+      const ds = PlanLogic.addDays(today, i);
+      const open = PlanLogic.dayOccurrences(ctx, ds, today).filter(o=>!o.status);
+      const wd = PlanLogic.weekday(ds);
+      const label = i===0 ? 'Danas' : (i===1 ? 'Sutra' : PLAN_KRATKI[wd]);
+      const items = open.length
+        ? open.slice(0,3).map(o=>`${planEsc(o.ikona||'')} ${planEsc(o.naziv)}${o.vrijeme?' <b>'+planEsc(o.vrijeme)+'</b>':''}`).join('<br>') + (open.length>3?`<br><span class="none">+${open.length-3} još</span>`:'')
+        : '<span class="none">—</span>';
+      html += `<div class="plan-week-row" data-plan-jump="${ds}"><div class="plan-week-day">${label}<small>${planDmy(ds)}</small></div><div class="plan-week-items">${items}</div>${open.length?`<span class="plan-week-count">${open.length}</span>`:''}</div>`;
+    }
+    el.innerHTML = html;
+  }
+
+  function planNotifBox(){
+    const el = document.getElementById('plan-notif-box');
+    if (!el) return;
+    let state = '';
+    if (typeof Notification !== 'undefined') {
+      state = Notification.permission === 'granted'
+        ? '✅ Obavijesti su dopuštene na ovom uređaju.'
+        : '⚠️ Obavijesti još nisu uključene na ovom uređaju.';
+    } else state = 'ℹ️ Ovaj preglednik ne podržava obavijesti (na iPhoneu aplikaciju prvo dodaj na početni zaslon).';
+    el.innerHTML = `Dobivaš pregled sutrašnjih zadataka <b>u 20:00 večer prije</b> i podsjetnik <b>sat vremena prije</b> zadatka kojem si upisao vrijeme. Zadaci dodijeljeni nekome drugome šalju se samo njemu.<br><br>${state}<br><button type="button" class="opg-submit ghost" id="plan-open-notif" style="margin-top:10px;">Uključi / provjeri obavijesti</button>
+      <button type="button" class="opg-submit ghost" id="plan-test-notif" style="margin-top:8px;">Pošalji probni pregled za sutra</button>
+      <div id="plan-test-status" style="margin-top:8px;"></div>`;
+  }
+  function planFillSelects(){
+    const names = new Map();
+    const add = (n)=>{ const t=(n||'').trim(); if (t && !names.has(t.toLowerCase())) names.set(t.toLowerCase(), t); };
+    add(currentUser);
+    [prodaja, troskovi, prskanje, sjetve, zalihe, rokovi, planTasks].forEach(arr=>arr.forEach(r=>add(r.unio)));
+    planTasks.forEach(t=>add(t.dodijeljeno));
+    const sel = document.getElementById('plan-dodijeli');
+    if (sel) setSelectOptions(sel, 'plan-dodijeli', [['','Svi'], ...[...names.values()].sort().map(n=>[planEsc(n),planEsc(n)])], sel.value||'');
+    const ps = document.getElementById('plan-parcela');
+    if (ps) setSelectOptions(ps, 'plan-parcela', [['','—'], ...parcele.map(p=>[planEsc(p.naziv),planEsc(p.naziv)])], ps.value||'');
+  }
+  function planFillSettings(){
+    const s = getPlanSettings();
+    const D = PlanLogic.DEFAULTS;
+    const set = (id,k)=>{ const e=document.getElementById(id); if (e && document.activeElement!==e) e.value = s['plan_'+k]!=null ? s['plan_'+k] : D[k]; };
+    set('plan-set-razmak','razmak_prskanja'); set('plan-set-nicanje','nicanje_dana'); set('plan-set-pres','presadjivanje_dana'); set('plan-set-mraz','mraz_prag');
+  }
+
+  function renderPlan(){
+    if (!document.getElementById('plan-grid')) return;
+    const today = planLocalDate();
+    if (!planSel) planSel = today;
+    if (!planMonth) planMonth = planSel.slice(0,7);
+    renderPlanCalendar(today);
+    renderPlanDay(today);
+    renderPocetnaPlan(today);
+    planFillSelects();
+    planFillSettings();
+    planNotifBox();
+  }
+
+  // ---- događaji ----
+  function planOcc(btn){ return planOccMap[decodeURIComponent(btn.dataset.pk||'')]; }
+  document.getElementById('plan-prev').addEventListener('click', ()=>{ const [y,m]=planMonth.split('-').map(Number); const d=new Date(Date.UTC(y,m-2,1)); planMonth=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0'); renderPlan(); });
+  document.getElementById('plan-next').addEventListener('click', ()=>{ const [y,m]=planMonth.split('-').map(Number); const d=new Date(Date.UTC(y,m,1)); planMonth=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0'); renderPlan(); });
+  document.getElementById('plan-today-btn').addEventListener('click', ()=>{ planSel = planLocalDate(); planMonth = planSel.slice(0,7); planOpenMenu = null; renderPlan(); });
+  document.getElementById('plan-grid').addEventListener('click', (e)=>{
+    const c = e.target.closest('[data-plan-day]');
+    if (!c) return;
+    planSel = c.dataset.planDay; planOpenMenu = null; renderPlan();
+  });
+  document.getElementById('pocetna-plan').addEventListener('click', (e)=>{
+    const r = e.target.closest('[data-plan-jump]');
+    if (!r) return;
+    planSel = r.dataset.planJump; planMonth = planSel.slice(0,7); planOpenMenu = null;
+    goTab('plan'); renderPlan();
+  });
+  document.getElementById('plan-day-list').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('[data-plan-act]');
+    if (!btn) return;
+    const o = planOcc(btn);
+    if (!o) return;
+    const act = btn.dataset.planAct;
+    const today = planLocalDate();
+    if (act === 'menu') { planOpenMenu = planOpenMenu === o.key ? null : o.key; renderPlan(); return; }
+    if (act === 'done') {
+      await setPlanStatus(o, 'done');
+      if (o.tip==='prskanje' && confirm('Zabilježiti i tretiranje u Zaštita → Tretiranja?')) planGoTretiranje(o);
+    }
+    else if (act === 'skip') await setPlanStatus(o, 'skipped');
+    else if (act === 'undo') await clearPlanStatus(o);
+    else if (act === 'tomorrow') { const d = PlanLogic.addDays(o.datum,1); await setPlanStatus(o, 'moved', { moved_to:{ datum:d, vrijeme:o.vrijeme||null } }); toast('Prebačeno na ' + planDmy(d)); }
+    else if (act === 'move') {
+      const inp = btn.parentElement.querySelector('.plan-move-date');
+      const d = inp && inp.value;
+      if (!d) { toast('Odaberi datum'); return; }
+      if (d === o.datum) { toast('To je isti dan'); return; }
+      await setPlanStatus(o, 'moved', { moved_to:{ datum:d, vrijeme:o.vrijeme||null } });
+      toast('Prebačeno na ' + planDmy(d));
+    }
+    else if (act === 'tretiranje') planGoTretiranje(o);
+    else if (act === 'sjetva') goTab('proizvodnja', 'sjetva');
+    else if (act === 'prodaja') { goTab('financije', 'prodaja'); }
+    else if (act === 'delete') {
+      if (confirm(o.ponavlja ? 'Obrisati ovaj zadatak i sva njegova ponavljanja?' : 'Obrisati ovaj zadatak?')) { planOpenMenu = null; await deletePlanTask(o.taskId); }
+    }
+    if (act !== 'menu') planOpenMenu = null;
+  });
+
+  // forma za novi zadatak
+  const PLAN_TIP_NAZIV = { navodnjavanje:'Navodnjavanje', prehrana:'Prehrana', prskanje:'Prskanje', berba:'Berba' };
+  document.getElementById('plan-add-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('plan-add-card');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    document.getElementById('plan-add-icon').classList.toggle('open', opening);
+    if (opening && !document.getElementById('plan-datum').value) document.getElementById('plan-datum').value = planSel || planLocalDate();
+  });
+  document.getElementById('plan-tip').addEventListener('change', ()=>{
+    const n = document.getElementById('plan-naziv');
+    const known = Object.values(PLAN_TIP_NAZIV);
+    if (!n.value.trim() || known.includes(n.value.trim())) n.value = PLAN_TIP_NAZIV[document.getElementById('plan-tip').value] || '';
+  });
+  function planPonRefresh(){
+    const v = document.getElementById('plan-pon').value;
+    document.getElementById('plan-pon-extra').style.display = v ? 'block' : 'none';
+    document.getElementById('plan-pon-n-wrap').style.display = v==='svakih' ? 'block' : 'none';
+    document.getElementById('plan-pon-dani-wrap').style.display = v==='tjedno' ? 'block' : 'none';
+  }
+  document.getElementById('plan-pon').addEventListener('change', planPonRefresh);
+  document.getElementById('plan-pon-dani').addEventListener('click', (e)=>{ const b = e.target.closest('button[data-d]'); if (b) b.classList.toggle('on'); });
+  document.getElementById('plan-submit').addEventListener('click', async ()=>{
+    const tip = document.getElementById('plan-tip').value;
+    const naziv = document.getElementById('plan-naziv').value.trim();
+    const datum = document.getElementById('plan-datum').value;
+    const vrijeme = document.getElementById('plan-vrijeme').value || null;
+    const kultura = document.getElementById('plan-kultura').value || null;
+    const parcela = document.getElementById('plan-parcela').value || null;
+    const dodijeljeno = document.getElementById('plan-dodijeli').value || null;
+    const napomena = document.getElementById('plan-napomena').value.trim() || null;
+    const pv = document.getElementById('plan-pon').value;
+    if (!naziv) { toast('Upiši naziv zadatka'); return; }
+    if (!datum) { toast('Odaberi datum'); return; }
+    let ponavljanje = null;
+    if (pv) {
+      ponavljanje = { tip: pv };
+      if (pv === 'svakih') ponavljanje.n = Math.max(1, parseInt(document.getElementById('plan-pon-n').value,10) || 1);
+      if (pv === 'tjedno') {
+        ponavljanje.dani = [...document.querySelectorAll('#plan-pon-dani button.on')].map(b=>parseInt(b.dataset.d,10));
+        if (!ponavljanje.dani.length) ponavljanje.dani = [PlanLogic.weekday(datum)];
+      }
+      const doD = document.getElementById('plan-pon-do').value;
+      ponavljanje.do = doD || null;
+      if (ponavljanje.do && ponavljanje.do < datum) { toast('"Do" datum je prije početka'); return; }
+    }
+    await addPlanTask({ id: uid('pl'), tip, naziv, datum, vrijeme, kultura, parcela, dodijeljeno, napomena, ponavljanje, unio: currentUser || null, ts: Date.now() });
+    ['plan-naziv','plan-vrijeme','plan-napomena','plan-pon-do'].forEach(id=>document.getElementById(id).value='');
+    ['plan-kultura','plan-parcela','plan-dodijeli','plan-pon'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('plan-tip').value = 'ostalo';
+    document.querySelectorAll('#plan-pon-dani button').forEach(b=>b.classList.remove('on'));
+    planPonRefresh();
+    document.getElementById('plan-add-card').style.display = 'none';
+    document.getElementById('plan-add-icon').classList.remove('open');
+    planSel = datum; planMonth = datum.slice(0,7);
+    renderPlan();
+    toast('Zadatak spremljen');
+  });
+
+  // postavke
+  document.getElementById('plan-set-toggle').addEventListener('click', ()=>{
+    const card = document.getElementById('plan-set-card');
+    const opening = card.style.display === 'none';
+    card.style.display = opening ? 'block' : 'none';
+    document.getElementById('plan-set-icon').classList.toggle('open', opening);
+  });
+  document.getElementById('plan-set-save').addEventListener('click', async ()=>{
+    const num = (id)=>{ const v = parseFloat(document.getElementById(id).value); return Number.isFinite(v) ? v : null; };
+    await setPlanSetting('razmak_prskanja', num('plan-set-razmak'));
+    await setPlanSetting('nicanje_dana', num('plan-set-nicanje'));
+    await setPlanSetting('presadjivanje_dana', num('plan-set-pres'));
+    await setPlanSetting('mraz_prag', num('plan-set-mraz'));
+    document.getElementById('plan-set-card').style.display = 'none';
+    document.getElementById('plan-set-icon').classList.remove('open');
+    renderPlan();
+    toast('Postavke plana spremljene');
+  });
+  document.getElementById('plan-notif-box').addEventListener('click', async (e)=>{
+    if (e.target.closest('#plan-test-notif')) {
+      const st = document.getElementById('plan-test-status');
+      let base = getSprayCheckUrl();
+      if (!base) { base = askSprayCheckUrl(); if (!base) return; }
+      const url = base.replace(/checkSprayConditionsNow.*$/, 'planNotifyNow') + '?digest=1';
+      st.textContent = 'Šaljem…';
+      try {
+        const r = await fetch(url);
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.status);
+        st.textContent = j.digestSent ? `✅ Poslano na ${j.digestSent} uređaj(a).` : (j.tomorrowCount ? '⚠️ Ima zadataka za sutra, ali nijedan uređaj nema uključene obavijesti.' : 'ℹ️ Za sutra nema zadataka pa nema što poslati.');
+      } catch(err) {
+        st.textContent = '❌ Nije uspjelo: ' + (err.message || err) + ' (je li funkcija planNotifyNow postavljena?)';
+      }
+      return;
+    }
+    if (!e.target.closest('#plan-open-notif')) return;
+    goTab('zastita', 'vrijeme');
+    const card = document.getElementById('obavijesti-card');
+    if (card && card.style.display === 'none') document.getElementById('obavijesti-toggle').click();
+  });
+
 
   // ================= EVENTS =================
   document.querySelectorAll('.opg-tab').forEach(btn=>{
