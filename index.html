@@ -2668,13 +2668,27 @@ body {
     if (!rizikData || !rizikData.items) return;
     const esc = (t)=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const lab = ['Nizak','Umjeren','Visok'], col = ['#5A8A4B','#E0962F','#C1432B'];
-    const items = rizikData.items.slice().sort((a,b)=>b.razina-a.razina);
-    el.innerHTML = items.map(r=>`
-      <details style="border-left:4px solid ${col[r.razina]}; padding:6px 10px; margin-bottom:8px; background:rgba(0,0,0,.03); border-radius:6px;">
-        <summary style="cursor:pointer;"><strong>${esc(r.naziv)}</strong> — ${lab[r.razina]}${r.prognoza?' (prognoza)':''}
-          <div class="opg-hint" style="margin:2px 0 0;">${esc(r.kulture.map(k=>k.charAt(0)+k.slice(1).toLowerCase()).join(', '))}${r.razlog?' · '+esc(r.razlog):''}</div></summary>
-        <div class="opg-hint" style="margin-top:6px;"><strong>Uvjeti:</strong> ${esc(r.uvjeti)}<br><strong>Izvor:</strong> ${esc(r.izvor)}</div>
-      </details>`).join('');
+    const cap = (k)=>k.charAt(0)+k.slice(1).toLowerCase();
+    const groups = {};
+    rizikData.items.forEach(r=>(r.kulture||[]).forEach(k=>{ (groups[k]=groups[k]||[]).push(r); }));
+    const keys = Object.keys(groups).sort((x,y)=>{
+      const mx=Math.max(...groups[x].map(r=>r.razina)), my=Math.max(...groups[y].map(r=>r.razina));
+      return my-mx || x.localeCompare(y,'hr');
+    });
+    el.innerHTML = keys.map(k=>{
+      const list = groups[k].slice().sort((p,q)=>q.razina-p.razina);
+      const top = Math.max(...list.map(r=>r.razina));
+      return `<div style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <strong style="font-size:15px;">${esc(cap(k))}</strong>
+          <span style="font-size:12px; color:${col[top]}; font-weight:600;">${top?lab[top]+' rizik':'Nizak rizik'}</span>
+        </div>` + list.map(r=>`
+        <details style="border-left:4px solid ${col[r.razina]}; padding:6px 10px; margin-bottom:6px; background:rgba(0,0,0,.03); border-radius:6px;">
+          <summary style="cursor:pointer;"><strong>${esc(r.naziv)}</strong> — ${lab[r.razina]}${r.prognoza?' (prognoza)':''}
+            ${r.razlog?`<div class="opg-hint" style="margin:2px 0 0;">${esc(r.razlog)}</div>`:''}</summary>
+          <div class="opg-hint" style="margin-top:6px;"><strong>Uvjeti:</strong> ${esc(r.uvjeti)}<br><strong>Izvor:</strong> ${esc(r.izvor)}</div>
+        </details>`).join('') + '</div>';
+    }).join('');
     const foot = document.getElementById('rizik-foot');
     if (foot && rizikData.checked_at) foot.textContent = 'Zadnja procjena: ' + new Date(rizikData.checked_at).toLocaleString('hr-HR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '. Pokazatelj je povoljnih uvjeta, a ne dijagnoza — uvijek pregledaj biljke.';
   }
