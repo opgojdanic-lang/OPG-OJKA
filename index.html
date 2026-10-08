@@ -3554,9 +3554,12 @@ body {
   document.getElementById('plan-notif-box').addEventListener('click', async (e)=>{
     if (e.target.closest('#plan-test-notif')) {
       const st = document.getElementById('plan-test-status');
-      let base = getSprayCheckUrl();
-      if (!base) { base = askSprayCheckUrl(); if (!base) return; }
-      const url = base.replace(/checkSprayConditionsNow.*$/, 'planNotifyNow') + '?digest=1';
+      // adresu funkcije izvodimo iz spremljene adrese provjere vremena (oba oblika: cloudfunctions.net i run.app)
+      const base = getSprayCheckUrl();
+      let fnUrl = 'https://europe-west1-opg-ojka.cloudfunctions.net/planNotifyNow';
+      if (/run\.app/i.test(base)) fnUrl = base.replace(/checksprayconditionsnow/i, 'plannotifynow');
+      else if (/checkSprayConditionsNow/i.test(base)) fnUrl = base.replace(/checkSprayConditionsNow/i, 'planNotifyNow');
+      const url = fnUrl.split('?')[0] + '?digest=1';
       st.textContent = 'Šaljem…';
       try {
         const r = await fetch(url);
