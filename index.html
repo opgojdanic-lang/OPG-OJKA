@@ -799,6 +799,12 @@ body {
           <div id="vrijeme-check-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
         </div>
 
+        <div class="opg-card" id="rizik-card">
+          <div class="opg-section-title" style="margin-top:0;">Rizik od bolesti i štetnika</div>
+          <div id="rizik-list"><div class="opg-empty">Još nema podataka — procjena se pojavi nakon nekoliko provjera stanice.</div></div>
+          <p class="opg-hint" id="rizik-foot" style="margin-bottom:0;">Pokazatelj je povoljnih uvjeta, a ne dijagnoza. Uvijek pregledaj biljke.</p>
+        </div>
+
         <div class="opg-card">
           <div class="opg-section-title" style="margin-top:0;">Prognoza za 7 dana</div>
           <div id="vrijeme-forecast"><div class="opg-empty">Još nema podataka.</div></div>
@@ -1057,6 +1063,7 @@ body {
   let currentUser = localStorage.getItem('opg_user_name') || '';
   let sharedSettings = {};
   let sprayConditions = {};
+  let rizikData = null;
   let currentSeason = String(new Date().getFullYear());
   let firebaseApp = null;
 
@@ -1278,6 +1285,11 @@ body {
       fb.onSnapshot(fb.doc(db, 'settings', 'app'), (snap) => {
         sharedSettings = snap.exists() ? snap.data() : {};
         if (sharedSettings.ai_url) localStorage.setItem('opg_ai_url', sharedSettings.ai_url);
+      });
+
+      fb.onSnapshot(fb.doc(db, 'settings', 'rizik'), (snap) => {
+        rizikData = snap.exists() ? snap.data() : null;
+        renderRizik(); renderPocetna(); renderPlan();
       });
 
       fb.onSnapshot(fb.doc(db, 'settings', 'spray_conditions'), (snap) => {
@@ -2590,6 +2602,13 @@ body {
       notices.push({ icon:'🧴', text:`Zaliha pri kraju: ${lowStock.map(z=>z.naziv).join(', ')}.` });
     }
 
+    // rizik od bolesti i štetnika
+    if (rizikData && rizikData.checked_at && (Date.now()-rizikData.checked_at) < 6*3600000) {
+      (rizikData.items||[]).filter(r=>r.razina>0).forEach(r=>{
+        notices.push({ icon: r.razina===2 ? '🚨' : '⚠️', text:`${r.razina===2?'Visok':'Umjeren'} rizik: ${r.naziv}. ${r.razlog||''}` });
+      });
+    }
+
     // vrijeme za prskanje
     if (sprayConditions.last_status === 'idealno') {
       notices.push({ icon:'🌿', text:'Trenutno je idealno vrijeme za prskanje.' });
@@ -2641,6 +2660,23 @@ body {
         <div class="fd-max">${d.max}</div>
         <div class="fd-min">${d.min}</div>
       </div>`).join('')}</div>`;
+  }
+
+  function renderRizik(){
+    const el = document.getElementById('rizik-list');
+    if (!el) return;
+    if (!rizikData || !rizikData.items) return;
+    const esc = (t)=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const lab = ['Nizak','Umjeren','Visok'], col = ['#5A8A4B','#E0962F','#C1432B'];
+    const items = rizikData.items.slice().sort((a,b)=>b.razina-a.razina);
+    el.innerHTML = items.map(r=>`
+      <details style="border-left:4px solid ${col[r.razina]}; padding:6px 10px; margin-bottom:8px; background:rgba(0,0,0,.03); border-radius:6px;">
+        <summary style="cursor:pointer;"><strong>${esc(r.naziv)}</strong> — ${lab[r.razina]}${r.prognoza?' (prognoza)':''}
+          <div class="opg-hint" style="margin:2px 0 0;">${esc(r.kulture.map(k=>k.charAt(0)+k.slice(1).toLowerCase()).join(', '))}${r.razlog?' · '+esc(r.razlog):''}</div></summary>
+        <div class="opg-hint" style="margin-top:6px;"><strong>Uvjeti:</strong> ${esc(r.uvjeti)}<br><strong>Izvor:</strong> ${esc(r.izvor)}</div>
+      </details>`).join('');
+    const foot = document.getElementById('rizik-foot');
+    if (foot && rizikData.checked_at) foot.textContent = 'Zadnja procjena: ' + new Date(rizikData.checked_at).toLocaleString('hr-HR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '. Pokazatelj je povoljnih uvjeta, a ne dijagnoza — uvijek pregledaj biljke.';
   }
 
   function renderVrijeme(){
@@ -2757,7 +2793,7 @@ body {
     renderZaliheList();
     populateZaliheDatalist();
     renderPrskanjeList();
-    renderVrijeme();
+    renderVrijeme(); renderRizik();
     renderIskaznicaList();
     renderParceleList();
     renderSjetvaList();
@@ -3034,6 +3070,18 @@ body {
         });
       }
   
+      // rizik od bolesti i štetnika (samo za danas)
+      if (ds === today && ctx.rizik) {
+        ctx.rizik.forEach((r) => {
+          if (!r || !(r.razina > 0)) return;
+          out.push(mkOcc({
+            key: 'rizik:' + r.id + ':' + ds, datum: ds, tip: 'vrijeme',
+            naziv: (r.razina === 2 ? 'Visok' : 'Umjeren') + ' rizik: ' + r.naziv,
+            napomena: (r.razlog || '') + ' Pregledaj biljke' + (r.kulture ? ' (' + r.kulture.map((k) => k.toLowerCase()).join(', ') + ')' : '') + '.',
+          }));
+        });
+      }
+
       // mraz
       const w = weatherFor(ctx, today, ds);
       if (w && w.frost) {
@@ -3205,6 +3253,7 @@ body {
       tasks: planTasks, statuses: planStatuses, prskanje, sjetve, rokovi, zalihe,
       forecast: fresh ? f : [], forecastStart: fresh ? planLocalDate(checked) : null,
       settings: getPlanSettings(),
+      rizik: (rizikData && rizikData.checked_at && (Date.now()-rizikData.checked_at) < 6*3600000 && rizikData.datum === planLocalDate(Date.now())) ? (rizikData.items||[]) : [],
     };
   }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'opg-evidencija-v6';
+const CACHE_NAME = 'opg-evidencija-v7';
 const ASSETS = [
   './',
   './index.html',
