@@ -1385,39 +1385,24 @@ body { font-size: 15px; }
       try { await fsMod.enableIndexedDbPersistence(db); } catch(e) {}
       fb = { db, ...fsMod };
 
-      // seed if empty
-      const prodajaSnap = await fb.getDocs(fb.collection(db, 'prodaja'));
-      if (prodajaSnap.empty) {
+      // Početni (probni) podaci upisuju se SAMO kad je poslužitelj izričito potvrdio da je kolekcija prazna.
+      // Nikad na temelju lokalne predmemorije — inače bi slaba veza mogla prepisati prave podatke probnima.
+      const serverEmpty = async (col) => {
+        try {
+          const snap = await fb.getDocsFromServer(fb.collection(db, col));
+          return snap.empty === true && snap.metadata.fromCache === false;
+        } catch (e) { return false; }
+      };
+      if (await serverEmpty('prodaja')) {
         const batch = fb.writeBatch(db);
         SEED_PRODAJA.forEach(r => batch.set(fb.doc(db, 'prodaja', r.id), r));
-        await batch.commit();
-      } else {
-        // jednokratno nadopunjavanje: ako Paulovi povijesni podaci iz Excela još nisu u bazi, dodaj ih
-        const hasPaul = prodajaSnap.docs.some(d => d.data().kupac === 'PAUL');
-        if (!hasPaul) {
-          const paulSeed = SEED_PRODAJA.filter(r => r.kupac === 'PAUL');
-          if (paulSeed.length) {
-            const batch = fb.writeBatch(db);
-            paulSeed.forEach(r => batch.set(fb.doc(db, 'prodaja', r.id), r));
-            await batch.commit();
-          }
-        }
-      }
-
-      const hasHistory = prodajaSnap.docs.some(d => d.id.startsWith('y24_') || d.id.startsWith('y25_'));
-      if (!hasHistory) {
-        const batch = fb.writeBatch(db);
         SEED_HISTORY_2024_2025.forEach(r => batch.set(fb.doc(db, 'prodaja', r.id), r));
         await batch.commit();
       }
-
-      const licSnap = await fb.getDocs(fb.collection(db, 'licences'));
-      if (!licSnap.docs.some(d => d.data().oib === SEED_LICENCE.oib)) {
+      if (await serverEmpty('licences')) {
         await fb.setDoc(fb.doc(db, 'licences', SEED_LICENCE.id), SEED_LICENCE);
       }
-
-      const parcSnap = await fb.getDocs(fb.collection(db, 'parcele'));
-      if (parcSnap.docs.length === 0) {
+      if (await serverEmpty('parcele')) {
         const batch = fb.writeBatch(db);
         SEED_PARCELE.forEach(p => batch.set(fb.doc(db, 'parcele', p.id), p));
         await batch.commit();
@@ -3572,6 +3557,40 @@ body { font-size: 15px; }
   }
 
   // ---- navigacija ----
+  // Pamti aktivnu karticu i podkarticu (sessionStorage), da je osvježavanje ne vrati na Početnu
+  function saveNav(){
+    try {
+      const t = document.querySelector('.opg-tab.active');
+      if (!t) return;
+      const subs = {};
+      document.querySelectorAll('[id$="-subnav"]').forEach(n=>{
+        const c = n.querySelector('.opg-chip.active');
+        if (c) subs[n.id] = c.dataset.sub;
+      });
+      sessionStorage.setItem('opg_nav', JSON.stringify({ tab: t.dataset.tab, subs }));
+    } catch(e){}
+  }
+  function restoreNav(){
+    try {
+      const raw = sessionStorage.getItem('opg_nav');
+      if (!raw) return;
+      const nav = JSON.parse(raw);
+      if (!nav || !nav.tab || !document.querySelector('.opg-tab[data-tab="'+nav.tab+'"]')) return;
+      Object.keys(nav.subs || {}).forEach(id=>{
+        const el = document.getElementById(id);
+        if (!el || !el.querySelector('[data-sub="'+nav.subs[id]+'"]')) return;
+        el.querySelectorAll('.opg-chip').forEach(c=>{
+          const on = c.dataset.sub===nav.subs[id];
+          c.classList.toggle('active', on);
+          const t = document.getElementById('sub-'+c.dataset.sub);
+          if (t) t.classList.toggle('active', on);
+        });
+      });
+      document.querySelectorAll('.opg-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===nav.tab));
+      document.querySelectorAll('.opg-view').forEach(v=>v.classList.toggle('active', v.dataset.view===nav.tab));
+      updateHeader();
+    } catch(e){}
+  }
   function goTab(tab, sub){
     document.querySelectorAll('.opg-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
     document.querySelectorAll('.opg-view').forEach(v=>v.classList.toggle('active', v.dataset.view===tab));
@@ -3586,6 +3605,7 @@ body { font-size: 15px; }
     }
     window.scrollTo(0,0);
     updateHeader();
+    saveNav();
   }
   function planGoTretiranje(o){
     const el = (id)=>document.getElementById(id);
@@ -4029,6 +4049,7 @@ body { font-size: 15px; }
       btn.classList.add('active');
       document.querySelector(`.opg-view[data-view="${btn.dataset.tab}"]`).classList.add('active');
       updateHeader();
+      saveNav();
     });
   });
 
@@ -4132,6 +4153,7 @@ body { font-size: 15px; }
         const target = document.getElementById('sub-'+c.dataset.sub);
         if (target) target.classList.toggle('active', c.dataset.sub===sub);
       });
+      saveNav();
     });
   }
   wireSubnav('zastita-subnav');
@@ -4748,6 +4770,7 @@ body { font-size: 15px; }
   renderAll();
   renderCalculator();
   renderPrskanjePreview();
+  restoreNav();
   ensureUserName();
 
   const savedConfig = localStorage.getItem('opg_fb_config');
@@ -4786,14 +4809,14 @@ body { font-size: 15px; }
       if (dy > THRESHOLD && window.scrollY <= 0) {
         indicator.textContent = 'Osvježavanje…';
         indicator.classList.add('visible');
+        // Meko osvježavanje: ostaje se na istoj kartici. Podaci stižu uživo iz baze,
+        // pa je dovoljno ponovno iscrtati prikaz i provjeriti ima li nove verzije aplikacije
+        // (ako ima, ona se sama učita).
+        try { renderAll(); } catch(e){}
+        const done = ()=>{ indicator.textContent = 'Osvježeno ✓'; setTimeout(()=>indicator.classList.remove('visible'), 700); };
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistration().then(reg => {
-            if (reg) reg.update().finally(()=> window.location.reload());
-            else window.location.reload();
-          }).catch(()=> window.location.reload());
-        } else {
-          window.location.reload();
-        }
+          navigator.serviceWorker.getRegistration().then(reg => { if (reg) return reg.update(); }).catch(()=>{}).finally(done);
+        } else { done(); }
       }
       pulling = false; startY = null;
     }, { passive: true });
