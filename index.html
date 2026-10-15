@@ -1183,7 +1183,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       <details class="opg-coll"><summary>Prihod po kupcu<span class="opg-coll-tot" id="tot-prihod"></span></summary>
       <div class="opg-sum-card" id="sum-by-kupac"></div></details>
 
-      <details class="opg-coll"><summary>Isporučene količine po kupcu<span class="opg-coll-tot" id="tot-kg"></span></summary>
+      <details class="opg-coll"><summary>Isporučene količine po kupcu</summary>
       <div class="opg-sum-card" id="sum-kolicina-by-kupac"></div></details>
 
       <details class="opg-coll"><summary>Troškovi po kategoriji<span class="opg-coll-tot" id="tot-trosak"></span></summary>
@@ -2184,8 +2184,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
         <div class="opg-sum-val">${byKupacKg[k].toLocaleString('hr-HR')} kg</div>
       </div>
       <div class="opg-sum-subrows">${subRows}</div>`;
-    }).join('') + ukRow(Object.values(byKupacKg).reduce((a,b)=>a+b,0).toLocaleString('hr-HR') + ' kg') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
-    setTot('tot-kg', Object.values(byKupacKg).reduce((a,b)=>a+b,0).toLocaleString('hr-HR') + ' kg');
+    }).join('') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
 
     const byKat = {};
     tFiltered.forEach(r=>{ byKat[r.kategorija] = (byKat[r.kategorija]||0) + (r.kolicina||0)*(r.cijena||0); });
@@ -2780,7 +2779,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
         <div class="opg-sum-subrow"><div class="opg-sum-subname">Cijena</div><div class="opg-sum-subval">${cijenaTxt}</div></div>
         <div class="opg-sum-subrow"><div class="opg-sum-subname">Prva isporuka</div><div class="opg-sum-subval">${o.prvi ? dfmt(o.prvi) : '–'}</div></div>
       </div>`;
-    }).join('') + `<div class="opg-sum-row opg-sum-total"><div class="opg-sum-name">Ukupno</div><div class="opg-sum-val">${prKeys.reduce((a,p)=>a+byProizvod[p].kg,0).toLocaleString('hr-HR')} kg</div></div>` : '<div class="opg-empty">Još nema podataka.</div>';
+    }).join('') : '<div class="opg-empty">Još nema podataka.</div>';
 
     // zarada po proizvodu (prihod - troškovi čija Kultura odgovara nazivu proizvoda)
     const trosakPoKulturi = {};
