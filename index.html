@@ -516,6 +516,16 @@ body { font-size: 15px; }
 /* ---- uređivanje postojećih unosa ---- */
 .opg-edit { border: none; background: none; color: var(--forest); font-size: 16px; cursor: pointer; padding: 2px 6px; line-height: 1; }
 .opg-edit-banner { background: #FFF4DC; border: 1px solid #F0DCA8; color: #7A5B12; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; margin-bottom: 12px; }
+
+.opg-sum-total { border-top: 2px solid var(--line, #E4DFD0); margin-top: 6px; padding-top: 10px; font-weight: 800; }
+.opg-sum-total .opg-sum-name { font-weight: 800; }
+details.opg-coll { margin: 14px 0 0; }
+details.opg-coll > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; color: var(--ink); padding: 10px 2px; }
+details.opg-coll > summary::-webkit-details-marker { display: none; }
+details.opg-coll > summary::before { content: '›'; font-size: 22px; line-height: 1; color: var(--forest); transition: transform .15s; display: inline-block; }
+details.opg-coll[open] > summary::before { transform: rotate(90deg); }
+details.opg-coll > summary .opg-coll-tot { margin-left: auto; font-size: 15px; font-weight: 700; color: var(--forest); }
+details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -1170,19 +1180,19 @@ body { font-size: 15px; }
       <div class="opg-sum-card" id="pocetna-zarada" style="display:none;"></div>
 
 
-      <div class="opg-section-title" style="margin-top:0;">Prihod po kupcu</div>
-      <div class="opg-sum-card" id="sum-by-kupac"></div>
+      <details class="opg-coll"><summary>Prihod po kupcu<span class="opg-coll-tot" id="tot-prihod"></span></summary>
+      <div class="opg-sum-card" id="sum-by-kupac"></div></details>
 
-      <div class="opg-section-title">Isporučene količine po kupcu</div>
-      <div class="opg-sum-card" id="sum-kolicina-by-kupac"></div>
+      <details class="opg-coll"><summary>Isporučene količine po kupcu<span class="opg-coll-tot" id="tot-kg"></span></summary>
+      <div class="opg-sum-card" id="sum-kolicina-by-kupac"></div></details>
 
-      <div class="opg-section-title">Troškovi po kategoriji</div>
-      <div class="opg-sum-card" id="sum-by-kat"></div>
+      <details class="opg-coll"><summary>Troškovi po kategoriji<span class="opg-coll-tot" id="tot-trosak"></span></summary>
+      <div class="opg-sum-card" id="sum-by-kat"></div></details>
 
-      <div class="opg-section-title">Neplaćeno potraživanje</div>
-      <div class="opg-sum-card" id="sum-neplaceno"></div>
+      <details class="opg-coll"><summary>Neplaćeno potraživanje<span class="opg-coll-tot" id="tot-dug"></span></summary>
+      <div class="opg-sum-card" id="sum-neplaceno"></div></details>
 
-      <div class="opg-section-title">Izvještaji</div>
+      <details class="opg-coll"><summary>Izvještaji</summary>
       <div class="opg-card">
         <div class="opg-report-grid">
           <button class="opg-submit secondary" id="export-prodaja-csv">Prodaja → CSV</button>
@@ -1196,6 +1206,7 @@ body { font-size: 15px; }
         </div>
         <input type="file" id="opg-import-input" accept="application/json">
       </div>
+      </details>
       </div>
 
       <div id="sub-analitika" class="opg-subview">
@@ -2127,6 +2138,9 @@ body { font-size: 15px; }
       byKupacProizvod[r.kupac][p] = (byKupacProizvod[r.kupac][p]||0) + (r.cijena_kg||0)*(r.kg||0);
     });
     const totalPrihod = Object.values(byKupac).reduce((a,b)=>a+b,0) || 1;
+    const ukRow = (v) => `<div class="opg-sum-row opg-sum-total"><div class="opg-sum-name">Ukupno</div><div class="opg-sum-val">${v}</div></div>`;
+    const setTot = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setTot('tot-prihod', fmt(Object.values(byKupac).reduce((a,b)=>a+b,0)));
     const kupacCard = document.getElementById('sum-by-kupac');
     const kupacKeys = Object.keys(byKupac).sort((a,b)=>byKupac[b]-byKupac[a]);
     kupacCard.innerHTML = kupacKeys.length ? kupacKeys.map(k=>{
@@ -2143,7 +2157,7 @@ body { font-size: 15px; }
         <div class="opg-sum-val">${fmt(byKupac[k])}</div>
       </div>
       <div class="opg-sum-subrows">${subRows}</div>`;
-    }).join('') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
+    }).join('') + ukRow(fmt(Object.values(byKupac).reduce((a,b)=>a+b,0))) : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
 
     const byKupacKg = {};
     const byKupacProizvodKg = {};
@@ -2170,7 +2184,8 @@ body { font-size: 15px; }
         <div class="opg-sum-val">${byKupacKg[k].toLocaleString('hr-HR')} kg</div>
       </div>
       <div class="opg-sum-subrows">${subRows}</div>`;
-    }).join('') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
+    }).join('') + ukRow(Object.values(byKupacKg).reduce((a,b)=>a+b,0).toLocaleString('hr-HR') + ' kg') : '<div class="opg-empty">Nema podataka za odabrano razdoblje.</div>';
+    setTot('tot-kg', Object.values(byKupacKg).reduce((a,b)=>a+b,0).toLocaleString('hr-HR') + ' kg');
 
     const byKat = {};
     tFiltered.forEach(r=>{ byKat[r.kategorija] = (byKat[r.kategorija]||0) + (r.kolicina||0)*(r.cijena||0); });
@@ -2182,16 +2197,18 @@ body { font-size: 15px; }
         <div class="opg-sum-name" style="min-width:120px;">${KAT_LABEL[k]||k}</div>
         <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKat[k]/totalTrosak*100)}%; background:var(--paprika);"></div></div>
         <div class="opg-sum-val">${fmt(byKat[k])}</div>
-      </div>`).join('') : '<div class="opg-empty">Još nema troškova za odabrano razdoblje.</div>';
+      </div>`).join('') + ukRow(fmt(Object.values(byKat).reduce((a,b)=>a+b,0))) : '<div class="opg-empty">Još nema troškova za odabrano razdoblje.</div>';
+    setTot('tot-trosak', fmt(Object.values(byKat).reduce((a,b)=>a+b,0)));
 
     const dugovi = {};
     pFiltered.filter(r=>!r.placeno).forEach(r=>{ dugovi[r.kupac] = (dugovi[r.kupac]||0) + (r.cijena_kg||0)*(r.kg||0); });
     const dugKeys = Object.keys(dugovi).sort((a,b)=>dugovi[b]-dugovi[a]);
     const dugCard = document.getElementById('sum-neplaceno');
     const ukupnoDug = Object.values(dugovi).reduce((a,b)=>a+b,0);
+    setTot('tot-dug', ukupnoDug ? fmt(ukupnoDug) : '');
     dugCard.innerHTML = dugKeys.length ? dugKeys.map(k=>`
       <div class="opg-sum-row"><div class="opg-sum-name">${KUPAC_LABEL[k]||k}</div><div class="opg-sum-val" style="color:var(--warn-ink);">${fmt(dugovi[k])}</div></div>`).join('')
-      + `<div class="opg-sum-row"><div class="opg-sum-name">Ukupno</div><div class="opg-sum-val">${fmt(ukupnoDug)}</div></div>`
+      + ukRow(fmt(ukupnoDug))
       : '<div class="opg-empty">Sve je plaćeno 🎉</div>';
   }
 
@@ -2728,7 +2745,7 @@ body { font-size: 15px; }
         <div class="opg-sum-name" style="min-width:88px;">${KUPAC_LABEL[k]||k}</div>
         <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKupac[k]/totalP*100)}%"></div></div>
         <div class="opg-sum-val">${fmt(byKupac[k])}</div>
-      </div>`).join('') : '<div class="opg-empty">Još nema podataka.</div>';
+      </div>`).join('') + `<div class="opg-sum-row opg-sum-total"><div class="opg-sum-name">Ukupno</div><div class="opg-sum-val">${fmt(Object.values(byKupac).reduce((a,b)=>a+b,0))}</div></div>` : '<div class="opg-empty">Još nema podataka.</div>';
 
     // isporuceno po proizvodu (kg, cijena min/max/prosj, prva isporuka)
     const byProizvod = {};
@@ -2763,7 +2780,7 @@ body { font-size: 15px; }
         <div class="opg-sum-subrow"><div class="opg-sum-subname">Cijena</div><div class="opg-sum-subval">${cijenaTxt}</div></div>
         <div class="opg-sum-subrow"><div class="opg-sum-subname">Prva isporuka</div><div class="opg-sum-subval">${o.prvi ? dfmt(o.prvi) : '–'}</div></div>
       </div>`;
-    }).join('') : '<div class="opg-empty">Još nema podataka.</div>';
+    }).join('') + `<div class="opg-sum-row opg-sum-total"><div class="opg-sum-name">Ukupno</div><div class="opg-sum-val">${prKeys.reduce((a,p)=>a+byProizvod[p].kg,0).toLocaleString('hr-HR')} kg</div></div>` : '<div class="opg-empty">Još nema podataka.</div>';
 
     // zarada po proizvodu (prihod - troškovi čija Kultura odgovara nazivu proizvoda)
     const trosakPoKulturi = {};
@@ -2791,7 +2808,7 @@ body { font-size: 15px; }
         <div class="opg-sum-subrow"><div class="opg-sum-subname">Prihod</div><div class="opg-sum-subval">${fmt(byProizvod[p].prihod)}</div></div>
         <div class="opg-sum-subrow"><div class="opg-sum-subname">Troškovi (po kulturi)</div><div class="opg-sum-subval">${fmt(trosakP)}</div></div>
       </div>`;
-    }).join('') : '<div class="opg-empty">Još nema podataka.</div>') +
+    }).join('') + (()=>{ const uk = zarKeys.reduce((a,p)=>a+byProizvod[p].prihod-(trosakPoKulturi[p.trim().toUpperCase()]||0),0); return `<div class="opg-sum-row opg-sum-total"><div class="opg-sum-name">Ukupno</div><div class="opg-sum-val" style="color:${uk>=0?'var(--forest)':'var(--warn-ink)'};">${fmt(uk)}</div></div>`; })() : '<div class="opg-empty">Još nema podataka.</div>') +
     (trosakBezKulture > 0 ? `<p class="opg-hint" style="margin:10px 2px 0;">+ ${fmt(trosakBezKulture)} općih troškova nije vezano za pojedinu kulturu (nema upisano polje "Kultura" kod troška), pa nije uračunato gore.</p>` : '');
 
     // vrijeme
