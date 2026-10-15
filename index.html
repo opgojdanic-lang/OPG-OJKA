@@ -512,6 +512,10 @@ body { font-size: 15px; }
 .rk-lvl { font-size: 13px; font-weight: 700; }
 .rk-det { font-size: 13px; color: var(--ink-soft); padding: 0 0 12px 20px; line-height: 1.5; }
 .rk-det a { color: var(--forest); font-weight: 700; }
+
+/* ---- uređivanje postojećih unosa ---- */
+.opg-edit { border: none; background: none; color: var(--forest); font-size: 16px; cursor: pointer; padding: 2px 6px; line-height: 1; }
+.opg-edit-banner { background: #FFF4DC; border: 1px solid #F0DCA8; color: #7A5B12; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -2026,7 +2030,7 @@ body { font-size: 15px; }
         <div class="opg-entry-amt">${fmt(neto)}</div>
         <button class="opg-badge ${r.placeno?'yes':'no'}" ${toggle}>${r.placeno?'PLAĆENO':'DUGUJE'}</button>
       </div>
-      <button class="opg-del" ${del}>✕</button>
+      ${editBtn(kind==='prodaja'?'prodaja':'paul', r.id)}<button class="opg-del" ${del}>✕</button>
     </div>`;
   }
 
@@ -2071,7 +2075,7 @@ body { font-size: 15px; }
         </div>
         <div class="opg-entry-amt">${fmt(trosak)}</div>
         ${racunThumb}
-        <button class="opg-del" data-del-trosak="${r.id}">✕</button>
+        ${editBtn('trosak', r.id)}<button class="opg-del" data-del-trosak="${r.id}">✕</button>
       </div>`;
     }).join('');
   }
@@ -2293,6 +2297,7 @@ body { font-size: 15px; }
         <div class="opg-parcela-kultura">${currentSeason}: <b>${trenutnaLabel || 'nije uneseno'}</b></div>
         ${historyTxt ? `<div class="opg-parcela-history">Prijašnje sezone: ${historyTxt}</div>` : ''}
         <div class="opg-parcela-edit" id="parcela-edit-${p.id}">
+          <div class="opg-field"><label>Naziv parcele</label><input type="text" class="parcela-edit-naziv" value="${planEsc(p.naziv||'')}"></div>
           <div class="opg-field"><label>Kultura za sezonu ${currentSeason}</label>${kulturaSelectHtml(trenutnaLabel)}</div>
 
           <div class="opg-section-title" style="margin-top:14px; font-size:13px;">Izračun površine</div>
@@ -2393,7 +2398,7 @@ body { font-size: 15px; }
               <button class="opg-submit" data-nicanje-save="${s.id}" style="padding:9px;">Spremi nicanje</button>
             </div>
           </div>
-          <button class="opg-del" data-del-sjetva="${s.id}">✕</button>
+          ${editBtn('sjetva', s.id)}<button class="opg-del" data-del-sjetva="${s.id}">✕</button>
         </div>`;
       }
       const parcelaTxt = parcelaNaziv(s.parcela_id);
@@ -2405,7 +2410,7 @@ body { font-size: 15px; }
           ${sjetvaRef ? `<div class="opg-entry-sub">Iz sjetve: ${dfmt(sjetvaRef.datum)} — ${sjetvaRef.vrsta||''}</div>` : ''}
           ${s.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${s.komentar}</div>` : ''}
         </div>
-        <button class="opg-del" data-del-sjetva="${s.id}">✕</button>
+        ${editBtn('sadnja', s.id)}<button class="opg-del" data-del-sjetva="${s.id}">✕</button>
       </div>`;
     }).join('');
   }
@@ -2453,7 +2458,7 @@ body { font-size: 15px; }
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           <button class="opg-submit ghost" data-toggle-rok="${r.id}" style="padding:6px 10px; font-size:12px;">${r.zavrseno?'Vrati':'Riješeno'}</button>
-          <button class="opg-del" data-del-rok="${r.id}">✕</button>
+          <span style="display:flex; align-items:center;">${editBtn('rok', r.id)}<button class="opg-del" data-del-rok="${r.id}">✕</button></span>
         </div>
       </div>`;
     }).join('');
@@ -2471,7 +2476,7 @@ body { font-size: 15px; }
           <div class="opg-isk-name">${l.ime||''}</div>
           <div class="opg-isk-meta ${expired?'opg-isk-expired':''}">${expired?'Isteklo':'Vrijedi do'} ${l.vrijedi_do ? dfmt(l.vrijedi_do) : '–'} · OIB ${l.oib||''}</div>
         </div>
-        <button class="opg-isk-del" data-del-isk="${l.id}">✕</button>
+        <span style="display:flex; align-items:center; gap:4px;">${editBtn('isk', l.id)}<button class="opg-isk-del" data-del-isk="${l.id}">✕</button></span>
       </div>`;
     }).join('');
   }
@@ -2559,7 +2564,7 @@ body { font-size: 15px; }
         <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           ${badge}
         </div>
-        <button class="opg-del" data-del-prskanje="${r.id}">✕</button>
+        ${editBtn('prskanje', r.id)}<button class="opg-del" data-del-prskanje="${r.id}">✕</button>
       </div>`;
     }).join('');
   }
@@ -3668,6 +3673,7 @@ body { font-size: 15px; }
       if (o.tip==='prskanje' || o.akcija==='tretiranje') b.push(`<button type="button" data-plan-act="tretiranje" data-pk="${pk}">🧪 Zabilježi tretiranje</button>`);
       if (o.akcija==='nicanje' || o.akcija==='sadnja') b.push(`<button type="button" data-plan-act="sjetva" data-pk="${pk}">🌱 Otvori Sjetvu/Sadnju</button>`);
       if (o.tip==='berba' && o.auto) b.push(`<button type="button" data-plan-act="prodaja" data-pk="${pk}">🧺 Nova prodaja</button>`);
+      if (o.taskId && !o.auto && !isArchiveSeason()) b.push(`<button type="button" data-plan-act="edit" data-pk="${pk}">✏️ Uredi${o.ponavlja?' cijeli niz':''}</button>`);
       if (o.taskId && !o.auto) b.push(`<button type="button" class="danger" data-plan-act="delete" data-pk="${pk}">🗑 Obriši${o.ponavlja?' cijeli niz':''}</button>`);
       menu = `<div class="plan-menu">${b.join('')}`
         + (!o.status ? `<div class="plan-move"><span style="font-size:12.5px;color:var(--ink-soft);">Odgodi na:</span><input type="date" class="plan-move-date" value="${PlanLogic.addDays(o.datum,1)}"><button type="button" data-plan-act="move" data-pk="${pk}">OK</button></div>` : '')
@@ -3890,6 +3896,302 @@ body { font-size: 15px; }
   }
 
   // ---- događaji ----
+
+  // ================= UREĐIVANJE POSTOJEĆIH UNOSA =================
+  // ✎ pokraj unosa otvara istu formu popunjenu postojećim podacima. "Spremi promjene" mijenja
+  // isti zapis (isti id) umjesto da doda novi. Original ostaje: unio i vrijeme prvog unosa,
+  // a bilježi se tko je zadnji uređivao.
+  const EDIT = { kind: null, id: null, rec: null };
+  const $id = (i) => document.getElementById(i);
+  const setV = (i, v) => { const el = $id(i); if (el) el.value = (v == null ? '' : v); };
+  function editBtn(kind, id){
+    return isArchiveSeason() ? '' : `<button type="button" class="opg-edit" data-edit="${kind}" data-id="${id}" aria-label="Uredi">✎</button>`;
+  }
+  function stampEdit(o){ o.uredio = currentUser || null; o.uredeno_ts = Date.now(); }
+  async function persistDoc(col, obj, saveLocalFn){
+    if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, col, obj.id), obj); } catch(e){ toast('Greška pri spremanju u oblak'); } }
+    else { saveLocalFn(); }
+  }
+  const normNm = (x) => (x || '').trim().toLowerCase();
+
+  async function updateProdaja(id, f){
+    const row = prodaja.find(r=>r.id===id); if (!row) return;
+    Object.assign(row, f); stampEdit(row);
+    renderAll();
+    await persistDoc('prodaja', row, saveLocalProdaja);
+    logActivity(`Uređeno: ${row.kupac==='PAUL' ? 'isplata (Paul)' : (KUPAC_LABEL[row.kupac]||row.kupac)} — ${row.proizvod||''} ${row.kg||0}kg`);
+  }
+  async function updateTrosak(id, f){
+    const row = troskovi.find(r=>r.id===id); if (!row) return;
+    Object.assign(row, f); stampEdit(row);
+    renderAll();
+    await persistDoc('troskovi', row, saveLocalTroskovi);
+    logActivity(`Uređen trošak: ${row.naziv||''}`);
+  }
+  async function updatePrskanje(id, f){
+    const row = prskanje.find(r=>r.id===id); if (!row) return;
+    // zalihe: vrati staru potrošnju pa oduzmi novu
+    const oldM = zalihe.find(z=>normNm(z.naziv)===normNm(row.sredstvo));
+    if (oldM) oldM.trenutna_kolicina = Math.min(oldM.pocetna_kolicina || Infinity, (oldM.trenutna_kolicina||0) + (row.kolicina||0));
+    const newM = zalihe.find(z=>normNm(z.naziv)===normNm(f.sredstvo));
+    if (newM) newM.trenutna_kolicina = Math.max(0, (newM.trenutna_kolicina||0) - (f.kolicina||0));
+    const touched = new Set([oldM, newM].filter(Boolean));
+    Object.assign(row, f); stampEdit(row);
+    renderAll();
+    for (const z of touched) await saveZalihaDoc(z);
+    await persistDoc('prskanje', row, saveLocalPrskanje);
+    logActivity(`Uređeno tretiranje: ${row.sredstvo||''} na ${row.kultura||''}`);
+  }
+  async function updateZaliha(id, f){
+    const z = zalihe.find(x=>x.id===id); if (!z) return;
+    const stara = z.trenutna_kolicina || 0, delta = f.trenutna_kolicina - stara;
+    const untouched = Math.abs((z.pocetna_kolicina||0) - stara) < 1e-9;
+    z.naziv = f.naziv; z.jedinica = f.jedinica; z.trenutna_kolicina = f.trenutna_kolicina;
+    z.pocetna_kolicina = untouched ? f.trenutna_kolicina : Math.max(f.trenutna_kolicina, (z.pocetna_kolicina||0) + delta);
+    if (f.slika !== undefined) z.slika = f.slika;
+    stampEdit(z);
+    renderAll();
+    await saveZalihaDoc(z);
+    logActivity(`Uređena zaliha: ${z.naziv||''}`);
+  }
+  async function updateRok(id, f){
+    const r = rokovi.find(x=>x.id===id); if (!r) return;
+    Object.assign(r, f); stampEdit(r);
+    renderAll();
+    await persistDoc('rokovi', r, saveLocalRokovi);
+  }
+  async function updateLicenca(id, f){
+    const l = licences.find(x=>x.id===id); if (!l) return;
+    Object.assign(l, f); stampEdit(l);
+    renderAll();
+    await persistDoc('licences', l, saveLocalLicences);
+    logActivity(`Uređena vjerodajnica: ${l.ime||''}`);
+  }
+  async function updateSjetvaFull(id, f){
+    const x = sjetve.find(v=>v.id===id); if (!x) return;
+    Object.assign(x, f); stampEdit(x);
+    renderAll();
+    await persistDoc('sjetva_sadnja', x, saveLocalSjetve);
+    logActivity(x.tip==='sjetva' ? `Uređena sjetva: ${x.vrsta||''}` : `Uređena sadnja: ${x.kultura||''}`);
+  }
+  async function updatePlanTask(id, f){
+    const t = planTasks.find(x=>x.id===id); if (!t) return;
+    Object.assign(t, f); stampEdit(t);
+    planSel = t.datum; planMonth = t.datum.slice(0,7);
+    renderPlan();
+    await persistDoc('plan', t, saveLocalPlan);
+    logActivity(`Uređen zadatak: ${t.naziv} (${planDmy(t.datum)})`);
+  }
+
+  const EDIT_CFG = {
+    prodaja: {
+      arr: () => prodaja.filter(nonPaul), card:'prodaja-add-card', icon:'prodaja-add-icon', toggle:'prodaja-add-toggle', submit:'f-prodaja-submit',
+      fill(r){ setV('f-kupac', r.kupac); setV('f-datum', r.datum); setV('f-proizvod', r.proizvod); setV('f-cijena', r.cijena_kg); setV('f-kg', r.kg); setV('f-pak', r.pak); $id(r.placeno?'f-placeno-yes':'f-placeno-no').click(); renderNetoPreview(); },
+      read(){
+        const kupac = $id('f-kupac').value, proizvod = $id('f-proizvod').value.trim(), kg = parseFloat($id('f-kg').value)||0;
+        if (!kupac){ toast('Izaberi kupca'); return null; }
+        if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return null; }
+        return { kupac, datum: $id('f-datum').value || todayStr(), proizvod: proizvod.toUpperCase(), cijena_kg: parseFloat($id('f-cijena').value)||0, kg, pak: parseFloat($id('f-pak').value)||null, placeno: placenoVal };
+      },
+      commit: updateProdaja,
+      reset(){ ['f-kupac','f-proizvod','f-cijena','f-kg','f-pak'].forEach(i=>setV(i,'')); setV('f-datum', todayStr()); $id('f-placeno-yes').click(); renderNetoPreview(); }
+    },
+    paul: {
+      arr: () => prodaja.filter(onlyPaul), card:'paul-add-card', icon:'paul-add-icon', toggle:'paul-add-toggle', submit:'pa-submit',
+      fill(r){ setV('pa-datum', r.datum); setV('pa-proizvod', r.proizvod); setV('pa-cijena', r.cijena_kg); setV('pa-kg', r.kg); $id(r.placeno?'pa-placeno-yes':'pa-placeno-no').click(); renderPaulPreview(); },
+      read(){
+        const proizvod = $id('pa-proizvod').value.trim(), kg = parseFloat($id('pa-kg').value)||0;
+        if (!proizvod || !kg){ toast('Upiši proizvod i količinu (kg)'); return null; }
+        return { datum: $id('pa-datum').value || todayStr(), proizvod: proizvod.toUpperCase(), cijena_kg: parseFloat($id('pa-cijena').value)||0, kg, placeno: paulPlacenoVal };
+      },
+      commit: updateProdaja,
+      reset(){ ['pa-proizvod','pa-cijena','pa-kg'].forEach(i=>setV(i,'')); setV('pa-datum', todayStr()); $id('pa-placeno-yes').click(); renderPaulPreview(); }
+    },
+    trosak: {
+      arr: () => troskovi, card:'troskovi-add-card', icon:'troskovi-add-icon', toggle:'troskovi-add-toggle', submit:'f-trosak-submit',
+      fill(r){ setV('t-kategorija', r.kategorija); setV('t-naziv', r.naziv); setV('t-kultura', r.kultura); setV('t-trgovac', r.trgovac); setV('t-kolicina', r.kolicina); setV('t-cijena', r.cijena); setV('t-datum', r.datum);
+        pendingTrosakRacun = null; $id('t-racun').value = '';
+        $id('t-racun-preview').innerHTML = r.racun ? '<p class="opg-hint" style="margin-top:6px;">📎 Račun je već priložen. Odaberi novi samo ako ga želiš zamijeniti.</p>' : '';
+        renderTrosakPreview(); },
+      read(rec){
+        const kategorija = $id('t-kategorija').value, naziv = $id('t-naziv').value.trim(), cijena = parseFloat($id('t-cijena').value)||0;
+        if (!kategorija){ toast('Izaberi kategoriju'); return null; }
+        if (!naziv || !cijena){ toast('Upiši naziv i cijenu'); return null; }
+        return { kategorija, naziv, kultura: $id('t-kultura').value.trim(), trgovac: $id('t-trgovac').value.trim(), kolicina: parseFloat($id('t-kolicina').value)||0, cijena, datum: $id('t-datum').value || todayStr(), racun: pendingTrosakRacun !== null ? pendingTrosakRacun : (rec.racun || null) };
+      },
+      commit: updateTrosak,
+      reset(){ ['t-kategorija','t-naziv','t-kultura','t-trgovac','t-kolicina','t-cijena','t-racun'].forEach(i=>setV(i,'')); setV('t-datum', todayStr()); $id('t-racun-preview').innerHTML=''; pendingTrosakRacun = null; renderTrosakPreview(); }
+    },
+    prskanje: {
+      arr: () => prskanje, card:'tretiranja-add-card', icon:'tretiranja-add-icon', toggle:'tretiranja-add-toggle', submit:'pr-submit',
+      fill(r){ setV('pr-datum', r.datum); setV('pr-sredstvo', r.sredstvo); setV('pr-kultura', r.kultura); setV('pr-kolicina', r.kolicina); setV('pr-karenca', r.karenca_dana); setV('pr-komentar', r.komentar); renderPrskanjePreview(); },
+      read(){
+        const sredstvo = $id('pr-sredstvo').value.trim(), kultura = $id('pr-kultura').value.trim();
+        if (!sredstvo || !kultura){ toast('Upiši sredstvo i kulturu'); return null; }
+        return { datum: $id('pr-datum').value || todayStr(), sredstvo, kultura, kolicina: parseFloat($id('pr-kolicina').value)||0, karenca_dana: parseInt($id('pr-karenca').value,10)||0, komentar: $id('pr-komentar').value.trim() || null };
+      },
+      commit: updatePrskanje,
+      reset(){ ['pr-sredstvo','pr-kultura','pr-kolicina','pr-karenca','pr-komentar'].forEach(i=>setV(i,'')); setV('pr-datum', todayStr()); renderPrskanjePreview(); }
+    },
+    zaliha: {
+      arr: () => zalihe, card:'zalihe-add-card', icon:'zalihe-add-icon', toggle:'zalihe-add-toggle', submit:'z-submit',
+      fill(r){ setV('z-naziv', r.naziv); setV('z-kolicina', r.trenutna_kolicina); setV('z-jedinica', r.jedinica || 'L');
+        pendingZalihaPhoto = null; $id('z-slika').value = '';
+        $id('z-slika-preview').innerHTML = r.slika ? '<p class="opg-hint" style="margin-top:6px;">📎 Slika/PDF je već priložen. Odaberi novu samo ako ga želiš zamijeniti.</p>' : '';
+        const lb = $id('z-kolicina').closest('.opg-field').querySelector('label'); if (lb){ lb.dataset.orig = lb.textContent; lb.textContent = 'Preostala količina'; } },
+      read(){
+        const naziv = $id('z-naziv').value.trim(), q = parseFloat($id('z-kolicina').value);
+        if (!naziv || isNaN(q) || q < 0){ toast('Upiši naziv i količinu'); return null; }
+        const f = { naziv, trenutna_kolicina: q, jedinica: $id('z-jedinica').value };
+        if (pendingZalihaPhoto !== null) f.slika = pendingZalihaPhoto;
+        return f;
+      },
+      commit: updateZaliha,
+      reset(){ ['z-naziv','z-kolicina','z-slika'].forEach(i=>setV(i,'')); setV('z-jedinica','L'); $id('z-slika-preview').innerHTML=''; pendingZalihaPhoto = null;
+        const lb = $id('z-kolicina').closest('.opg-field').querySelector('label'); if (lb && lb.dataset.orig) lb.textContent = lb.dataset.orig; }
+    },
+    rok: {
+      arr: () => rokovi, card:'rok-add-card', icon:'rok-add-icon', toggle:'rok-add-toggle', submit:'rok-submit',
+      fill(r){ setV('rok-naziv', r.naziv); setV('rok-datum', r.datum); setV('rok-komentar', r.komentar); },
+      read(){
+        const naziv = $id('rok-naziv').value.trim(), datum = $id('rok-datum').value;
+        if (!naziv || !datum){ toast('Upiši naziv i datum'); return null; }
+        return { naziv, datum, komentar: $id('rok-komentar').value.trim() || null };
+      },
+      commit: updateRok,
+      reset(){ ['rok-naziv','rok-datum','rok-komentar'].forEach(i=>setV(i,'')); }
+    },
+    isk: {
+      arr: () => licences, card:'isk-add-form', icon:'isk-add-icon', toggle:'isk-add-toggle', submit:'isk-submit',
+      fill(r){ setV('isk-ime', r.ime); setV('isk-oib', r.oib); setV('isk-vrijedi-do', r.vrijedi_do); setV('isk-modul', r.modul || '1'); setV('isk-barkod-rucno', r.barkod_rucno); },
+      read(){
+        const ime = $id('isk-ime').value.trim(), oib = $id('isk-oib').value.trim(), vrijedi_do = $id('isk-vrijedi-do').value;
+        if (!ime || !oib || !vrijedi_do){ toast('Upiši ime, OIB i datum isteka'); return null; }
+        return { ime, oib, vrijedi_do, modul: $id('isk-modul').value.trim() || '1', barkod_rucno: $id('isk-barkod-rucno').value.trim() || null };
+      },
+      commit: updateLicenca,
+      reset(){ ['isk-ime','isk-oib','isk-vrijedi-do','isk-barkod-rucno'].forEach(i=>setV(i,'')); setV('isk-modul','1'); }
+    },
+    sjetva: {
+      arr: () => sjetve.filter(x=>x.tip==='sjetva'), card:'sjetva-add-card', icon:'sjetva-add-icon', toggle:'sjetva-add-toggle', submit:'sj-submit',
+      fill(r){ setV('sj-datum', r.datum); setV('sj-vrsta', r.vrsta); setV('sj-sorta', r.sorta); setV('sj-parcela', r.parcela_id); setV('sj-kontejneri', r.broj_kontejnera); setV('sj-mjesta', r.mjesta_po_kontejneru); setV('sj-komentar', r.komentar); $id('sj-ukupno-mjesta').textContent = String(r.ukupno_mjesta || 0); },
+      read(){
+        const vrsta = $id('sj-vrsta').value;
+        if (!vrsta){ toast('Odaberi vrstu povrća'); return null; }
+        const bk = parseFloat($id('sj-kontejneri').value)||0, mj = parseFloat($id('sj-mjesta').value)||0;
+        return { datum: $id('sj-datum').value || todayStr(), vrsta, sorta: $id('sj-sorta').value.trim(), parcela_id: $id('sj-parcela').value || null, broj_kontejnera: bk, mjesta_po_kontejneru: mj, ukupno_mjesta: bk*mj, komentar: $id('sj-komentar').value.trim() || null };
+      },
+      commit: updateSjetvaFull,
+      reset(){ ['sj-sorta','sj-kontejneri','sj-mjesta','sj-komentar','sj-vrsta','sj-parcela'].forEach(i=>setV(i,'')); setV('sj-datum', todayStr()); $id('sj-ukupno-mjesta').textContent = '0'; }
+    },
+    sadnja: {
+      arr: () => sjetve.filter(x=>x.tip==='sadnja'), card:'sadnja-add-card', icon:'sadnja-add-icon', toggle:'sadnja-add-toggle', submit:'sd-submit',
+      fill(r){ setV('sd-datum', r.datum); setV('sd-kultura', r.kultura); setV('sd-parcela', r.parcela_id); setV('sd-sjetva-ref', r.sjetva_ref); setV('sd-broj-sadnica', r.broj_sadnica); setV('sd-komentar', r.komentar); },
+      read(){
+        const kultura = $id('sd-kultura').value;
+        if (!kultura){ toast('Odaberi kulturu'); return null; }
+        return { datum: $id('sd-datum').value || todayStr(), kultura, parcela_id: $id('sd-parcela').value || null, sjetva_ref: $id('sd-sjetva-ref').value || null, broj_sadnica: parseFloat($id('sd-broj-sadnica').value)||0, komentar: $id('sd-komentar').value.trim() || null };
+      },
+      commit: updateSjetvaFull,
+      reset(){ ['sd-broj-sadnica','sd-komentar','sd-kultura','sd-parcela','sd-sjetva-ref'].forEach(i=>setV(i,'')); setV('sd-datum', todayStr()); }
+    },
+    plan: {
+      arr: () => planTasks, card:'plan-add-card', icon:'plan-add-icon', toggle:'plan-add-toggle', submit:'plan-submit',
+      fill(t){
+        setV('plan-tip', t.tip || 'ostalo'); setV('plan-naziv', t.naziv); setV('plan-datum', t.datum); setV('plan-vrijeme', t.vrijeme);
+        setV('plan-kultura', t.kultura); setV('plan-parcela', t.parcela); setV('plan-dodijeli', t.dodijeljeno); setV('plan-napomena', t.napomena);
+        const p = t.ponavljanje || null;
+        setV('plan-pon', p ? p.tip : ''); setV('plan-pon-n', p && p.n ? p.n : ''); setV('plan-pon-do', p && p.do ? p.do : '');
+        document.querySelectorAll('#plan-pon-dani button').forEach(b=>b.classList.toggle('on', !!(p && p.dani && p.dani.includes(parseInt(b.dataset.d,10)))));
+        planPonRefresh();
+      },
+      read(){
+        const naziv = $id('plan-naziv').value.trim(), datum = $id('plan-datum').value, pv = $id('plan-pon').value;
+        if (!naziv){ toast('Upiši naziv zadatka'); return null; }
+        if (!datum){ toast('Odaberi datum'); return null; }
+        let ponavljanje = null;
+        if (pv) {
+          ponavljanje = { tip: pv };
+          if (pv === 'svakih') ponavljanje.n = Math.max(1, parseInt($id('plan-pon-n').value,10) || 1);
+          if (pv === 'tjedno') {
+            ponavljanje.dani = [...document.querySelectorAll('#plan-pon-dani button.on')].map(b=>parseInt(b.dataset.d,10));
+            if (!ponavljanje.dani.length) ponavljanje.dani = [PlanLogic.weekday(datum)];
+          }
+          ponavljanje.do = $id('plan-pon-do').value || null;
+          if (ponavljanje.do && ponavljanje.do < datum){ toast('"Do" datum je prije početka'); return null; }
+        }
+        return { tip: $id('plan-tip').value, naziv, datum, vrijeme: $id('plan-vrijeme').value || null, kultura: $id('plan-kultura').value || null, parcela: $id('plan-parcela').value || null, dodijeljeno: $id('plan-dodijeli').value || null, napomena: $id('plan-napomena').value.trim() || null, ponavljanje };
+      },
+      commit: updatePlanTask,
+      reset(){ ['plan-naziv','plan-vrijeme','plan-napomena','plan-pon-do','plan-kultura','plan-parcela','plan-dodijeli','plan-pon','plan-pon-n'].forEach(i=>setV(i,'')); setV('plan-tip','ostalo'); document.querySelectorAll('#plan-pon-dani button').forEach(b=>b.classList.remove('on')); planPonRefresh(); }
+    }
+  };
+
+  function editBegin(kind, id){
+    const cfg = EDIT_CFG[kind]; if (!cfg) return;
+    const rec = cfg.arr().find(r=>r.id===id); if (!rec) return;
+    if (EDIT.kind) editEnd();
+    EDIT.kind = kind; EDIT.id = id; EDIT.rec = rec;
+    const card = $id(cfg.card), icon = $id(cfg.icon);
+    card.style.display = 'block'; if (icon) icon.classList.add('open');
+    cfg.fill(rec);
+    const btn = $id(cfg.submit);
+    btn.dataset.origLabel = btn.textContent; btn.textContent = 'Spremi promjene';
+    const banner = document.createElement('div');
+    banner.className = 'opg-edit-banner'; banner.id = 'opg-edit-banner';
+    banner.textContent = (kind==='plan' && rec.ponavljanje) ? '✎ Uređuješ zadatak koji se ponavlja — promjena vrijedi za cijeli niz.' : '✎ Uređuješ postojeći unos — promjene zamjenjuju stari zapis (ne dodaje se novi).';
+    card.insertBefore(banner, card.firstChild);
+    const cancel = document.createElement('button');
+    cancel.type = 'button'; cancel.className = 'opg-submit ghost'; cancel.id = 'opg-edit-cancel'; cancel.textContent = 'Odustani'; cancel.style.marginTop = '8px';
+    cancel.addEventListener('click', () => editEnd());
+    btn.insertAdjacentElement('afterend', cancel);
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function editEnd(){
+    const kind = EDIT.kind; if (!kind) return;
+    const cfg = EDIT_CFG[kind];
+    const btn = $id(cfg.submit);
+    if (btn.dataset.origLabel){ btn.textContent = btn.dataset.origLabel; delete btn.dataset.origLabel; }
+    const c = $id('opg-edit-cancel'); if (c) c.remove();
+    const b = $id('opg-edit-banner'); if (b) b.remove();
+    cfg.reset();
+    $id(cfg.card).style.display = 'none';
+    const icon = $id(cfg.icon); if (icon) icon.classList.remove('open');
+    EDIT.kind = null; EDIT.id = null; EDIT.rec = null;
+  }
+
+  Object.keys(EDIT_CFG).forEach(kind => {
+    const cfg = EDIT_CFG[kind];
+    // Spremi u načinu uređivanja: mijenja postojeći zapis. Registrirano PRIJE originalnih slušača, pa ih zaustavlja.
+    $id(cfg.submit).addEventListener('click', async (e) => {
+      if (EDIT.kind !== kind) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      const rec = EDIT.rec, id = EDIT.id;
+      const f = cfg.read(rec); if (!f) return;
+      await cfg.commit(id, f);
+      toast('Promjene spremljene');
+      editEnd();
+    });
+    // zatvaranje forme tijekom uređivanja = odustajanje (da se slučajno ne "dodaje" preko uređivanja)
+    const tg = $id(cfg.toggle);
+    if (tg) tg.addEventListener('click', (e) => { if (EDIT.kind === kind) { e.stopImmediatePropagation(); editEnd(); } });
+  });
+
+  // ✎ u popisima (delegirano, na dokumentu u fazi hvatanja da se zaustavi otvaranje kartica i sl.)
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('[data-edit][data-id]');
+    if (b) { e.stopPropagation(); e.preventDefault(); editBegin(b.dataset.edit, b.dataset.id); return; }
+    const z = e.target.closest && e.target.closest('[data-edit-zaliha]');
+    if (z) { e.stopPropagation(); e.preventDefault(); editBegin('zaliha', z.dataset.editZaliha); return; }
+    const pa = e.target.closest && e.target.closest('#plan-day-list [data-plan-act="edit"]');
+    if (pa) {
+      e.stopPropagation(); e.preventDefault();
+      const o = planOcc(pa);
+      planOpenMenu = null;
+      if (o && o.taskId) { renderPlan(); editBegin('plan', o.taskId); }
+    }
+  }, true);
+
   function planOcc(btn){ return planOccMap[decodeURIComponent(btn.dataset.pk||'')]; }
   document.getElementById('plan-prev').addEventListener('click', ()=>{ const [y,m]=planMonth.split('-').map(Number); const d=new Date(Date.UTC(y,m-2,1)); planMonth=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0'); renderPlan(); });
   document.getElementById('plan-next').addEventListener('click', ()=>{ const [y,m]=planMonth.split('-').map(Number); const d=new Date(Date.UTC(y,m,1)); planMonth=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0'); renderPlan(); });
@@ -4637,6 +4939,8 @@ body { font-size: 15px; }
       if (kulturaVal) kulture[currentSeason] = { naziv: kulturaVal, ...calc };
       else delete kulture[currentSeason];
       const updates = { kulture };
+      const novoIme = (card.querySelector('.parcela-edit-naziv')?.value || '').trim();
+      if (novoIme) updates.naziv = novoIme;
       if (calc.povrsina_ha) updates.povrsina_ha = Math.round(calc.povrsina_ha*1000)/1000;
       await saveParcela(saveId, updates);
       toast('Parcela ažurirana');
