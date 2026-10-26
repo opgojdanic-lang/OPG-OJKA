@@ -48,7 +48,7 @@
     throw new Error('Popis FIS sredstava nije potpuno dohvaćen.');
   }
   function mount({ host, getStock, saveLink }) {
-    let records = {}, products = null, busy = false, activeId = null, ticket = 0;
+    let records = {}, shared = {}, products = null, busy = false, activeId = null, ticket = 0;
     try { records = JSON.parse(localStorage.getItem(CACHE) || '{}') || {}; } catch (_) {}
     const status = document.createElement('p'); status.className = 'opg-hint'; status.setAttribute('aria-live', 'polite');
     const list = document.createElement('div');
@@ -63,6 +63,11 @@
     function el(tag, text, cls) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
     function button(text, action) { const b = el('button', text, 'opg-submit secondary'); b.type = 'button'; b.addEventListener('click', action); return b; }
     function persist() { try { localStorage.setItem(CACHE, JSON.stringify(records)); } catch (_) { status.textContent = 'Predmemoriju nije moguće spremiti na ovom uređaju.'; } }
+    function getRecord(id) {
+      const a=records[String(id)], b=shared[String(id)];
+      const at=r=>Date.parse(r?.lastAttemptAt||r?.checkedAt||'')||0;
+      return !b?a:!a||at(b)>=at(a)?b:a;
+    }
     function render() {
       list.replaceChildren();
       const stock = getStock();
@@ -71,19 +76,22 @@
         const card = el('section', null, 'opg-card');
         card.append(el('h3', item.naziv));
         const linked = item.fis_product_id;
-        const record = linked && records[String(linked)];
+        const record = linked && getRecord(linked);
         card.append(el('p', !linked ? 'Nije povezano s FIS-om' : record ?
           (record.error || stale(record) ? 'Aktualnost nije potvrđena' : 'Dohvat uspješan — provjeri uvjete primjene') : 'Povezano — podaci još nisu dohvaćeni', 'opg-hint'));
         if (linked) {
           card.append(el('p', item.fis_product_name || 'FIS ID: ' + linked, 'opg-hint'));
+          if (record?.origin) card.append(el('p',record.origin,'opg-hint'));
           if (record?.checkedAt) card.append(el('p', 'Posljednji uspješan dohvat: ' + new Date(record.checkedAt).toLocaleString('hr-HR'), 'opg-hint'));
           if (record?.changedAt) card.append(el('p', 'Promjena podataka zabilježena: ' + new Date(record.changedAt).toLocaleString('hr-HR'), 'opg-hint'));
           if (record?.error) card.append(el('p', record.error, 'opg-hint'));
+          if (record?.product) card.append(button('Otvori spremljene uvjete', () => showRecord(record)));
           card.append(button('Provjeri i otvori uvjete', () => refresh(linked)));
         }
         card.append(button(linked ? 'Promijeni FIS povezivanje' : 'Pronađi u FIS-u', () => openSearch(item)));
         list.append(card);
       });
+      window.dispatchEvent(new Event('opg:fis-stock'));
     }
     function showRecord(record) {
       detail.hidden = false; detail.replaceChildren();
@@ -111,14 +119,14 @@
       busy = true; status.textContent = 'Provjeravam FIS…';
       try {
         const product = normalize(await request(BASE + '/' + encodeURIComponent(id)), id);
-        const old = records[String(id)], changed = old?.product && JSON.stringify(old.product) !== JSON.stringify(product);
+        const old = getRecord(id), changed = old?.product && JSON.stringify(old.product) !== JSON.stringify(product);
         records[String(id)] = { product, checkedAt: new Date().toISOString(),
           changedAt: changed ? new Date().toISOString() : old?.changedAt || null,
-          previous: changed ? old.product : old?.previous || null, error: null };
+          previous: changed ? old.product : old?.previous || null, error: null, origin: 'Ručni dohvat na ovom uređaju', lastAttemptAt: new Date().toISOString() };
         persist(); showRecord(records[String(id)]); status.textContent = changed ? 'Pronađena je promjena. Pregledaj uvjete i izvornu uputu.' : 'Podaci su dohvaćeni iz FIS-a.';
       } catch (_) {
-        const old = records[String(id)];
-        if (old) { old.error = 'Provjera nije uspjela. Prikazana je zadnja spremljena verzija.'; persist(); showRecord(old); }
+        const old = getRecord(id);
+        if (old?.product) { records[String(id)] = {...old,error:'Provjera nije uspjela. Prikazana je zadnja spremljena verzija.',lastAttemptAt:new Date().toISOString()}; persist(); showRecord(records[String(id)]); }
         else { detail.hidden = true; }
         status.textContent = 'FIS provjera nije uspjela. Provjeri vezu ili otvori službenu tražilicu. Aktualnost nije potvrđena.';
       } finally { busy = false; render(); }
@@ -151,7 +159,13 @@
     }
     query.addEventListener('input', filter);
     render();
-    return { render };
+    const integration = { render, getStock, showRecord, setShared: data => { shared=data; render(); } };
+    scope.OpgFis.integration = integration;
+    if (!document.getElementById('opg-protection-loader')) {
+      const script=document.createElement('script');script.id='opg-protection-loader';script.src='./protection.js';
+      script.onerror=()=>{status.textContent='Novi pregled zaštite nije učitan. FIS i postojeći odjeljci ostaju dostupni.';};document.head.append(script);
+    }
+    return integration;
   }
   const api = { normalize, stale, mount };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
