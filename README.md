@@ -34,9 +34,11 @@ radite preko zupčanika (⚙) gore desno u zaglavlju.
 
 U Zaštita → Zalihe / FIS povežite proizvod s točnim FIS zapisom. Ručna provjera prikazuje registrirane primjene, karencu u izvornom tekstu i promjene od prethodnog uspješnog dohvata. Neuspješne ili zastarjele provjere su označene. Ovo nije preporuka primjene niti potvrda da je berba dopuštena.
 
-Pozadinsko dnevno provjeravanje dok je aplikacija zatvorena još nije aktivirano. Firebase koraci i opseg prve faze: [docs/FIREBASE-FIS.md](docs/FIREBASE-FIS.md).
+Pozadinsko dnevno provjeravanje koristi zasebni Firebase codebase i zahtijeva postavljanje u Firebaseu. Firebase koraci: [docs/FIREBASE-FIS.md](docs/FIREBASE-FIS.md).
 
-Provjere: `node --test tests/fis.test.cjs`. Preglednički scenarij: uz instaliran Playwright i Chromium pokrenuti lokalni server na portu 8765 pa `node tests/fis-browser.cjs`. Scenarij koristi ogledne podatke i presreće FIS zahtjeve.
+AI analiza fotografija ima zasebno postavljanje ključa, dopuštenih uređaja i ograničenja od 100 pokušaja mjesečno: [docs/FIREBASE-PEST-AI.md](docs/FIREBASE-PEST-AI.md).
+
+Provjere: `node --test tests/*.test.cjs`. Preglednički scenarij: uz instaliran Playwright i Chromium pokrenuti `node tests/fis-browser.cjs`; sam pokreće lokalni server na portu 8766. Scenarij koristi ogledne podatke i simulirane FIS/Firebase AI odgovore, bez naplate analize.
 
 ## Korak 2 — Postavljanje same aplikacije (hosting)
 

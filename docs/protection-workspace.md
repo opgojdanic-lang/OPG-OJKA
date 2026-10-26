@@ -12,7 +12,7 @@ Zaštita se učitava kroz postojeći `fis.js`, bez izmjene glavnog HTML dokument
 
 ## Ograničenja
 
-AI identifikacija štetnika još nije povezana. Opažanja nisu sinkronizirana među uređajima. Evidencija nije vezana uz pojedinu parcelu, pa novi pregled ne izračunava dopušteni datum berbe niti preporučuje dozu ili termin tretiranja. Postojeći vremenski model je približan pokazatelj, a ne potvrda bolesti. Dnevni FIS dohvat nije sinkronizacija u stvarnom vremenu.
+AI identifikacija ima pripremljeno sučelje i zasebni Firebase codebase, ali zahtijeva postavljanje ključa, pravila i dopuštenih uređaja prije stvarne analize; vidi [postavljanje](FIREBASE-PEST-AI.md). Opažanja nisu sinkronizirana među uređajima. Evidencija nije vezana uz pojedinu parcelu, pa novi pregled ne izračunava dopušteni datum berbe niti preporučuje dozu ili termin tretiranja. Postojeći vremenski model je približan pokazatelj, a ne potvrda bolesti. Dnevni FIS dohvat nije sinkronizacija u stvarnom vremenu.
 
 Firebase čitanje koristi već inicijaliziranu aplikaciju i postojeću prijavu. Nova komponenta ne piše u zajedničke kolekcije. Postojeće ručno povezivanje zalihe s FIS proizvodom ostaje zasebna radnja.
 

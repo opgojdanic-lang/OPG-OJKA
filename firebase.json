@@ -1,8 +1,24 @@
 {
-  "functions": [{
-    "source": "backend/fis-sync",
-    "codebase": "fis-sync",
-    "runtime": "nodejs22",
-    "ignore": ["node_modules", ".git", "*.log"]
-  }]
+  "functions": [
+    {
+      "source": "backend/fis-sync",
+      "codebase": "fis-sync",
+      "runtime": "nodejs22",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log"
+      ]
+    },
+    {
+      "source": "backend/pest-ai",
+      "codebase": "pest-ai",
+      "runtime": "nodejs22",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log"
+      ]
+    }
+  ]
 }

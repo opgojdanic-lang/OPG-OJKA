@@ -5,3 +5,5 @@ firebase-debug.log*
 .env
 .env.*
 !.env.example
+firestore-debug.log*
+ui-debug.log*

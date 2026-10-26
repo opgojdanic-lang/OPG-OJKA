@@ -39,21 +39,22 @@
   photo.append(button('Dodaj fotografije problema',()=>upload.click(),true), upload);
   const thumbs = el('div', null, 'protect-thumbnails'); photo.append(thumbs);
   const noteLabel = el('label', 'Što primjećuješ?', 'protect-field'); noteLabel.htmlFor = 'protect-note';
-  const note = el('textarea'); note.id = 'protect-note'; note.rows = 2; note.placeholder = 'Npr. sitni kukci ispod lista, uvijanje mladih vrhova…';
+  const note = el('textarea'); note.id = 'protect-note'; note.rows = 2; note.maxLength = 1200; note.placeholder = 'Npr. sitni kukci ispod lista, uvijanje mladih vrhova…';
   const localStatus = el('p', '', 'protect-muted'); localStatus.setAttribute('aria-live','polite');
-  let photos = [];
+  let photos = [], pestAi = null;
   const save = button('Spremi opažanje na ovaj uređaj',()=>{
     if (!note.value.trim()) { localStatus.textContent='Opiši što primjećuješ prije spremanja.'; return; }
     try {
       const all = JSON.parse(localStorage.getItem('opg_observations_v1') || '[]');
-      all.push({ culture: crop.value, note: note.value.trim(), photos, createdAt: new Date().toISOString(), status: 'opažanje — bez dijagnoze' });
+      const aiAnalysis=pestAi?.current()||null;
+      all.push({ culture: crop.value, note: note.value.trim(), photos, aiAnalysis, createdAt: new Date().toISOString(), status: 'opažanje — bez potvrđene dijagnoze' });
       localStorage.setItem('opg_observations_v1', JSON.stringify(all));
-      localStatus.textContent='Opažanje i fotografije spremljeni su samo na ovom uređaju. Nije provedena AI analiza.';
-      note.value=''; photos=[]; thumbs.replaceChildren(); upload.value=''; renderObservations();
+      localStatus.textContent=aiAnalysis?'Opažanje, fotografije i AI rezultat spremljeni su na ovom uređaju. Dijagnoza nije potvrđena.':'Opažanje i fotografije spremljeni su samo na ovom uređaju. Nije provedena AI analiza.';
+      note.value=''; photos=[]; thumbs.replaceChildren(); upload.value=''; pestAi?.reset(); renderObservations();
     } catch (_) { localStatus.textContent='Nema dovoljno prostora. Opažanje nije spremljeno; sačuvaj fotografije u galeriji.'; }
   });
   photo.append(noteLabel,note,save,localStatus);
-  text(photo,'Prepoznavanje štetnika putem AI-ja još nije povezano. Postojeći čitač FIS preporuke dostupan je u Kalkulatoru.','protect-disclaimer');
+  text(photo,'AI analiza pomaže izdvojiti moguće uzroke. Potrebno ju je uključiti u Firebaseu. Postojeći čitač FIS preporuke dostupan je u Kalkulatoru.','protect-disclaimer');
   upload.addEventListener('change',async()=>{
     photos=[]; thumbs.replaceChildren(); localStatus.textContent='Pripremam do tri fotografije…'; save.disabled=true;
     try {
@@ -79,7 +80,7 @@
     let all=[];try{all=JSON.parse(localStorage.getItem('opg_observations_v1')||'[]');}catch(_){}
     const filtered=all.filter(o=>o.culture===crop.value).slice(-5).reverse();
     if(!filtered.length)text(observations,'Nema opažanja za ovu kulturu na ovom uređaju.');
-    filtered.forEach(o=>{const d=el('details');d.append(el('summary',dt(o.createdAt)),el('p',o.note));const imgs=el('div',null,'protect-thumbnails');(o.photos||[]).forEach(src=>{if(!/^data:image\/jpeg;base64,/.test(src))return;const i=el('img');i.src=src;i.alt='Fotografija uz opažanje';imgs.append(i);});d.append(imgs);observations.append(d);});
+    filtered.forEach(o=>{const d=el('details');d.append(el('summary',dt(o.createdAt)),el('p',o.note));const imgs=el('div',null,'protect-thumbnails');(o.photos||[]).forEach(src=>{if(!/^data:image\/jpeg;base64,/.test(src))return;const i=el('img');i.src=src;i.alt='Fotografija uz opažanje';imgs.append(i);});d.append(imgs);if(o.aiAnalysis){text(d,'Spremljen AI rezultat — nije potvrđena dijagnoza.');text(d,o.aiAnalysis.summary);}observations.append(d);});
   }
   function renderCandidates(){
     candidateList.replaceChildren(); let found=0;
@@ -151,5 +152,8 @@
     }catch(_){state.cacheError='povezivanje nije uspjelo';render();}
   }
   if(by('sync-label'))new MutationObserver(()=>connect()).observe(by('sync-label'),{childList:true,subtree:true});
+  const aiScript=document.createElement('script');aiScript.src='./pest-ai.js';
+  aiScript.onload=()=>{pestAi=window.OpgPestAi.mount({photo,crop,note,upload,save,getPhotos:()=>photos,isPreparing:()=>save.disabled});};
+  aiScript.onerror=()=>{text(photo,'AI sučelje se nije učitalo. Opažanja i fotografije i dalje možeš spremati na uređaj.');};document.head.append(aiScript);
   connect();setInterval(()=>{if(!document.hidden)render();},60000);
 })();
