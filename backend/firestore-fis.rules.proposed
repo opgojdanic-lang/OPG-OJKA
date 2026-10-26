@@ -1,0 +1,19 @@
+// Prijedlog prema pravilima prikazanim 26. 10. 2026. NIJE automatski objavljeno.
+// Čuva postojeći opseg pristupa poslovnim podacima; ne rješava obiteljske ovlasti.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /fis_cache/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /fis_sync_status/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /{collection}/{document=**} {
+      allow read, write: if request.auth != null
+        && collection != 'fis_cache' && collection != 'fis_sync_status';
+    }
+  }
+}

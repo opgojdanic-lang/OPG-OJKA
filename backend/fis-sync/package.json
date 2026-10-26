@@ -1,0 +1,7 @@
+{
+  "name": "opg-fis-sync",
+  "private": true,
+  "main": "index.js",
+  "engines": { "node": "22" },
+  "dependencies": { "firebase-functions": "^5.0.0", "firebase-admin": "^12.0.0" }
+}

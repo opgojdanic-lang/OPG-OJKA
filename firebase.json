@@ -1,0 +1,8 @@
+{
+  "functions": [{
+    "source": "backend/fis-sync",
+    "codebase": "fis-sync",
+    "runtime": "nodejs22",
+    "ignore": ["node_modules", ".git", "*.log"]
+  }]
+}
