@@ -527,6 +527,14 @@ details.opg-coll[open] > summary::before { transform: rotate(90deg); }
 details.opg-coll > summary .opg-coll-tot { margin-left: auto; font-size: 15px; font-weight: 700; color: var(--forest); }
 details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px; }
 </style>
+<script src="./fis.js"></script>
+<style>
+#fis-host input { width:100%; padding:12px; font:inherit; font-size:16px; border:1px solid var(--sage-line); border-radius:10px; margin:8px 0; }
+#fis-host details { border-top:1px solid var(--sage-line); padding:12px 0; overflow-wrap:anywhere; }
+#fis-host summary { cursor:pointer; min-height:36px; }
+#fis-host h3 { font-size:16px; margin:8px 0; }
+#fis-host .opg-card { overflow-wrap:anywhere; }
+</style>
 </head>
 <body>
 <div id="opg-root">
@@ -872,8 +880,15 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
         <button class="opg-chip" data-sub="tretiranja">Tretiranja</button>
         <button class="opg-chip" data-sub="kalkulator">Kalkulator</button>
         <button class="opg-chip" data-sub="zalihe">Zalihe</button>
+        <button class="opg-chip" data-sub="fis">Zalihe / FIS</button>
       </div>
 
+      <div id="sub-fis" class="opg-subview">
+        <div class="opg-section-title">Sredstva i registrirane primjene</div>
+        <p class="opg-hint">Poveži zalihu s točnim proizvodom. Uvjeti se dohvaćaju iz FIS-a na zahtjev. U ovoj verziji dnevne provjere dok je aplikacija zatvorena još nisu aktivne.</p>
+        <p class="opg-hint">FIS podaci su informativni; prije primjene slijedi izvornu uputu. Ovdje se ne određuje doza niti odobrava berba.</p>
+        <div id="fis-host"></div>
+      </div>
       <div id="sub-zalihe" class="opg-subview">
         <button type="button" class="opg-isk-add-toggle" id="zalihe-add-toggle" style="margin-top:0;">
           <span>Unesi sredstvo</span>
@@ -2511,7 +2526,24 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     document.getElementById('isk-fullscreen').style.display = 'flex';
   }
 
+  let fisView = null;
+  function renderFisView(){
+    if (!window.OpgFis) return;
+    if (!fisView) fisView = window.OpgFis.mount({
+      host: document.getElementById('fis-host'),
+      getStock: () => zalihe,
+      saveLink: async (id, fields) => {
+        const item = zalihe.find(z => z.id === id);
+        if (!item) throw new Error('Zaliha više ne postoji');
+        if (mode === 'cloud') await fb.updateDoc(fb.doc(fb.db, 'zalihe', id), fields);
+        Object.assign(item, fields);
+        if (mode !== 'cloud') saveLocalZalihe();
+      }
+    });
+    else fisView.render();
+  }
   function renderZaliheList(){
+    renderFisView();
     const el = document.getElementById('zalihe-list');
     const sorted = [...zalihe].sort((a,b)=>(a.naziv||'').localeCompare(b.naziv||''));
     if (!sorted.length){ el.innerHTML = '<div class="opg-empty">Još nema unesenih zaliha.</div>'; return; }

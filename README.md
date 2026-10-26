@@ -28,19 +28,17 @@ kod u ekran za povezivanje koji se sam pojavi. Nakon toga aplikacija se sama pov
 svakom uređaju koji koristi istu poveznicu — ponovno povezivanje / promjenu po potrebi
 radite preko zupčanika (⚙) gore desno u zaglavlju.
 
-> **O sigurnosti:** "test mode" znači da bazu može čitati/pisati bilo tko tko ima vaš
-> config kod (ne i slučajni prolaznici — config nije javno vidljiv nigdje dok ga sami ne
-> podijelite). Sasvim je u redu za obiteljsku evidenciju ovog opsega; samo ne dijelite
-> config izvan obitelji. Firestore test mode inače istječe za 30 dana — ako se to dogodi,
-> vratite se u Firestore Database → Rules i postavite:
-> ```
-> rules_version = '2';
-> service cloud.firestore {
->   match /databases/{database}/documents {
->     match /{document=**} { allow read, write: if true; }
->   }
-> }
-> ```
+ > **O sigurnosti:** Firebase web config nije tajna i ne štiti pristup bazi. Pristup određuju Firestore pravila i autentikacija. Ne koristite javno pravilo `allow read, write: if true`. Postojeća aplikacija podržava anonimnu prijavu, ali ona sama ne dokazuje da je korisnik član obitelji. Prije promjene pravila pregledajte postojeće korisnike i način pristupa kako se obitelji ne bi prekinula sinkronizacija.
+
+## Nadogradnja Zalihe / FIS
+
+U Zaštita → Zalihe / FIS povežite proizvod s točnim FIS zapisom. Ručna provjera prikazuje registrirane primjene, karencu u izvornom tekstu i promjene od prethodnog uspješnog dohvata. Neuspješne ili zastarjele provjere su označene. Ovo nije preporuka primjene niti potvrda da je berba dopuštena.
+
+Pozadinsko dnevno provjeravanje koristi zasebni Firebase codebase i zahtijeva postavljanje u Firebaseu. Firebase koraci: [docs/FIREBASE-FIS.md](docs/FIREBASE-FIS.md).
+
+AI analiza fotografija ima zasebno postavljanje ključa, dopuštenih uređaja i ograničenja od 100 pokušaja mjesečno: [docs/FIREBASE-PEST-AI.md](docs/FIREBASE-PEST-AI.md).
+
+Provjere: `node --test tests/*.test.cjs`. Preglednički scenarij: uz instaliran Playwright i Chromium pokrenuti `node tests/fis-browser.cjs`; sam pokreće lokalni server na portu 8766. Scenarij koristi ogledne podatke i simulirane FIS/Firebase AI odgovore, bez naplate analize.
 
 ## Korak 2 — Postavljanje same aplikacije (hosting)
 

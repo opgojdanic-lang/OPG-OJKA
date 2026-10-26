@@ -1,7 +1,11 @@
-const CACHE_NAME = 'opg-evidencija-v21';
+const CACHE_NAME = 'opg-evidencija-v25';
 const ASSETS = [
   './',
   './index.html',
+  './fis.js',
+  './protection.js',
+  './pest-ai.js',
+  './protection.css',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -26,10 +30,18 @@ self.addEventListener('activate', (event) => {
 // keširana verzija koristi se samo kao rezerva kad nema signala (offline rad).
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // Nikad ne vraćaj stare regulatorne podatke kao uspješan mrežni odgovor.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(
     fetch(event.request)
       .then((networkResp) => {
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResp.clone()));
+        // Clone before returning: the page can consume the original immediately.
+        if (networkResp.ok) {
+          const copy = networkResp.clone();
+          event.waitUntil(caches.open(CACHE_NAME)
+            .then((cache) => cache.put(event.request, copy))
+            .catch(() => {}));
+        }
         return networkResp;
       })
       .catch(() => caches.match(event.request))
