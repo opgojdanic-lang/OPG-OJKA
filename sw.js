@@ -1,4 +1,4 @@
-const CACHE_NAME = 'opg-evidencija-v24';
+const CACHE_NAME = 'opg-evidencija-v25';
 const ASSETS = [
   './',
   './index.html',
@@ -35,7 +35,13 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((networkResp) => {
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResp.clone()));
+        // Clone before returning: the page can consume the original immediately.
+        if (networkResp.ok) {
+          const copy = networkResp.clone();
+          event.waitUntil(caches.open(CACHE_NAME)
+            .then((cache) => cache.put(event.request, copy))
+            .catch(() => {}));
+        }
         return networkResp;
       })
       .catch(() => caches.match(event.request))
