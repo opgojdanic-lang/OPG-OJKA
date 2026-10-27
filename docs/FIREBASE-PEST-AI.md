@@ -32,6 +32,8 @@ Nužno je dodati zabranu čitanja/pisanja za `ai_private/{document=**}` I izuzet
 
 ### 2. OpenAI ključ
 
+Ako već postoji valjana tajna `OPG_OPENAI_API_KEY` vezana uz funkciju, ponovno je koristiti; ovaj PR ne zahtijeva zamjenu ključa. Sljedeći koraci vrijede samo ako ključ nedostaje ili je zamjena zasebno odobrena.
+
 U zasebnom OpenAI API projektu uključiti naplatu i napraviti projektni API ključ. Postaviti upozorenje potrošnje; upozorenje nije tvrda granica. ChatGPT Plus pretplata ne pokriva API pozive. U Cloud Shellu, u pregledanoj grani repozitorija:
 
 ```sh
@@ -42,7 +44,7 @@ Ključ zalijepiti isključivo u interaktivni skriveni upit za secret. Ne stavlja
 
 ### 3. Postaviti samo novi codebase
 
-Iz korijena pregledane kopije grane `feature/fis-stock-review`:
+Iz korijena pregledane kopije grane `fix/protection-fis-mobile-ai`:
 
 ```sh
 node --test tests/fis.test.cjs tests/fis-sync.test.cjs tests/pest-ai.test.cjs

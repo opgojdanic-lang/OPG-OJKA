@@ -12,7 +12,7 @@ exports.fisSyncDaily = onSchedule({
   const db = getFirestore();
   try { logger.info('Dnevna FIS provjera', await syncStocks(db, { logger })); }
   catch (error) {
-    await db.doc('fis_sync_status/daily').set({ outcome: 'failed', startedAt: null, scanned: null, linked: null, unlinked: null, products: null, errorsByKind: null, checked: null, failed: null, changed: null, updated: null, attempted: null, finishedAt: null, error: 'Dnevna FIS provjera nije dovršena.', lastAttemptAt: new Date().toISOString() }, { merge: true });
+    await db.doc('fis_sync_status/daily').set({ outcome: 'failed', startedAt: null, scanned: null, linked: null, unlinked: null, products: null, invalidLinks: null, errorsByKind: null, checked: null, failed: null, changed: null, updated: null, attempted: null, finishedAt: null, error: 'Dnevna FIS provjera nije dovršena.', lastAttemptAt: new Date().toISOString() }, { merge: true });
     logger.error('Dnevna FIS provjera nije dovršena', { reason: 'sync_failed' }); throw error;
   }
 });

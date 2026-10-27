@@ -142,8 +142,8 @@ body {
 .opg-loading { text-align: center; padding: 60px 20px; color: var(--sage); font-size: 14px; }
 
 .opg-toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: var(--forest); color: #fff; padding: 10px 18px; border-radius: 30px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 100; max-width: 90%; text-align: center; }
-.opg-pull-indicator { position: fixed; top: 0; left: 50%; transform: translateX(-50%) translateY(-100%); background: var(--forest); color: #fff; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 0 0 14px 14px; z-index: 200; transition: transform 0.15s; }
-.opg-pull-indicator.visible { transform: translateX(-50%) translateY(0); }
+.opg-pull-indicator { position: fixed; top: env(safe-area-inset-top, 0px); opacity: 0; pointer-events: none; left: 50%; transform: translateX(-50%) translateY(-100%); background: var(--forest); color: #fff; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 0 0 14px 14px; z-index: 200; transition: transform 0.15s; }
+.opg-pull-indicator.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 .opg-toast.show { opacity: 1; }
 
 .opg-report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
@@ -364,7 +364,7 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
 .opg-tab .ic { height: 22px; }
 .opg-tab .ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .opg-tab.active { background: var(--ok-bg); color: var(--forest); font-weight: 700; }
-.opg-toast { bottom: 110px; }
+.opg-toast { bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
 
 .opg-section-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; color: var(--ink); margin: 24px 0 10px; }
 .opg-card, .opg-sum-card, .opg-stock-item, .opg-isk-card, .opg-parcela-card, .opg-cijena-block { border-radius: 20px; border-color: var(--sage-line); background: #fff; }
@@ -5140,6 +5140,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const indicator = document.getElementById('opg-pull-indicator');
     let startY = null, pulling = false;
     const THRESHOLD = 70;
+    document.addEventListener('touchcancel', ()=>{ indicator.classList.remove('visible'); pulling=false; startY=null; }, {passive:true});
     document.addEventListener('touchstart', (e)=>{
       if (window.scrollY <= 0 && !document.querySelector('#opg-setup.show')) {
         startY = e.touches[0].clientY;

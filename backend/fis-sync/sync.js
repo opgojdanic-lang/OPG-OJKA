@@ -11,6 +11,9 @@ function prepare(raw, id) {
   if (!raw || typeof raw.basicInfo?.productName !== 'string' || !raw.basicInfo.productName.trim() ||
       typeof raw.basicInfo.registrationStatus !== 'string' || !Array.isArray(raw.culturesAndHarmfulOrganisms))
     throw Object.assign(new Error('Nepotpuni FIS podaci'), { code: 'invalid_payload' });
+  if (raw.culturesAndHarmfulOrganisms.some(row=>!row || typeof row!=='object' || Array.isArray(row) || (row.harmfulOrganisms!=null && !Array.isArray(row.harmfulOrganisms)) ||
+    (row.harmfulOrganisms||[]).some(o=>!o || typeof o!=='object' || Array.isArray(o) || ['usage','additionalInfo','nameLat'].some(k=>o[k]!=null && typeof o[k]!=='string'))))
+    throw Object.assign(new Error('Nepotpune FIS primjene'), {code:'invalid_payload'});
   const rawJson = stable(raw);
   if (Buffer.byteLength(rawJson) > 350000) throw new Error('Prevelik FIS zapis — potrebna provjera');
   return { rawJson, fingerprint: createHash('sha256').update(rawJson).digest('hex') };
@@ -46,13 +49,16 @@ async function syncStocks(db, { fetchImpl = fetch, now = () => new Date().toISOS
     logger.info?.('FIS sync completed', status);
     return status;
   };
-  if (control.data()?.enabled !== true) return saveStatus({ enabled: false, outcome: 'disabled', scanned: null, linked: null, unlinked: null, products: null, errorsByKind: {}, checked: 0, failed: 0, changed: 0, attempted: 0, updated: 0 });
+  if (control.data()?.enabled !== true) return saveStatus({ enabled: false, outcome: 'disabled', scanned: null, linked: null, unlinked: null, products: null, invalidLinks: null, errorsByKind: {}, checked: 0, failed: 0, changed: 0, attempted: 0, updated: 0 });
   const stocks = await db.collection('zalihe').limit(201).get();
   if (stocks.size > 200) throw new Error('Više od 200 zaliha — prilagodi ograničenje prije pokretanja');
   const linked = stocks.docs.map(d => d.data().fis_product_id).filter(x => x != null && x !== '').map(String);
-  const ids = [...new Set(linked)];
+  const validLinked = linked.filter(id=>/^[1-9]\d{0,8}$/.test(id));
+  const invalidLinks = linked.length - validLinked.length;
+  const ids = [...new Set(validLinked)];
+  if (invalidLinks) logger.warn('FIS neispravna povezivanja', { count: invalidLinks });
   logger.info?.('FIS sync inventory', { scanned: stocks.size, linked: linked.length, products: ids.length });
-  if (ids.length > 40 || ids.some(id => !/^[1-9]\d{0,8}$/.test(id))) throw new Error('Previše proizvoda ili neispravno FIS povezivanje');
+  if (ids.length > 40) throw new Error('Više od 40 različitih FIS proizvoda — prilagodi ograničenje prije pokretanja');
   let checked = 0, failed = 0, changed = 0;
   const errorsByKind = {};
   for (const id of ids) {
@@ -79,7 +85,7 @@ async function syncStocks(db, { fetchImpl = fetch, now = () => new Date().toISOS
     checked++; if (didChange) changed++;
   }
   return saveStatus({ enabled: true, checked, failed, changed, updated: checked, attempted: ids.length,
-    errorsByKind, scanned: stocks.size, linked: linked.length, unlinked: stocks.size - linked.length, products: ids.length,
-    outcome: !stocks.size ? 'no_stock' : !ids.length ? 'no_links' : failed ? (checked ? 'partial' : 'unavailable') : 'completed' });
+    invalidLinks, errorsByKind, scanned: stocks.size, linked: linked.length, unlinked: stocks.size - linked.length, products: ids.length,
+    outcome: !stocks.size ? 'no_stock' : !ids.length ? (invalidLinks ? 'invalid_links' : 'no_links') : (failed || invalidLinks) ? (checked ? 'partial' : 'unavailable') : 'completed' });
 }
 module.exports = { stable, prepare, successRecord, failureRecord, loadProduct, syncStocks };

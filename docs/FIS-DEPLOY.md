@@ -2,7 +2,7 @@
 
 ## Pripremljeno, nije objavljeno
 
-`firebase.json` obuhvaća samo novi codebase `fis-sync` i jednu novu funkciju `fisSyncDaily` na Node.js 22. Dostavljena arhiva starih funkcija pregledana je lokalno i nije dio ovog GitHub prijedloga. Nije potvrđeno da svaka od šest postojećih funkcija koristi istu verziju arhive.
+`firebase.json` obuhvaća codebase `fis-sync` (`fisSyncDaily`) i `pest-ai` (`pestPhotoAnalyze`, `pestPhotoUsage`) na Node.js 22. Ovaj dokument opisuje samo ciljani FIS deploy. Dostavljena arhiva starih funkcija pregledana je lokalno i nije dio ovog GitHub prijedloga. Nije potvrđeno da svaka od šest postojećih funkcija koristi istu verziju arhive.
 
 Nova funkcija radi u 06:00 po Europe/Zagreb, s najviše jednom instancom i bez automatskog ponavljanja nakon pogreške. Čita najviše 200 zaliha i provjerava najviše 40 različitih FIS ID-ova. Duplikati se dohvaćaju jednom. Ne ovisi o tome je li aplikacija otvorena.
 
@@ -27,7 +27,7 @@ gcloud config get-value project
 Nakon dogovora o postavljanju, iz svježe mape preuzeti pregledanu granu:
 
 ```sh
-git clone --branch feature/fis-stock-review https://github.com/opgojdanic-lang/OPG-OJKA.git opg-fis-review
+git clone --branch fix/protection-fis-mobile-ai https://github.com/opgojdanic-lang/OPG-OJKA.git opg-fis-review
 cd opg-fis-review
 node --test tests/fis.test.cjs tests/fis-sync.test.cjs
 npm ci --prefix backend/fis-sync --ignore-scripts
@@ -57,4 +57,4 @@ Postaviti `settings/fis_sync.enabled` na boolean `false`. Time sljedeće izvrša
 
 ## Ograničenja
 
-Javni FIS servis nema potvrđen ugovor stabilnosti za vanjsku integraciju. Dohvat ne jamči potpunost izvornog unosa ili dopuštenost primjene. Upute i dodatni uvjeti ostaju obvezni za odluku. Prije produkcije dovršiti browser i Firebase emulator provjere, koje u ovom okruženju još nisu provedene.
+Javni FIS servis nema potvrđen ugovor stabilnosti za vanjsku integraciju. Dohvat ne jamči potpunost izvornog unosa ili dopuštenost primjene. Upute i dodatni uvjeti ostaju obvezni za odluku. Chromium i WebKit provjere su provedene; emulator pravila i produkcijske ovlasti još nisu potvrđeni. Aktualna odluka i precizni koraci: [završna provjera PR-a #2](PROTECTION-FINAL-CHECK.md).

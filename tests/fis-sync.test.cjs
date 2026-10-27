@@ -65,3 +65,11 @@ test('invalid JSON, missing product and timeout have safe distinct error categor
   await assert.rejects(loadProduct(374,async()=>({ok:true,json:async()=>{throw new Error('untrusted body');}})),e=>e.code==='invalid_json'&&!e.message.includes('untrusted'));
   await assert.rejects(loadProduct(374,async()=>{throw Object.assign(new Error('secret-bearing URL'),{name:'TimeoutError'});}),e=>e.code==='timeout'&&!e.message.includes('secret'));
 });
+
+test('a malformed legacy stock link cannot block valid LASER 374 checks or form a cache path',async()=>{
+  const store=new Map([['settings/fis_sync',{enabled:true}]]);
+  const refs=path=>({path,get:async()=>({data:()=>store.get(path)}),set:async r=>store.set(path,r),collection:name=>({doc:id=>refs(path+'/'+name+'/'+id)})});
+  const db={doc:refs,collection:()=>({limit:()=>({get:async()=>({size:2,docs:[{data:()=>({fis_product_id:374})},{data:()=>({fis_product_id:'../private'})}]})})}),runTransaction:async fn=>fn({get:r=>r.get(),set:(r,d)=>store.set(r.path,d)})};
+  let calls=0;const r=await syncStocks(db,{logger:{info:()=>{},warn:()=>{}},fetchImpl:async url=>{calls++;assert.ok(url.endsWith('/374'));return{ok:true,json:async()=>product};}});
+  assert.equal(calls,1);assert.equal(r.checked,1);assert.equal(r.attempted,1);assert.equal(r.invalidLinks,1);assert.equal(r.outcome,'partial');assert.ok(store.has('fis_cache/374'));assert.ok([...store.keys()].every(k=>!k.includes('..')));
+});

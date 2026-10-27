@@ -6,6 +6,7 @@ const {doc,getDoc,setDoc,deleteDoc}=require('firebase/firestore');
 const assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
 (async()=>{
+  if(!/^(127\.0\.0\.1|localhost):\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST||''))throw new Error('Only a local demo Firestore emulator is allowed');
   const env=await initializeTestEnvironment({projectId:'demo-opg-ai',firestore:{rules:fs.readFileSync(path.join(__dirname,'../backend/firestore-fis.rules.proposed'),'utf8')}});
   try{
     const guest=env.unauthenticatedContext().firestore();
@@ -15,7 +16,7 @@ const {randomUUID}=require('node:crypto');
       await assertFails(getDoc(doc(user,p)));await assertFails(setDoc(doc(user,p),{enabled:true}));
     }
     for(const p of ['fis_cache/42','fis_cache/42/versions/abc','fis_sync_status/daily']){
-      await assertSucceeds(getDoc(doc(user,p)));await assertFails(setDoc(doc(user,p),{rawJson:'tampered'}));
+      await assertSucceeds(getDoc(doc(user,p)));await assertFails(getDoc(doc(guest,p)));await assertFails(setDoc(doc(user,p),{rawJson:'tampered'}));await assertFails(deleteDoc(doc(user,p)));
     }
     await assertSucceeds(setDoc(doc(user,'zalihe/test'),{naziv:'Test'}));
     await assertSucceeds(getDoc(doc(user,'zalihe/test')));

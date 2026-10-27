@@ -32,3 +32,7 @@ Postojeći gornji safe-area i položaj gumba + već su bili definirani. Nedostaj
 3. Provjeriti sigurna pravila pristupa predmemoriji/statusu. Emulator pravila nije pokrenut; autentikacija i pravila nisu mijenjani.
 4. Na fizičkom iPhoneu/Androidu u instaliranoj PWA provjeriti notch, početni indikator, povećani font, tipkovnicu i donju navigaciju. Automatizirana provjera rasporeda ne zamjenjuje tu provjeru.
 5. Ovlašteno provjeriti AI na stvarnim fotografijama uz postojeći limit i obračun; ovaj rad nije pozivao plaćeni servis. Nema produkcijskog deploya ni automatskog spajanja.
+
+## Završni pregled
+
+Nakon dodatnih ispravaka vrijedi [završna provjera PR-a #2](PROTECTION-FINAL-CHECK.md), uključujući ažurne rezultate i preduvjete za spajanje/objavu. Ovaj raniji izvještaj opisuje početnu fazu PR-a.

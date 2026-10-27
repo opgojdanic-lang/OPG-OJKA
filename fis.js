@@ -6,24 +6,56 @@
   const CACHE = 'opg_fis_v1';
   const DAY = 24 * 60 * 60 * 1000;
   function normalize(raw, id) {
+    if (!/^[1-9]\d{0,8}$/.test(String(id))) throw new Error('Neispravan FIS ID.');
     if (!raw || !raw.basicInfo || typeof raw.basicInfo.productName !== 'string' || !raw.basicInfo.productName.trim() || typeof raw.basicInfo.registrationStatus !== 'string' ||
         !Array.isArray(raw.culturesAndHarmfulOrganisms)) throw new Error('FIS je vratio nepotpune podatke.');
     return { id: String(id), name: raw.basicInfo.productName,
       registration: raw.basicInfo.registrationNumber || '',
       status: raw.basicInfo.registrationStatus || 'Status nije naveden',
-      uses: raw.culturesAndHarmfulOrganisms.map(row => ({
-        culture: row.culture?.name?.hr || 'Kultura nije navedena',
-        phi: row.culture?.safetyPeriod || 'Karenca nije navedena — provjeri upute',
-        organisms: (row.harmfulOrganisms || []).map(o => ({
-          name: o.name?.hr || o.nameLat || 'Organizam nije naveden',
-          usage: o.usage || '', additional: o.additionalInfo || '',
-          max: o.maxNumberOfTreatmentsPerSeason ?? row.culture?.maxNumberOfTreatmentsPerSeason ?? null
-        }))
-      })) };
+      uses: raw.culturesAndHarmfulOrganisms.map(row => {
+        if (!row || typeof row!=='object' || Array.isArray(row) || (row.harmfulOrganisms != null && !Array.isArray(row.harmfulOrganisms))) throw new Error('Nepotpune FIS primjene.');
+        return {
+          culture: row.culture?.name?.hr || 'Kultura nije navedena',
+          phi: row.culture?.safetyPeriod || 'Karenca nije navedena — provjeri upute',
+          organisms: (row.harmfulOrganisms || []).map(o => {
+            if (!o || typeof o!=='object' || Array.isArray(o) || ['usage','additionalInfo','nameLat'].some(k=>o[k]!=null && typeof o[k]!=='string')) throw new Error('Nepotpuni FIS organizmi.');
+            return {
+              name: o.name?.hr || o.nameLat || 'Organizam nije naveden', nameLat: o.nameLat || '',
+              usage: o.usage || '', additional: o.additionalInfo || '',
+              max: o.maxNumberOfTreatmentsPerSeason ?? row.culture?.maxNumberOfTreatmentsPerSeason ?? null
+            };
+          })
+        };
+      }) };
+  }
+  // Lexical search aids, never a determination of permitted use or a taxonomic synonym service.
+  function words(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('hr').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function cultureMatches(label, selected) {
+    const full=words(label), base=words(String(label || '').replace(/\([^)]*\)/g,''));
+    if (/\b(ukrasna|ukrasne|ljuta|ljute|feferon|feferoni)\b/.test(full)) return false;
+    const names={
+      'PAPRIKA BABURA':['paprika','paprike','paprika babura','paprike babure','babura paprika'],
+      'TIKVICA':['tikvica','tikvice'],
+      'BUTTERNUT TIKVA':['butternut','tikva butternut','butternut tikva']
+    };
+    // A generic squash label is insufficient evidence for the butternut cultivar.
+    if (selected==='BUTTERNUT TIKVA' && ['tikva','tikve'].includes(base)) return (String(label).match(/\([^)]*\)/g)||[]).some(part=>words(part)==='butternut');
+    return (names[selected] || []).includes(base);
+  }
+  function organismMatches(organism, query) {
+    const term=words(query);
+    if (!term) return true;
+    const contains=(a,b)=>(' '+a+' ').includes(' '+b+' ');
+    const name=words(organism.name), latin=words(organism.nameLat);
+    return contains(name,term) || (!!latin && (contains(latin,term) || contains(term,latin)));
   }
   function verified(record, now = Date.now()) {
-    return !!record?.product && !record.error && !stale(record, now) &&
-      record.product.status?.trim().toLocaleUpperCase('hr') === 'REGISTRIRAN';
+    return !!record?.product && /^[1-9]\d{0,8}$/.test(String(record.product.id)) &&
+      typeof record.product.name==='string' && !!record.product.name.trim() &&
+      typeof record.product.registration==='string' && !!record.product.registration.trim() && !record.error && !stale(record, now) &&
+      typeof record.product.status==='string' && record.product.status.trim().toLocaleUpperCase('hr') === 'REGISTRIRAN';
   }
   function stale(record, now = Date.now()) {
     const t = Date.parse(record?.checkedAt || '');
@@ -44,7 +76,7 @@
       const data = await request(BASE + '/search?page=' + page + '&size=100', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
       });
-      if (!Array.isArray(data.content) || !Number.isInteger(data.totalElements)) throw new Error('Neočekivan oblik FIS pretrage.');
+      if (!Array.isArray(data.content) || !Number.isInteger(data.totalElements) || data.totalElements<0 || data.content.some(p=>!p || !/^[1-9]\d{0,8}$/.test(String(p.pppId)) || typeof p.productName!=='string' || !p.productName.trim())) throw new Error('Neočekivan oblik FIS pretrage.');
       all.push(...data.content);
       if (all.length >= data.totalElements) return all;
       if (!data.content.length) break;
@@ -54,13 +86,14 @@
   function findProducts(products, query) {
     const term = query.trim().toLocaleLowerCase('hr');
     if (term.length < 2) return [];
-    const matches = products.filter(p => String(p.productName).toLocaleLowerCase('hr').includes(term));
+    const valid = products.filter(p=>p && /^[1-9]\d{0,8}$/.test(String(p.pppId)));
+    const matches = valid.filter(p => String(p.productName).toLocaleLowerCase('hr').includes(term));
     // Alias is a search aid only: identity still requires the user's explicit choice.
-    if (!matches.length && term === 'laser sc') matches.push(...products.filter(p => String(p.pppId) === '374' && String(p.productName).toLocaleUpperCase('hr') === 'LASER'));
+    if (!matches.length && term === 'laser sc') matches.push(...valid.filter(p => String(p.pppId) === '374' && String(p.productName).toLocaleUpperCase('hr') === 'LASER'));
     return matches;
   }
   function mount({ host, getStock, saveLink }) {
-    let records = {}, shared = {}, products = null, busy = false, activeId = null, ticket = 0;
+    let records = {}, shared = {}, products = null, busy = false, activeId = null, ticket = 0, detailRecord = null, detailId = null, detailCurrent = false;
     try { records = JSON.parse(localStorage.getItem(CACHE) || '{}') || {}; } catch (_) {}
     const status = document.createElement('p'); status.className = 'opg-hint'; status.setAttribute('aria-live', 'polite');
     const list = document.createElement('div');
@@ -78,7 +111,10 @@
     function getRecord(id) {
       const a=records[String(id)], b=shared[String(id)];
       const at=r=>Date.parse(r?.lastAttemptAt||r?.checkedAt||'')||0;
-      return !b?a:!a||at(b)>=at(a)?b:a;
+      if (b?.error && !at(b)) return b;
+      const chosen = !b?a:!a||at(b)>=at(a)?b:a;
+      if (chosen?.product && String(chosen.product.id) !== String(id)) return {...chosen,product:null,error:'FIS ID podataka ne odgovara povezanoj zalihi.'};
+      return chosen;
     }
     function render() {
       list.replaceChildren();
@@ -90,7 +126,7 @@
         const linked = item.fis_product_id;
         const record = linked && getRecord(linked);
         card.append(el('p', !linked ? 'Nije povezano s FIS-om' : record ?
-          (record.error || stale(record) ? 'Aktualnost nije potvrđena' : 'Dohvat uspješan — provjeri uvjete primjene') : 'Povezano — podaci još nisu dohvaćeni', 'opg-hint'));
+          (!verified(record) ? 'Aktualnost nije potvrđena' : 'Dohvat uspješan — provjeri uvjete primjene') : 'Povezano — podaci još nisu dohvaćeni', 'opg-hint'));
         if (linked) {
           card.append(el('p', item.fis_product_name || 'FIS ID: ' + linked, 'opg-hint'));
           if (record?.origin) card.append(el('p',record.origin,'opg-hint'));
@@ -103,12 +139,20 @@
         card.append(button(linked ? 'Promijeni FIS povezivanje' : 'Pronađi u FIS-u', () => openSearch(item)));
         list.append(card);
       });
+      if (detailId && !detail.hidden) {
+        const next = getRecord(detailId) || detailRecord;
+        if (next !== detailRecord || verified(next) !== detailCurrent) showRecord(next);
+      }
       window.dispatchEvent(new Event('opg:fis-stock'));
     }
     function showRecord(record) {
+      detailRecord = record; detailCurrent = verified(record);
+      if (record?.product) detailId = record.product.id;
       detail.hidden = false; detail.replaceChildren();
-      detail.append(el('h3', record.product.name), el('p', 'Status u FIS-u: ' + record.product.status),
-        el('p', 'Broj registracije: ' + record.product.registration, 'opg-hint'),
+      if (!record?.product) { detail.append(el('p','FIS podaci nisu dostupni ili su nepotpuni. Aktualnost nije potvrđena.')); return; }
+      const current = detailCurrent;
+      detail.append(el('h3', record.product.name), el('p', (current ? 'Status u FIS-u: ' : 'Spremljeni status — nije potvrđeno aktualan: ') + record.product.status),
+        el('p', 'Broj registracije: ' + (record.product.registration || 'nije naveden — provjeri izvor'), 'opg-hint'),
         el('p', 'Prikaz nije preporuka tretiranja. Provjeri točnu kulturu, otvoreni/zaštićeni uzgoj i izvornu uputu. Nepotpuni podaci nisu odobrenje primjene.', 'opg-hint'));
       if (record.error || stale(record)) detail.append(el('p', 'Aktualnost ovih spremljenih podataka nije potvrđena.', 'opg-hint'));
       if (record.checkedAt) detail.append(el('p', 'Datum provjere: ' + new Date(record.checkedAt).toLocaleString('hr-HR'), 'opg-hint'));
@@ -117,6 +161,7 @@
         const source = el('a', 'Otvori izvorni FIS zapis ↗'); source.href = SOURCE + 'pregled/' + encodeURIComponent(record.product.id); source.target = '_blank'; source.rel = 'noopener noreferrer'; detail.append(source);
         return;
       }
+      if (record.historyError) detail.append(el('p', record.historyError, 'opg-hint'));
       if (record.previous) {
         const d = el('details'); d.append(el('summary', 'Prethodna verzija podataka — povijesno, nije za primjenu'));
         const pre = el('pre', JSON.stringify(record.previous, null, 2)); pre.style.whiteSpace = 'pre-wrap'; d.append(pre); detail.append(d);
@@ -161,7 +206,7 @@
         busy = true;
         try {
           await saveLink(activeId, { fis_product_id: String(p.pppId), fis_product_name: p.productName });
-          searchPanel.hidden = true; status.textContent = 'Povezivanje spremljeno.';
+          searchPanel.hidden = true; detail.hidden = true; detailId = null; detailRecord = null; status.textContent = 'Povezivanje spremljeno.';
         } catch (_) { status.textContent = 'Povezivanje nije spremljeno. Provjeri Firestore ovlasti i vezu.'; }
         finally { busy = false; render(); }
       })));
@@ -177,6 +222,9 @@
     }
     query.addEventListener('input', filter);
     render();
+    // Recheck an already open detail after ageing, new shared data and returning from background.
+    setInterval(() => { if (!document.hidden) render(); }, 60000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
     const integration = { render, getStock, getRecord, showRecord, setShared: data => { shared=data; render(); } };
     scope.OpgFis.integration = integration;
     if (!document.getElementById('opg-protection-loader')) {
@@ -185,7 +233,7 @@
     }
     return integration;
   }
-  const api = { normalize, stale, verified, findProducts, mount };
+  const api = { normalize, stale, verified, cultureMatches, organismMatches, findProducts, mount };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else scope.OpgFis = api;
 })(typeof window === 'undefined' ? globalThis : window);

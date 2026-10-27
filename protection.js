@@ -75,6 +75,7 @@
   const officialSearch=el('a','Pretraži cijeli službeni FIS registar ↗');officialSearch.href='https://fis.mps.hr/fis/javna-trazilica-szb/';officialSearch.target='_blank';officialSearch.rel='noopener noreferrer';candidates.append(officialSearch);
   const problemLabel=el('label','Štetnik ili bolest iz potvrđenog opažanja','protect-field');problemLabel.htmlFor='protect-problem';
   const problem=el('input');problem.id='protect-problem';problem.placeholder='Npr. trips';problem.type='search';
+  text(candidates,'Podudaranje naziva služi za pronalaženje zapisa. Paprika babura pretražuje i općeniti naziv paprika; uvjete uzgoja i točnu kulturu provjeri u izvornom zapisu. Neprepoznati sinonimi ne daju automatsko podudaranje.');
   const candidateList=el('div');candidates.append(problemLabel,problem,candidateList);advice.append(candidates);
   function renderObservations(){
     observations.replaceChildren(el('h3','Moja opažanja'));
@@ -85,13 +86,12 @@
   }
   function renderCandidates(){
     candidateList.replaceChildren(); let found=0;
-    const needles=crop.value==='TIKVICA'?['tikvica','tikvice']:crop.value==='BUTTERNUT TIKVA'?['butternut']:['paprika'];
     let unavailable=0;
     if (!bridge.getStock().length) text(candidateList,'Nema podataka o zalihama. Ova pretraga obuhvaća samo povezane proizvode iz zalihe.');
     bridge.getStock().forEach(stock=>{
       const r=bridge.getRecord?.(stock.fis_product_id)||state.cache[String(stock.fis_product_id)];if(!window.OpgFis.verified(r)){unavailable++;return;}
-      const uses=r.product.uses.filter(u=>needles.some(n=>new RegExp('(^|[^a-zčćđšž])'+n+'([^a-zčćđšž]|$)','i').test(u.culture)));
-      const matching=uses.map(u=>({...u,organisms:u.organisms.filter(o=>!problem.value.trim()||o.name.toLocaleLowerCase('hr').includes(problem.value.trim().toLocaleLowerCase('hr')))})).filter(u=>u.organisms.length);
+      const uses=r.product.uses.filter(u=>window.OpgFis.cultureMatches(u.culture,crop.value));
+      const matching=uses.map(u=>({...u,organisms:u.organisms.filter(o=>window.OpgFis.organismMatches(o,problem.value))})).filter(u=>u.organisms.length);
       if(!matching.length)return;found++;
       const card=el('div',null,'protect-candidate');card.append(el('h4',stock.naziv));
       text(card,'Preostalo: '+stock.trenutna_kolicina+' '+(stock.jedinica||'')+' · FIS: '+r.product.status);
@@ -106,9 +106,9 @@
   }
   function render(){
     const s=state.sync;
-    const outcomes={disabled:'dnevna provjera je isključena',no_stock:'nema zaliha za pregled',no_links:'zalihe nemaju FIS povezivanje',partial:'djelomična provjera',unavailable:'FIS dohvat nije uspio',failed:'zadatak nije dovršen',completed:'zadatak dovršen'};
+    const outcomes={disabled:'dnevna provjera je isključena',no_stock:'nema zaliha za pregled',no_links:'zalihe nemaju FIS povezivanje',invalid_links:'zalihe imaju neispravne FIS ID-jeve',partial:'djelomična provjera',unavailable:'FIS dohvat nije uspio',failed:'zadatak nije dovršen',completed:'zadatak dovršen'};
     const count=n=>Number.isInteger(n)?n:'nije zabilježeno';
-    sync.textContent=state.cacheError?'FIS · '+state.cacheError:s?'FIS · '+(outcomes[s.outcome]||'stariji zapis statusa')+' · pokušaj '+dt(s.lastAttemptAt||s.startedAt)+' · završetak '+dt(s.finishedAt)+' · pregledano zaliha '+count(s.scanned)+' · pokušano proizvoda '+count(s.attempted)+' · provjereno '+count(s.checked)+' · osvježeno '+count(s.updated)+' · promijenjeno '+count(s.changed)+' · pogreške '+count(s.failed)+(s.error?' · '+s.error:''):'FIS · '+(state.connected?'nema rezultata dnevne provjere':'zajednički podaci još nisu povezani');
+    sync.textContent=state.cacheError?'FIS · '+state.cacheError:s?'FIS · '+(outcomes[s.outcome]||'stariji zapis statusa')+' · pokušaj '+dt(s.lastAttemptAt||s.startedAt)+' · završetak '+dt(s.finishedAt)+' · pregledano zaliha '+count(s.scanned)+' · pokušano proizvoda '+count(s.attempted)+' · provjereno '+count(s.checked)+' · osvježeno '+count(s.updated)+' · promijenjeno '+count(s.changed)+' · neispravna povezivanja '+count(s.invalidLinks)+' · pogreške '+count(s.failed)+(s.error?' · '+s.error:''):'FIS · '+(state.connected?'nema rezultata dnevne provjere':'zajednički podaci još nisu povezani');
     risk.replaceChildren(el('h3','Zahtijeva pažnju'));
     const r=state.risk;
     if(!r||!fresh(r.checked_at,90))text(risk,'Nema aktualne procjene rizika. To ne znači da nema bolesti ili štetnika.');
@@ -150,7 +150,15 @@
         if(!app||!auth.getAuth(app).currentUser){if(attempts++<30)setTimeout(attach,2000);return;}
         const db=fs.getFirestore(app);state.connected=true;
         fs.onSnapshot(fs.collection(db,'fis_cache'),snap=>{
-          state.cache={};snap.docs.forEach(d=>{const v=d.data();try{state.cache[d.id]={...v,product:v.rawJson?window.OpgFis.normalize(JSON.parse(v.rawJson),d.id):null,previous:v.previousRawJson?window.OpgFis.normalize(JSON.parse(v.previousRawJson),d.id):null,origin:'Zajednički dnevni dohvat'};}catch(_){state.cache[d.id]={error:'Nepotpuni FIS podaci — potrebna provjera.'};}});
+          state.cache={};snap.docs.forEach(d=>{
+            const v=d.data();
+            try {
+              const record={...v,product:v.rawJson?window.OpgFis.normalize(JSON.parse(v.rawJson),d.id):null,previous:null,origin:'Zajednički dnevni dohvat'};
+              // A damaged historical version must not invalidate a separately checked current payload.
+              if(v.previousRawJson)try{record.previous=window.OpgFis.normalize(JSON.parse(v.previousRawJson),d.id);}catch(_){record.historyError='Prethodna verzija podataka nije čitljiva.';}
+              state.cache[d.id]=record;
+            }catch(_){state.cache[d.id]={...v,product:null,error:'Nepotpuni FIS podaci — potrebna provjera.'};}
+          });
           state.cacheError=null;bridge.setShared(state.cache);render();
         },()=>{state.cacheError='zajednički dohvat nije dostupan';Object.values(state.cache).forEach(r=>r.error=state.cacheError);bridge.setShared(state.cache);render();});
         [['settings/weather_live','weather'],['settings/rizik','risk'],['fis_sync_status/daily','sync']].forEach(([path,key])=>fs.onSnapshot(fs.doc(db,path),snap=>{state[key]=snap.exists()?snap.data():null;render();},()=>{state[key]=null;render();}));
