@@ -12,8 +12,9 @@ function monthKey(date = new Date()) {
 }
 function authorize(config, uid) {
   if (!uid) throw new AnalysisError('unauthenticated','Prvo poveži aplikaciju s Firebaseom.');
-  if (!Array.isArray(config?.allowedUids) || !config.allowedUids.includes(uid)) throw new AnalysisError('permission-denied','AI analiza nije omogućena za ovaj uređaj.');
-  if (config.enabled !== true) throw new AnalysisError('failed-precondition','AI analiza još nije uključena.');
+  // Role authorization is checked at callable entry and again from the registry before quota reservation.
+  // Legacy allowedUids is no longer an authority: old anonymous UIDs cannot retain AI access.
+  if (config?.enabled !== true) throw new AnalysisError('failed-precondition','AI analiza još nije uključena.');
 }
 // Accept only small JPEGs produced by the browser; never fetch user-supplied URLs.
 function validateImage(src) {
@@ -83,8 +84,17 @@ function publicUsage(month, data={}) {
   const attempts=data.attempts||0,accounted=data.accounted||0;
   return {month,limit:LIMIT,attempts,remaining:Math.max(0,LIMIT-attempts),successful:data.successful||0,accounted,unaccounted:Math.max(0,attempts-accounted),estimatedUsd:data.estimatedUsd||0,sampleCount:data.sampleCount||0,sampleUsd:data.sampleUsd||0,currency:'USD',model:MODEL,rates:RATES};
 }
+async function requireBusinessRole(db,uid,tx){
+  if(!uid)throw new AnalysisError('unauthenticated','Potrebna je Google prijava.');
+  const read=ref=>tx?tx.get(ref):ref.get();
+  const r=(await read(db.doc('access_members/'+uid))).data();
+  if(!r||r.enabled!==true||r.roleVersion!==1||!['OWNER','MEMBER'].includes(r.role))throw new AnalysisError('permission-denied','Nema odobrene poslovne uloge.');
+  const binding=(await read(db.doc('access_control/'+(r.role==='OWNER'?'owner':'member')))).data();
+  if(binding?.uid!==uid)throw new AnalysisError('permission-denied','Uloga nije potvrđena.');
+}
 const hash = text=>createHash('sha256').update(text).digest('hex');
 async function status(db,uid,now=new Date()) {
+  await requireBusinessRole(db,uid);
   const config=(await db.doc('ai_private/config').get()).data();authorize(config,uid);
   const month=monthKey(now);return publicUsage(month,(await db.doc('ai_private/usage_'+month).get()).data());
 }
@@ -96,6 +106,7 @@ async function analyze(db,uid,data,{apiKey,fetchImpl=fetch,now=()=>new Date()}={
   const requestRef=db.doc('ai_private/requests/items/'+hash(uid+':'+input.requestId));
   const fingerprint=hash(JSON.stringify(input));
   const reserved=await db.runTransaction(async tx=>{
+    await requireBusinessRole(db,uid,tx);
     const config=(await tx.get(db.doc('ai_private/config'))).data();authorize(config,uid);
     const previous=(await tx.get(requestRef)).data();
     if(previous){

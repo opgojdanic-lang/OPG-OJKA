@@ -28,7 +28,7 @@ kod u ekran za povezivanje koji se sam pojavi. Nakon toga aplikacija se sama pov
 svakom uređaju koji koristi istu poveznicu — ponovno povezivanje / promjenu po potrebi
 radite preko zupčanika (⚙) gore desno u zaglavlju.
 
- > **O sigurnosti:** Firebase web config nije tajna i ne štiti pristup bazi. Pristup određuju Firestore pravila i autentikacija. Ne koristite javno pravilo `allow read, write: if true`. Postojeća aplikacija podržava anonimnu prijavu, ali ona sama ne dokazuje da je korisnik član obitelji. Prije promjene pravila pregledajte postojeće korisnike i način pristupa kako se obitelji ne bi prekinula sinkronizacija.
+ > **O sigurnosti:** Firebase web config nije tajna i ne štiti pristup bazi. Pristup određuju Firestore pravila i autentikacija. Ne koristite javno pravilo `allow read, write: if true`. Anonimni UID može se povezati s Google računom, ali anonimna prijava nema poslovni pristup. Konačni pristup zahtijeva serverski odobrenu Google OWNER/MEMBER ulogu. Prije promjene pravila pregledajte postojeće korisnike i način pristupa kako se obitelji ne bi prekinula sinkronizacija.
 
 ## Nadogradnja Zalihe / FIS
 
@@ -86,3 +86,5 @@ U zaglavlju aplikacije, ispod naziva "OPG Ojdanić", piše status:
 Aktualni pregled pravila, osjetljivih početnih podataka, povezivanja Laser SC i kontroliranog redoslijeda objave: [SECURITY-RELEASE-PLAN.md](docs/SECURITY-RELEASE-PLAN.md). Kandidat nije produkcijski objavljen.
 
 Google prijava, ovlasti i obavezne provjere prije produkcije: [docs/GOOGLE-AUTH.md](docs/GOOGLE-AUTH.md).
+
+Konačni OWNER/MEMBER model, hitno zatvaranje širokih pravila i oporavak: [docs/ROLE-ROLLOUT.md](docs/ROLE-ROLLOUT.md).

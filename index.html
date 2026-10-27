@@ -2,7 +2,7 @@
 <html lang="hr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-+50nRfEZytQg0J7FVssXt0EfSBVwzha8QB68wZo0iA8=' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com/js/api.js https://apis.google.com/_/scs/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-Y5eRRBDqXElVDyv3pQRfSvqo6uPgKLV+GthmyfXFDDg=' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com/js/api.js https://apis.google.com/_/scs/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OPG Ojdanić</title>
 <meta name="theme-color" content="#1F3D2B">
@@ -1304,6 +1304,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   let sprayConditions = {};
   let rizikData = null;
   let currentSeason = String(new Date().getFullYear());
+  let securitySettings = {};
   let firebaseApp = null, authController = null, cloudSession = null, identityEpoch = 0, dataEpoch = 0, privateEpoch = 0, identityUid = null;
   let dataStops = [], aclStop = null;
   let cloudConfigured = !!localStorage.getItem('opg_fb_config');
@@ -1313,7 +1314,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   function allowWrite(permission){const ok=canWrite(permission);if(!ok)toast('Nema potvrđenog dopuštenja za ovu radnju. Podaci nisu poslani.');return ok;}
   function stopData(){dataEpoch++;dataStops.splice(0).forEach(stop=>stop());}
   function clearCloudData(){
-    prodaja=[];troskovi=[];zalihe=[];prskanje=[];licences=[];parcele=[];sjetve=[];rokovi=[];planTasks=[];planStatuses=[];sharedSettings={};sprayConditions={};rizikData=null;
+    prodaja=[];troskovi=[];zalihe=[];prskanje=[];licences=[];parcele=[];sjetve=[];rokovi=[];planTasks=[];planStatuses=[];sharedSettings={};securitySettings={};sprayConditions={};rizikData=null;
   }
   function lockCloud(clearForms=false){
     stopData();mode='locked';cloudSession=null;window.OpgAuth.session=null;document.getElementById('opg-root').dataset.access='locked';
@@ -1434,7 +1435,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
         let accessSignature=null;
         function applyAccess(record){
           if(!active())return;
-          const rights=window.OpgAuth.access(record),sig=JSON.stringify(rights);if(sig===accessSignature)return;accessSignature=sig;
+          const rights=window.OpgAuth.access(record,user),sig=JSON.stringify(rights);if(sig===accessSignature)return;accessSignature=sig;
           lockCloud();authUi.access(rights);if(!rights.enabled)return;
           cloudSession=Object.freeze({uid:user.uid,...rights,permissions:Object.freeze([...rights.permissions])});window.OpgAuth.session=cloudSession;mode='cloud';
           document.getElementById('opg-root').dataset.access='authorized';
@@ -1443,6 +1444,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
           const rows=[['prodaja','finance_read',v=>prodaja=v],['troskovi','finance_read',v=>troskovi=v],['zalihe','inventory_read',v=>zalihe=v],['prskanje','treatments_read',v=>prskanje=v],['licences','licenses_read',v=>licences=v],['parcele','farm_read',v=>parcele=v],['sjetva_sadnja','farm_read',v=>sjetve=v],['plan','farm_read',v=>planTasks=v],['plan_status','farm_read',v=>planStatuses=v],['rokovi','farm_read',v=>rokovi=v]];
           for(const [name,permission,assign] of rows)if(rights.permissions.includes(permission))listen(fs.collection(db,name),snap=>{assign(snap.docs.map(d=>({...d.data(),id:d.id})));setSyncStatus('live');scheduleRenderAll();});
           if(rights.permissions.includes('settings_read'))listen(fs.doc(db,'settings','app'),snap=>{sharedSettings=snap.exists()?snap.data():{};});
+          if(rights.enabled)listen(fs.doc(db,'settings','security'),snap=>{securitySettings=snap.exists()?snap.data():{};});
           if(rights.permissions.includes('protection_read')){
             listen(fs.doc(db,'settings','rizik'),snap=>{rizikData=snap.exists()?snap.data():null;scheduleRenderAll();});
             listen(fs.doc(db,'settings','spray_conditions'),snap=>{sprayConditions=snap.exists()?snap.data():{};scheduleRenderAll();});
@@ -2975,33 +2977,33 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   function getSprayCheckUrl(){
-    if (mode === 'cloud' && sharedSettings.spray_check_url) return sharedSettings.spray_check_url;
+    if (cloudConfigured) return mode==='cloud' ? securitySettings.spray_check_url||'' : '';
     return localStorage.getItem('opg_spray_check_url') || '';
   }
   function askSprayCheckUrl(){
-    if(!allowWrite('settings_manage'))return;
+    if(!allowWrite('security_manage'))return;
     const current = getSprayCheckUrl();
     const url = prompt('Zalijepi adresu checkSprayConditionsNow funkcije (izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/checkSprayConditionsNow):', current);
     if (url && url.trim()) {
       const trimmed = url.trim();
       localStorage.setItem('opg_spray_check_url', trimmed);
-      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { spray_check_url: trimmed }, { merge: true }); } catch(e) {} }
+      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'security'), { spray_check_url: trimmed }, { merge: true }); } catch(e) {} }
       return trimmed;
     }
     return null;
   }
   function getVapidKey(){
-    if (mode === 'cloud' && sharedSettings.vapid_key) return sharedSettings.vapid_key;
+    if (cloudConfigured) return mode==='cloud' ? securitySettings.vapid_key||'' : '';
     return localStorage.getItem('opg_vapid_key') || '';
   }
   function askVapidKey(){
-    if(!allowWrite('settings_manage'))return;
+    if(!allowWrite('security_manage'))return;
     const current = getVapidKey();
     const key = prompt('Zalijepi VAPID ključ (Firebase konzola → Project settings → Cloud Messaging → Web configuration → Generate key pair):', current);
     if (key && key.trim()) {
       const trimmed = key.trim();
       localStorage.setItem('opg_vapid_key', trimmed);
-      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { vapid_key: trimmed }, { merge: true }); } catch(e) {} }
+      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'security'), { vapid_key: trimmed }, { merge: true }); } catch(e) {} }
       return trimmed;
     }
     return null;
@@ -4562,18 +4564,18 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { prag_pdv: val }, { merge: true }); } catch(e) {} }
   }
   function getAiUrl(){
-    if (cloudConfigured) return mode==='cloud' ? sharedSettings.ai_url||'' : '';
+    if (cloudConfigured) return mode==='cloud' ? securitySettings.ai_url||'' : '';
     return localStorage.getItem('opg_ai_url') || '';
   }
   function askAiUrl(){
-    if(!allowWrite('settings_manage'))return;
+    if(!allowWrite('security_manage'))return;
     const current = getAiUrl();
     const url = prompt('Zalijepi adresu fisPhotoLookup funkcije (iz README-FIS.md, izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/fisPhotoLookup):', current);
     if (url && url.trim()) {
       const trimmed = url.trim();
       localStorage.setItem('opg_ai_url', trimmed);
       if (mode === 'cloud') {
-        try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { ai_url: trimmed }, { merge: true }); } catch(e) {}
+        try { fb.setDoc(fb.doc(fb.db, 'settings', 'security'), { ai_url: trimmed }, { merge: true }); } catch(e) {}
       }
       return trimmed;
     }

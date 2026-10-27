@@ -1,102 +1,61 @@
-// Run only against a local demo Firestore emulator. No production credentials.
-const fs=require('node:fs');
-const path=require('node:path');
+// Local demo emulator only. Exercises final Google OWNER/MEMBER policy and legacy-denial.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {randomUUID}=require('node:crypto');
 const {initializeTestEnvironment,assertFails,assertSucceeds}=require('@firebase/rules-unit-testing');
 const {doc,getDoc,setDoc,deleteDoc,updateDoc,collection,getDocs}=require('firebase/firestore');
-const assert=require('node:assert/strict');
-const {randomUUID}=require('node:crypto');
 (async()=>{
-  if(!/^(127\.0\.0\.1|localhost):\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST||''))throw new Error('Only a local demo Firestore emulator is allowed');
-  const env=await initializeTestEnvironment({projectId:'demo-opg-ai',firestore:{rules:fs.readFileSync(path.join(__dirname,'../backend/firestore-fis.rules.proposed'),'utf8')}});
-  try{
-    await env.clearFirestore(); // Dedicated demo-opg-ai emulator only; make append-only scenarios repeatable.
-    let passedAllow=0,passedDeny=0;
-    const allow=async promise=>{await assertSucceeds(promise);passedAllow++;};
-    const deny=async promise=>{await assertFails(promise);passedDeny++;};
-    const guest=env.unauthenticatedContext().firestore();
-    const user=env.authenticatedContext('allowed',{firebase:{sign_in_provider:'anonymous'}}).firestore();
-    const stranger=env.authenticatedContext('unapproved',{firebase:{sign_in_provider:'anonymous'},admin:true}).firestore();
-    const disabled=env.authenticatedContext('disabled').firestore();
-    const viewer=env.authenticatedContext('viewer').firestore();
-    const finance=env.authenticatedContext('finance').firestore();
-    const inventory=env.authenticatedContext('inventory').firestore();
-    const allPermissions=['finance_read','finance_write','inventory_read','inventory_write','treatments_read','treatments_write','licenses_read','licenses_write','farm_read','farm_write','settings_read','settings_manage','protection_read','activities_read','activities_create','notifications_write'];
-    const groups={finance:['prodaja','troskovi'],inventory:['zalihe'],treatments:['prskanje'],licenses:['licences'],farm:['parcele','sjetva_sadnja','plan','plan_status','rokovi']};
-    await env.withSecurityRulesDisabled(async ctx=>{
-      const db=ctx.firestore();
-      for(const [uid,enabled,permissions] of [['allowed',true,allPermissions],['disabled',false,allPermissions],['viewer',true,allPermissions.filter(p=>p.endsWith('_read'))],['finance',true,['finance_read','finance_write']],['inventory',true,['inventory_read','inventory_write']],['bad-shape',true,'finance_read']])await setDoc(doc(db,'access_members',uid),{enabled,permissions});
-      for(const cols of Object.values(groups))for(const col of cols)await setDoc(doc(db,col,'legacy'),{naziv:'Legacy',unio:'Display name is not ownership',extra_legacy:{retained:true}});
-      await setDoc(doc(db,'zalihe/legacy'),{naziv:'Laser SC',fis_product_id:374,trenutna_kolicina:2,slika:'existing attachment',extra_legacy:{retained:true}});
-      await setDoc(doc(db,'settings/app'),{prag_pdv:60000,old_unreviewed_field:'preserved'});
-      for(const id of ['weather_live','rizik','spray_conditions','fis_sync'])await setDoc(doc(db,'settings',id),{});
-      for(const p of ['fis_cache/374','fis_cache/374/versions/abc','fis_sync_status/daily'])await setDoc(doc(db,p),{fixture:true});
-      await setDoc(doc(db,'fcm_tokens/legacy-token'),{token:'legacy-token',user:'old name',created_at:1});
-    });
-    for(const [scope,cols] of Object.entries(groups))for(const col of cols){
-      const path=col+'/legacy';
-      for(const db of [guest,stranger,disabled]){
-        await deny(getDoc(doc(db,path)));await deny(getDocs(collection(db,col)));
-        await deny(setDoc(doc(db,col,'blocked'),{unio:'allowed'}));await deny(updateDoc(doc(db,path),{unio:'allowed'}));await deny(deleteDoc(doc(db,path)));
-      }
-      await allow(getDoc(doc(viewer,path)));await allow(getDocs(collection(viewer,col)));
-      await deny(setDoc(doc(viewer,col,'blocked'),{}));await deny(updateDoc(doc(viewer,path),{unio:'viewer'}));await deny(deleteDoc(doc(viewer,path)));
-      await allow(setDoc(doc(user,col,'crud'),{unio:'legacy display label'}));await allow(updateDoc(doc(user,col,'crud'),{legacy_extra:'retained'}));await allow(deleteDoc(doc(user,col,'crud')));
-    }
-    await allow(getDoc(doc(finance,'prodaja/legacy')));await allow(setDoc(doc(finance,'troskovi/finance-only'),{naziv:'Test'}));
-    await deny(getDoc(doc(finance,'zalihe/legacy')));await deny(setDoc(doc(finance,'prskanje/blocked'),{}));await deny(getDocs(collection(finance,'aktivnosti')));
-    await allow(updateDoc(doc(inventory,'zalihe/legacy'),{fis_product_id:'374',fis_product_name:'LASER'}));
-    const retained=(await getDoc(doc(inventory,'zalihe/legacy'))).data();assert.equal(retained.trenutna_kolicina,2);assert.equal(retained.slika,'existing attachment');assert.deepEqual(retained.extra_legacy,{retained:true});
-    await deny(getDoc(doc(inventory,'prodaja/legacy')));await deny(setDoc(doc(inventory,'troskovi/blocked'),{}));
-    const badShape=env.authenticatedContext('bad-shape').firestore();await deny(getDoc(doc(badShape,'prodaja/legacy')));
-    await allow(getDoc(doc(user,'access_members/allowed')));await deny(getDoc(doc(user,'access_members/finance')));await deny(getDocs(collection(user,'access_members')));
-    for(const db of [guest,stranger,user,viewer]){await deny(setDoc(doc(db,'access_members/new-admin'),{enabled:true,permissions:allPermissions}));await deny(updateDoc(doc(db,'access_members/allowed'),{enabled:true}));await deny(deleteDoc(doc(db,'access_members/allowed')));}
-    for(const p of ['ai_private/config','ai_private/usage_2026-10','ai_private/requests/items/test'])for(const db of [guest,stranger,user,viewer]){await deny(getDoc(doc(db,p)));await deny(setDoc(doc(db,p),{enabled:true}));await deny(deleteDoc(doc(db,p)));}
-    for(const p of ['fis_cache/374','fis_sync_status/daily']){
-      await allow(getDoc(doc(user,p)));for(const db of [guest,stranger,disabled])await deny(getDoc(doc(db,p)));
-      for(const db of [guest,stranger,user]){await deny(setDoc(doc(db,p),{rawJson:'tampered'}));await deny(deleteDoc(doc(db,p)));}
-    }
-    await allow(getDocs(collection(user,'fis_cache')));await deny(getDocs(collection(user,'fis_sync_status')));
-    await deny(getDoc(doc(user,'fis_cache/374/versions/abc')));await deny(setDoc(doc(user,'fis_cache/374/versions/abc'),{rawJson:'tampered'}));
-    for(const id of ['app','weather_live','rizik','spray_conditions'])await allow(getDoc(doc(user,'settings',id)));
-    for(const db of [guest,stranger,disabled])await deny(getDoc(doc(db,'settings/app')));
-    await deny(getDocs(collection(user,'settings')));await deny(getDoc(doc(user,'settings/fis_sync')));
-    await allow(updateDoc(doc(user,'settings/app'),{prag_pdv:70000,plan_mraz_prag:-2,plan_nicanje_dana:null}));
-    assert.equal((await getDoc(doc(user,'settings/app'))).data().old_unreviewed_field,'preserved');
-    await deny(updateDoc(doc(user,'settings/app'),{old_unreviewed_field:'changed'}));await deny(updateDoc(doc(user,'settings/app'),{OPG_OPENAI_API_KEY:'not-a-real-key'}));
-    await deny(updateDoc(doc(viewer,'settings/app'),{prag_pdv:0}));await deny(updateDoc(doc(user,'settings/app'),{ai_url:'http://unsafe.example'}));await deny(deleteDoc(doc(user,'settings/app')));
-    await allow(setDoc(doc(user,'settings/spray_conditions'),{temp_ideal:18,temp_max:28,wind_max:3}));
-    for(const id of ['weather_live','rizik','fis_sync','unknown'])await deny(setDoc(doc(user,'settings',id),{enabled:true}));
-    const event={tekst:'Client observation only',unio:'Display name',ts:1,auth_uid:'allowed'};
-    await allow(setDoc(doc(user,'aktivnosti/new'),event));await allow(getDocs(collection(user,'aktivnosti')));
-    await deny(setDoc(doc(user,'aktivnosti/forged'),{...event,auth_uid:'other'}));await deny(updateDoc(doc(user,'aktivnosti/new'),{tekst:'rewrite'}));await deny(deleteDoc(doc(user,'aktivnosti/new')));
-    const token={token:'own-token',user:'display name',created_at:1,auth_uid:'allowed'};
-    await allow(setDoc(doc(user,'fcm_tokens/own-token'),token));await allow(updateDoc(doc(user,'fcm_tokens/own-token'),{created_at:2}));
-    await env.withSecurityRulesDisabled(async ctx=>updateDoc(doc(ctx.firestore(),'fcm_tokens/own-token'),{server_metadata:'preserved'}));
-    await allow(setDoc(doc(user,'fcm_tokens/own-token'),{...token,created_at:3},{merge:true}));
-    await env.withSecurityRulesDisabled(async ctx=>assert.equal((await getDoc(doc(ctx.firestore(),'fcm_tokens/own-token'))).data().server_metadata,'preserved'));
-    await deny(updateDoc(doc(user,'fcm_tokens/own-token'),{server_metadata:'tampered'}));
-    await deny(getDoc(doc(user,'fcm_tokens/own-token')));await deny(getDocs(collection(user,'fcm_tokens')));
-    await deny(setDoc(doc(user,'fcm_tokens/forged'),{...token,token:'forged',auth_uid:'other'}));await deny(updateDoc(doc(user,'fcm_tokens/own-token'),{auth_uid:'other'}));
-    await deny(setDoc(doc(stranger,'fcm_tokens/own-token'),{...token,auth_uid:'unapproved'}));
-    await deny(setDoc(doc(user,'fcm_tokens/legacy-token'),{...token,token:'legacy-token'}));await deny(deleteDoc(doc(user,'fcm_tokens/legacy-token')));
-    await allow(deleteDoc(doc(user,'fcm_tokens/own-token')));
-    for(const path of ['unknown/test','prodaja/legacy/private/data','settings/app/private/secret','access_members/allowed/private/secret']){await deny(getDoc(doc(user,path)));await deny(setDoc(doc(user,path),{}));}
-    await env.withSecurityRulesDisabled(async ctx=>updateDoc(doc(ctx.firestore(),'access_members/allowed'),{enabled:false}));
-    await deny(getDoc(doc(user,'prodaja/legacy')));await deny(setDoc(doc(user,'zalihe/revoked'),{}));
-    await env.withSecurityRulesDisabled(async ctx=>updateDoc(doc(ctx.firestore(),'access_members/allowed'),{enabled:true}));
-    // Google authentication is identity only; an operator's protected record grants explicit rights.
-    const google=env.authenticatedContext('google-unapproved',{firebase:{sign_in_provider:'google.com'},email:'administrator@trusted.example.test',email_verified:true,admin:true}).firestore();
-    const googleAdmin=env.authenticatedContext('google-admin',{firebase:{sign_in_provider:'google.com'},email_verified:true}).firestore();
-    await env.withSecurityRulesDisabled(async ctx=>setDoc(doc(ctx.firestore(),'access_members/google-admin'),{enabled:true,administrator:true,permissions:allPermissions}));
-    await allow(getDoc(doc(google,'access_members/google-unapproved')));
-    for(const p of ['prodaja/legacy','troskovi/legacy','zalihe/legacy','prskanje/legacy','settings/app']){await deny(getDoc(doc(google,p)));await deny(setDoc(doc(google,p),{administrator:true}));await allow(getDoc(doc(googleAdmin,p)));}
-    await allow(updateDoc(doc(googleAdmin,'settings/app'),{prag_pdv:65000}));
-    for(const db of [google,googleAdmin]){
-      await deny(setDoc(doc(db,'access_members/google-unapproved'),{enabled:true,administrator:true,permissions:allPermissions}));
-      await deny(updateDoc(doc(db,'access_members/google-admin'),{permissions:allPermissions}));
-      await deny(getDoc(doc(db,'ai_private/config')));await deny(setDoc(doc(db,'ai_private/config'),{enabled:true}));
-    }
-    console.log(`PASS: Firestore permission matrix: ${passedAllow} allowed / ${passedDeny} denied operations; no owner inferred from display names`);
+ if(!/^(127\.0\.0\.1|localhost):\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST||''))throw new Error('Local emulator only');
+ const env=await initializeTestEnvironment({projectId:'demo-opg-ai',firestore:{rules:fs.readFileSync(path.join(__dirname,'../backend/firestore-fis.rules.proposed'),'utf8')}});
+ try{
+ await env.clearFirestore();let passedAllow=0,passedDeny=0;
+ const allow=async p=>{await assertSucceeds(p);passedAllow++;},deny=async p=>{await assertFails(p);passedDeny++;};
+ const claims={firebase:{sign_in_provider:'google.com'},email_verified:true};
+ const owner=env.authenticatedContext('owner',claims).firestore(),user=env.authenticatedContext('allowed',claims).firestore();
+ const rejected=[env.unauthenticatedContext().firestore(),env.authenticatedContext('stranger',{...claims,role:'OWNER',admin:true}).firestore(),env.authenticatedContext('old-anon',{firebase:{sign_in_provider:'anonymous'},email_verified:true}).firestore(),env.authenticatedContext('legacy',claims).firestore(),env.authenticatedContext('disabled',claims).firestore(),env.authenticatedContext('unverified',{firebase:{sign_in_provider:'google.com'},email_verified:false}).firestore(),env.authenticatedContext('orphan',claims).firestore()];
+ const cols=['prodaja','troskovi','zalihe','prskanje','licences','parcele','sjetva_sadnja','plan','plan_status','rokovi'];
+ await env.withSecurityRulesDisabled(async ctx=>{
+ const db=ctx.firestore();
+ for(const [uid,role,enabled]of [['owner','OWNER',true],['allowed','MEMBER',true],['old-anon','OWNER',true],['disabled','MEMBER',false],['unverified','MEMBER',true],['orphan','OWNER',true]])await setDoc(doc(db,'access_members',uid),{role,enabled,roleVersion:1});
+ await setDoc(doc(db,'access_members/legacy'),{enabled:true,administrator:true,permissions:['finance_read','finance_write','settings_manage']});
+ await setDoc(doc(db,'access_control/owner'),{uid:'owner'});await setDoc(doc(db,'access_control/member'),{uid:'allowed'});
+ for(const col of cols)await setDoc(doc(db,col,'legacy'),{naziv:'Laser SC',trenutna_kolicina:2,unknown:{preserved:true},unio:'Old display label'});
+ for(const p of ['settings/app','settings/spray_conditions','settings/weather_live','settings/rizik','fis_cache/374','fis_sync_status/daily'])await setDoc(doc(db,p),{legacy:true});
+ await setDoc(doc(db,'settings/security'),{ai_url:'https://example.test/public-endpoint'});
+ await setDoc(doc(db,'access_audit/event'),{actorUid:'owner'});
+ });
+ for(const col of cols){
+ for(const db of rejected){await deny(getDoc(doc(db,col,'legacy')));await deny(getDocs(collection(db,col)));await deny(setDoc(doc(db,col,'bad'),{}));await deny(updateDoc(doc(db,col,'legacy'),{unio:'owner'}));await deny(deleteDoc(doc(db,col,'legacy')));}
+ for(const db of [owner,user]){await allow(getDoc(doc(db,col,'legacy')));await allow(getDocs(collection(db,col)));await allow(setDoc(doc(db,col,'shared'),{value:1}));await allow(updateDoc(doc(db,col,'shared'),{value:2}));assert.equal((await getDoc(doc(db===owner?user:owner,col,'shared'))).data().value,2);await allow(deleteDoc(doc(db,col,'shared')));}
+ }
+ await allow(updateDoc(doc(user,'zalihe/legacy'),{fis_product_id:'374'}));assert.deepEqual((await getDoc(doc(owner,'zalihe/legacy'))).data().unknown,{preserved:true});
+ for(const db of [owner,user,...rejected]){
+ await deny(setDoc(doc(db,'access_members/self'),{enabled:true,role:'OWNER',roleVersion:1}));await deny(updateDoc(doc(db,'access_members/allowed'),{role:'OWNER'}));await deny(deleteDoc(doc(db,'access_members/owner')));await deny(setDoc(doc(db,'access_control/owner'),{uid:'allowed'}));await deny(setDoc(doc(db,'access_control/member'),{uid:'old-anon'}));
+ for(const p of ['ai_private/config','ai_private/usage_2026-10','ai_private/requests/items/test']){await deny(getDoc(doc(db,p)));await deny(setDoc(doc(db,p),{allowedUids:['old-anon']}));await deny(deleteDoc(doc(db,p)));}
+ for(const p of ['fis_cache/374','fis_sync_status/daily','settings/fis_sync','settings/weather_live','settings/rizik'])await deny(setDoc(doc(db,p),{enabled:true}));
+ }
+ for(const db of [owner,user]){
+ for(const p of ['settings/app','settings/security','settings/spray_conditions','settings/weather_live','settings/rizik','fis_cache/374','fis_sync_status/daily'])await allow(getDoc(doc(db,p)));
+ await allow(updateDoc(doc(db,'settings/app'),{prag_pdv:60000,plan_mraz_prag:-2}));await allow(setDoc(doc(db,'settings/spray_conditions'),{temp_ideal:18,temp_max:28,wind_max:3},{merge:true}));
+ await deny(updateDoc(doc(db,'settings/app'),{ai_url:'https://evil.test'}));await deny(updateDoc(doc(db,'settings/app'),{legacy:false}));await deny(updateDoc(doc(db,'settings/app'),{OPG_OPENAI_API_KEY:'not-real'}));await deny(getDocs(collection(db,'settings')));
+ await allow(setDoc(doc(db,'aktivnosti/event'),{tekst:'Business log',unio:'label',ts:1,auth_uid:db===owner?'owner':'allowed'}));await allow(getDocs(collection(db,'aktivnosti')));await allow(updateDoc(doc(db,'aktivnosti/event'),{tekst:'Corrected business note'}));await deny(updateDoc(doc(db,'aktivnosti/event'),{auth_uid:'forged'}));await allow(deleteDoc(doc(db,'aktivnosti/event')));
+ await deny(setDoc(doc(db,'aktivnosti/forged'),{tekst:'forged',unio:'label',ts:1,auth_uid:'other'}));
+ }
+ await allow(updateDoc(doc(owner,'settings/security'),{ai_url:'https://example.test/public'}));await deny(updateDoc(doc(user,'settings/security'),{ai_url:'https://evil.test'}));await deny(updateDoc(doc(owner,'settings/security'),{ai_url:'http://unsafe.test'}));await deny(updateDoc(doc(owner,'settings/security'),{admin:true}));
+ await env.withSecurityRulesDisabled(async c=>updateDoc(doc(c.firestore(),'settings/security'),{unexpected_private_field:'fixture'}));
+ await deny(getDoc(doc(user,'settings/security')));await deny(getDoc(doc(owner,'settings/security')));
+ await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'settings/security'),{ai_url:'https://example.test/public'}));
+ await allow(getDoc(doc(owner,'access_audit/event')));await deny(getDoc(doc(user,'access_audit/event')));await deny(setDoc(doc(owner,'access_audit/fake'),{actorUid:'owner'}));
+ for(const db of rejected)for(const p of ['settings/app','settings/security','fis_cache/374','fis_sync_status/daily'])await deny(getDoc(doc(db,p)));
+ // A stale anonymous token for the EXACT approved UID must still fail after Google linking.
+ for(const claims of [{firebase:{sign_in_provider:'anonymous'},email_verified:true},{firebase:{sign_in_provider:'google.com'},email_verified:false}]){
+ const stale=env.authenticatedContext('allowed',claims).firestore();await deny(getDoc(doc(stale,'prodaja/legacy')));await deny(setDoc(doc(stale,'zalihe/stale-token'),{}));
+ }
+ await allow(getDoc(doc(user,'access_members/allowed')));await deny(getDoc(doc(user,'access_members/owner')));await deny(getDocs(collection(user,'access_members')));
+ const token={token:'token',user:'label',created_at:1,auth_uid:'allowed'};await allow(setDoc(doc(user,'fcm_tokens/token'),token));await deny(setDoc(doc(owner,'fcm_tokens/token'),{...token,auth_uid:'owner'}));await deny(getDoc(doc(user,'fcm_tokens/token')));await allow(deleteDoc(doc(user,'fcm_tokens/token')));
+ await env.withSecurityRulesDisabled(async c=>updateDoc(doc(c.firestore(),'access_members/allowed'),{enabled:false}));await deny(getDoc(doc(user,'prodaja/legacy')));
+ await env.withSecurityRulesDisabled(async c=>updateDoc(doc(c.firestore(),'access_members/allowed'),{enabled:true}));
+ for(const p of ['unknown/test','prodaja/legacy/private/secret','access_members/owner/private/data']){await deny(getDoc(doc(owner,p)));await deny(setDoc(doc(owner,p),{}));}
+ console.log(`PASS: Firestore OWNER/MEMBER matrix: ${passedAllow} allowed / ${passedDeny} denied operations; shared data, legacy anonymous rejection, owner-only security and no client role writes`);
     // Exercise real Admin SDK transactions under concurrency, still with a mocked provider.
     if(!process.env.FIRESTORE_EMULATOR_HOST)throw new Error('Local emulator host is required');
     const backendRequire=require('node:module').createRequire(path.join(__dirname,'../backend/pest-ai/package.json'));
@@ -117,7 +76,21 @@ const {randomUUID}=require('node:crypto');
       assert.equal(outcomes.filter(x=>x.status==='fulfilled').length,1);assert.equal(calls,1);
       assert.equal((await db.doc('ai_private/usage_2026-10').get()).data().attempts,100);
       console.log('PASS: real Firestore transactions admit only one of four parallel requests at 99/100');
+      const {manageMember,securityControl}=require('../backend/pest-ai/administration');
+      const ownerAuth={uid:'owner',token:claims};
+      const mockAuth={getUser:async uid=>({uid,emailVerified:true,disabled:false,providerData:[{providerId:'google.com'}]})};
+      await assert.rejects(manageMember(db,mockAuth,{uid:'allowed',token:claims},{uid:'target',enabled:true}),e=>e.code==='permission-denied');
+      await manageMember(db,mockAuth,ownerAuth,{uid:'allowed',enabled:false});
+      const approvals=await Promise.allSettled(['target-a','target-b'].map(uid=>manageMember(db,mockAuth,ownerAuth,{uid,enabled:true})));
+      assert.equal(approvals.filter(r=>r.status==='fulfilled').length,1);
+      const selected=(await db.doc('access_control/member').get()).data().uid;assert.ok(['target-a','target-b'].includes(selected));
+      await securityControl(db,ownerAuth,{control:'ai',enabled:false});assert.equal((await db.doc('ai_private/usage_2026-10').get()).data().attempts,100);
+      assert.ok((await db.collection('access_audit').get()).size>=3);
+      console.log('PASS: real OWNER transactions serialize competing MEMBER approvals, reject MEMBER administration, audit changes and preserve AI quota');
     }finally{await deleteApp(app);}
+    await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'prodaja/recovery'),{retained:true}));
+    const frozen=await initializeTestEnvironment({projectId:'demo-opg-ai',firestore:{rules:fs.readFileSync(path.join(__dirname,'../backend/firestore-emergency.rules'),'utf8')}});
+    try{await assertFails(getDoc(doc(frozen.authenticatedContext('owner',claims).firestore(),'prodaja/recovery')));await assertFails(setDoc(doc(frozen.authenticatedContext('owner',claims).firestore(),'access_members/owner'),{role:'OWNER'}));await frozen.withSecurityRulesDisabled(async c=>assert.equal((await getDoc(doc(c.firestore(),'prodaja/recovery'))).data().retained,true));console.log('PASS: emergency deny-all blocks clients, retains data and preserves trusted Admin recovery');}finally{await frozen.cleanup();}
     console.log('PASS: default-deny shared scopes, protected ACL/settings/finance/inventory/treatments/AI, legacy compatibility and local-only quota transactions');
   }finally{await env.cleanup();}
 })().catch(e=>{console.error(e);process.exit(1);});

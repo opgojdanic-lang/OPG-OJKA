@@ -1,15 +1,24 @@
 // Candidate only. Do not deploy until real rules, Auth UIDs and grants are reviewed.
-// access_members is a NEW server-managed permission registry, not an assumed user schema.
+// access_members + singleton access_control bindings are trusted only after closing legacy broad rules.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function has(permission) {
+    function approved() {
       return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true
         && exists(/databases/$(database)/documents/access_members/$(request.auth.uid))
         && get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('enabled', false) == true
-        && get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('permissions', []) is list
-        && permission in get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('permissions', []);
+        && get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('roleVersion', 0) == 1
+        && ((get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('role', '') == 'OWNER'
+          && get(/databases/$(database)/documents/access_control/owner).data.uid == request.auth.uid)
+          || (get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('role', '') == 'MEMBER'
+          && get(/databases/$(database)/documents/access_control/member).data.uid == request.auth.uid));
     }
+    function owner() {
+      return approved() && get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.role == 'OWNER';
+    }
+    function has(permission) { return approved() && (!(permission in ['security_manage','users_manage']) || owner()); }
     function own(uid) { return request.auth != null && request.auth.uid == uid; }
     function nullableNumber(data, key) { return data.get(key, null) == null || data[key] is number; }
     function optionalUrl(data, key) {
@@ -18,14 +27,12 @@ service cloud.firestore {
     }
     function validAppSettings() {
       let data = request.resource.data;
-      return optionalUrl(data, 'ai_url') && optionalUrl(data, 'spray_check_url')
-        && (!('vapid_key' in data) || (data.vapid_key is string && data.vapid_key.size() <= 512))
-        && nullableNumber(data, 'prag_pdv')
+      return nullableNumber(data, 'prag_pdv')
         && nullableNumber(data, 'plan_razmak_prskanja') && nullableNumber(data, 'plan_nicanje_dana')
         && nullableNumber(data, 'plan_presadjivanje_dana') && nullableNumber(data, 'plan_mraz_prag');
     }
     function appSettingKeys() {
-      return ['ai_url','spray_check_url','vapid_key','prag_pdv','plan_razmak_prskanja',
+      return ['prag_pdv','plan_razmak_prskanja',
         'plan_nicanje_dana','plan_presadjivanje_dana','plan_mraz_prag'];
     }
     function validSpraySettings() {
@@ -43,6 +50,11 @@ service cloud.firestore {
       allow get: if own(uid);
       allow list, create, update, delete: if false;
     }
+    match /access_control/{id} {
+      allow get: if approved() && ((id == 'owner' && owner()) || id == 'member');
+      allow list, write: if false;
+    }
+    match /access_audit/{id} { allow read: if owner(); allow write: if false; }
     match /prodaja/{id} {
       allow read: if has('finance_read');
       allow create, update, delete: if has('finance_write');
@@ -75,13 +87,29 @@ service cloud.firestore {
         && request.resource.data.tekst is string && request.resource.data.tekst.size() <= 8000
         && request.resource.data.unio is string && request.resource.data.unio.size() <= 200
         && request.resource.data.ts is int;
-      allow update, delete: if false;
+      allow update: if has('activities_create')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tekst','unio'])
+        && request.resource.data.tekst is string && request.resource.data.tekst.size() <= 8000
+        && request.resource.data.unio is string && request.resource.data.unio.size() <= 200;
+      allow delete: if has('activities_create');
     }
     match /settings/app {
       allow get: if has('settings_read');
       allow create: if has('settings_manage') && request.resource.data.keys().hasOnly(appSettingKeys()) && validAppSettings();
       allow update: if has('settings_manage')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(appSettingKeys()) && validAppSettings();
+      allow delete: if false;
+    }
+    match /settings/security {
+      // Public runtime endpoints only, NEVER secrets. Only OWNER can change them.
+      allow get: if approved() && (!exists(/databases/$(database)/documents/settings/security)
+        || resource.data.keys().hasOnly(['ai_url','spray_check_url','vapid_key']));
+      allow create: if owner() && request.resource.data.keys().hasOnly(['ai_url','spray_check_url','vapid_key'])
+        && optionalUrl(request.resource.data, 'ai_url') && optionalUrl(request.resource.data, 'spray_check_url')
+        && request.resource.data.get('vapid_key','') is string && request.resource.data.get('vapid_key','').size() <= 512;
+      allow update: if owner() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ai_url','spray_check_url','vapid_key'])
+        && optionalUrl(request.resource.data, 'ai_url') && optionalUrl(request.resource.data, 'spray_check_url')
+        && request.resource.data.get('vapid_key','') is string && request.resource.data.get('vapid_key','').size() <= 512;
       allow delete: if false;
     }
     match /settings/spray_conditions {

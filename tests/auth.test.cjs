@@ -39,19 +39,19 @@ test('same-origin Firebase Hosting redirect keeps a link intent and verifies the
   const origin='https://opg-ojka.firebaseapp.com',h=harness({uid:'anon',isAnonymous:true},{origin});await h.c.start();assert.equal(await h.c.login(true),true);assert.ok(h.calls.some(c=>c[0]==='linkRedirect'));assert.equal(JSON.parse(h.store.get('opg_google_redirect_v1')).uid,'anon');
   const bad=harness({uid:'unexpected',isAnonymous:false},{origin,redirectResult:{user:{uid:'unexpected'}}});bad.store.set('opg_google_redirect_v1',JSON.stringify({kind:'link',uid:'anon',projectId:'opg-ojka',at:Date.now()}));await bad.c.start();assert.equal(bad.sessions.at(-1),null);
 });
-test('only a protected server record controls permissions; profile/domain/provider do not grant admin',()=>{
-  for(const record of [null,{enabled:false,administrator:true,permissions:['finance_read']},{enabled:true,permissions:'finance_read'}])assert.equal(access(record).enabled,false);
-  assert.deepEqual(access({enabled:true,permissions:['finance_read','unknown','finance_read']}),{enabled:true,administrator:false,permissions:['finance_read']});
-  assert.deepEqual(access({enabled:true,administrator:true,permissions:['settings_manage']}),{enabled:true,administrator:true,permissions:['settings_manage']});
+test('roles require Google identity and a versioned server record, legacy scopes grant nothing',()=>{
+ const google={isAnonymous:false,emailVerified:true,providerData:[{providerId:'google.com'}]};
+ for(const record of [null,{enabled:true,administrator:true,permissions:['finance_read']},{enabled:true,role:'OWNER'},{enabled:false,roleVersion:1,role:'OWNER'}])assert.equal(access(record,google).enabled,false);
+ for(const role of ['OWNER','MEMBER']){const r=access({enabled:true,roleVersion:1,role},google);assert.equal(r.role,role);assert.ok(r.permissions.includes('finance_write'));assert.equal(r.permissions.includes('users_manage'),role==='OWNER');assert.equal(access({enabled:true,roleVersion:1,role},{...google,isAnonymous:true}).enabled,false);}
 });
 test('auth errors show known Croatian messages, not credentials or raw provider payloads',()=>{
   for(const code of ['auth/popup-blocked','auth/unauthorized-domain','auth/network-request-failed','auth/account-exists-with-different-credential','unknown'])assert.ok(!message({code,message:'hidden-token',customData:{credential:'hidden-token'}}).includes('hidden-token'));
 });
 const {plan}=require('../scripts/grant-administrator.cjs');
-test('operator grant plan requires verified Google UID and explicit scopes without changing input data',()=>{
-  const user={uid:'verified-google',emailVerified:true,providerData:[{providerId:'google.com'}]},existing={permissions:['inventory_read'],other:'retained'};
-  assert.deepEqual(plan({projectId:'opg-ojka',uid:user.uid,user,existing,permissions:['settings_manage']}),{enabled:true,administrator:true,permissions:['inventory_read','settings_manage']});assert.deepEqual(existing,{permissions:['inventory_read'],other:'retained'});
-  for(const change of [{projectId:'other-project'},{permissions:[]},{permissions:['*']},{user:{...user,disabled:true}},{user:{...user,emailVerified:false}},{user:{...user,providerData:[]}},{uid:'other'}])assert.throws(()=>plan({projectId:'opg-ojka',uid:user.uid,user,permissions:['settings_manage'],...change}));
+test('operator bootstrap pins one verified Google OWNER and refuses automatic owner replacement',()=>{
+ const user={uid:'verified-google',emailVerified:true,providerData:[{providerId:'google.com'}]},args={projectId:'opg-ojka',uid:user.uid,user};
+ assert.deepEqual(plan(args),{enabled:true,role:'OWNER',roleVersion:1});
+ for(const change of [{projectId:'other'},{existingOwner:{uid:'other'}},{existing:{role:'MEMBER'}},{user:{...user,emailVerified:false}},{user:{...user,disabled:true}},{user:{...user,providerData:[]}},{uid:'other'}])assert.throws(()=>plan({...args,...change}));
 });
 test('disposed auth observers cannot restore a previous identity after configuration changes',async()=>{
   const h=harness({uid:'old-anon',isAnonymous:true});await h.c.start();const count=h.sessions.length;h.change(h.google('old-callback'));h.c.dispose();await new Promise(r=>setTimeout(r,0));assert.equal(h.sessions.length,count);assert.equal(await h.c.login(),false);

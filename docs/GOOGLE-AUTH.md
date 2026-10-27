@@ -8,7 +8,7 @@ Stanje: 27. listopada 2026.; Draft PR #2. Ništa nije objavljeno, spojeno, dodij
 
 Postojeći anonimni račun povezuje se kroz `linkWithPopup`: uspjeh mora zadržati isti UID. Kod već zauzetog Google računa aplikacija ne prelazi automatski na taj račun, ne briše korisnika i ne spaja podatke. Korisnik mora prvo zabilježiti UID i zatražiti provjeru vlasništva. Gubitak pregledničke pohrane prije povezivanja može onemogućiti povrat anonimnog identiteta; UID nije lozinka ni dokaz vlasništva.
 
-Ovlasti dolaze isključivo iz serverski potvrđenog `access_members/{uid}` dokumenta predloženih pravila. `enabled:true` i konkretni poznati `permissions` potrebni su za svaki opseg. `administrator:true` je prikazna oznaka, nije zaobilaženje pravila. Google provider, e-mail domena, klijentski flag ili custom claim sami ne otključavaju podatke. Anonimni korisnik može imati samo pojedinačno prethodno odobrene opsege. Zasebni serverski AI allowlist ostaje odvojen; Google/admin status ga ne zamjenjuje. Mjesečna kvota 100 i evidencija troška nisu promijenjene.
+Ovlasti sada dolaze iz konačnog Google OWNER/MEMBER modela, ne iz starih permissions/administrator/allowedUids zapisa. Anonimni račun nema poslovni ni AI pristup. Točan model, odobravanje i redoslijed zatvaranja sadašnjih širokih pravila određuje **[ROLE-ROLLOUT.md](ROLE-ROLLOUT.md)**. OWNER i MEMBER dijele poslovne podatke i AI budžet 100 mjesečno; samo OWNER upravlja korisnicima i sigurnosnim kontrolama.
 
 Aplikacija čeka serverski ACL; predmemorirani ACL ili lokalni pending zapis ne otključava pristup. Pretplate se pokreću samo za dopuštene kolekcije. Promjena UID-a/odjava odvaja čitače, uklanja privatni prikaz, obrasce i AI/FIS rezultate; zakašnjeli odgovori starog računa ignoriraju se. Isti UID pri Google povezivanju zadržava nespremljeno opažanje. Već poslani zahtjev može završiti prema prethodnim serverskim ovlastima; odjava nije otkaz transakcije.
 
@@ -26,28 +26,15 @@ Authorized domains samo dopušta origin; ne rješava cross-origin redirect helpe
 
 Implementirani redirect gumb ostaje onemogućen na Pagesu. Kod ga dopušta samo na istom HTTPS originu `opg-ojka.firebaseapp.com` ili `opg-ojka.web.app` s odgovarajućim `authDomain`. Čuva namjeru/UID u sessionStorage, provjerava rezultat prije učitavanja poslovnih podataka i odbija promijenjeni UID pri povezivanju. To je zaštitna priprema, ne dokaz da je budući Hosting konfiguriran. Prije omogućavanja provjeriti stvarni `/__/auth/handler`, javni Firebase web config, OAuth redirect URI u Google Cloud konzoli, consent screen/test users, povrat u PWA i ponašanje nakon prekida navigacije. Samostalni custom-domain/proxy postupak nije implementiran.
 
-## Početno dodjeljivanje administratora — samo ovlašteni operator
+## Početno odobravanje i oporavak
 
-Nema klijentskog administratorskog endpointa ni automatskog prvog administratora. `scripts/grant-administrator.cjs` pokreće se samo na pouzdanom operatorskom računalu s odobrenim ADC/IAM pristupom Firebase Auth i ciljanim Firestore dokumentima. Ne spremati service-account JSON u repo, web direktorij ili chat. Ne pokretati ovaj postupak u setupu/CI-ju.
-
-1. Vlasnik neovisno provjerava osobu, projekt i Firebase UID. Korisnik se prijavi Googleom i vidi UID čak i bez poslovnih ovlasti. Kod anonimnog povezivanja usporediti UID prije/poslije.
-2. Pregledati stvarna pravila i postojeći ACL. Prvo osigurati da klijent ne može pisati `access_members`; inače registry nije pouzdan. Dogovoriti prozor održavanja i prava najmanjeg opsega. Ne otvarati bazu radi bootstrap grešaka.
-3. Instalirati backend zaključane ovisnosti; prvo izvršiti samo čitanje (zamijeniti `VERIFIED_UID` stvarnim provjerenim UID-em):
-
-```sh
-node scripts/grant-administrator.cjs --project opg-ojka --uid VERIFIED_UID --permissions finance_read,inventory_read
-```
-
-CLI preko Admin SDK-a provjerava da je korisnik omogućen, ima verificiranu e-poštu i Google provider. To tehničko svojstvo nije zamjena za neovisnu provjeru vlasnika. Default je dry-run bez pisanja. Pregledati popis: postojeći poznati opsezi se zadržavaju, nepoznati/neispravni se odbijaju; ovo nije alat za opoziv ovlasti. Cijeli katalog je `PERMISSIONS` u `auth.js`; dodavati samo potrebne opsege, ne slijepo cijeli popis.
-
-4. Tek uz zasebno odobrenje operator može ponoviti istu naredbu s `--apply --confirm-project opg-ojka --confirm-uid VERIFIED_UID`. To transakcijski spaja samo zaštićeni ACL dokument. Ne mijenja poslovne dokumente, tajne, AI allowlist ili custom claims. Nijedan takav stvarni poziv nije izvršen ovim PR-om.
-5. Neovisno provjeriti spremljeni dokument i prijavu; kliknuti osvježavanje ovlasti. Testirati odbijen Google račun, dopuštene i nedopuštene opsege, odjavu, opoziv `enabled` te zasebno AI pristup. Ne zaključivati o pravima iz same administratorske oznake.
+Slijediti isključivo aktualni [OWNER/MEMBER rollout](ROLE-ROLLOUT.md). `scripts/grant-administrator.cjs` sada priprema jednog OWNER-a, zadano read-only, bez proizvoljnog `--permissions` argumenta. MEMBER-a odobrava OWNER preko provjerenog serverskog postupka. Nema automatske dodjele stvarnih uloga. Prije bootstrap-a mora se zatvoriti široki klijentski pristup registryju.
 
 ## Testovi i granice dokaza
 
-- `node --test tests/*.test.cjs`: 54 testa, uključujući povezivanje, konflikt bez automatskog prelaska, karantenu promjene UID-a, odjavu, redirect ograničenja, sanitizirane greške i operatorski plan.
+- `node --test tests/*.test.cjs`: 59 testova, uključujući povezivanje, konflikt bez automatskog prelaska, karantenu promjene UID-a, odjavu, redirect ograničenja, sanitizirane greške i operatorski plan.
 - `tests/auth-emulator.cjs`: pravi Firebase Web SDK 10.12.2 i lokalni Auth emulator; anonimni UID ostaje pri Google credential linku, odjava i novi anonimni račun su odvojeni, konflikt čuva anonimni identitet. Sintetički Google tokeni vrijede samo u emulatoru; ovo ne testira Google consent/popup mrežu.
-- `tests/pest-ai-rules.cjs`: 76 dopuštenih / 310 odbijenih operacija, uključujući anonimnog korisnika, Google bez ovlasti, administratora sa serverskim opsezima, zabranu samododjele ACL-a i privatne AI evidencije; stvarne emulator transakcije kvote.
+- `tests/pest-ai-rules.cjs`: 132 dopuštene / 583 odbijenih operacija, uključujući odbijanje anonimnog korisnika, Google bez ovlasti i OWNER/MEMBER uloge, zabranu samododjele ACL-a i privatne AI evidencije; stvarne emulator transakcije kvote.
 - `tests/auth-browser.cjs`: cijela aplikacija u Chromiumu i WebKitu s lažnim Firebase/OAuth adapterima; svi moduli, povezivanje istog UID-a, Google bez ovlasti, admin, promjena računa, zakašnjeli callbackovi, odjava/reload i očuvanje stare lokalne pohrane.
 - `tests/fis-browser.cjs`: FIS/AI funkcionalni i mobilni testovi s lažnim mrežnim odgovorima, uključujući sintetičke safe-area insets. WebKit emulacija nije fizički iPhone Safari.
 - Frontend testovi provjeravaju CSP, zabranu privatnih ključeva/Admin SDK-a i prava u browser assetima. Firebase javni web `apiKey` nije administratorska tajna. `OPG_OPENAI_API_KEY` ostaje serverski. Statički frontend nema build korak; provjeravaju se testovi i učitavanje Functions entry pointa.
@@ -72,4 +59,4 @@ BROWSER_ENGINE=webkit SAFE_AREA_TEST=1 node tests/fis-browser.cjs
 
 Prvo provjeriti stvarne Auth korisnike, produkcijska pravila, ACL/IAM, web config i preostale privatne povijesne Git/web artefakte prema sigurnosnom planu. Produkcijski ADC nije valjan u ovom okruženju; stvarni ACL, postojeća pravila i stvarno Laser SC povezivanje nisu potvrđeni. Nema dokaza da je stvarna Google OAuth prijava prošla. Potrebna je odvojena staging provjera s pravim računima i fizičkim iPhoneom, uključujući PWA, blokirani/zatvoreni popup, UID prije/poslije, zauzeti Google račun, nedopušten račun, administratora i opoziv ovlasti. Odvojeni staging Firebase projekt/profil sprječava nenamjernu odjavu produkcijskih tabova koji dijele Auth storage.
 
-Nakon tih provjera i posebnog odobrenja slijediti redoslijed sigurnosnog plana: zaštititi registry pregledanim pravilima prije dodjele, objaviti usklađeni frontend, kontrolirano dodijeliti provjerene UID opsege i provjeriti pristup. Google dodatak ne zahtijeva novu Function niti promjenu tajni; cijeli PR ranije mijenja `fisSyncDaily`, `pestPhotoAnalyze` i `pestPhotoUsage`, koje imaju zaseban pregledani deploy korak. Sadašnji frontend objavljuje se kroz GitHub Pages; Firebase Hosting nije potreban za popup. Opcionalni Hosting prelazak zahtijeva zasebnu konfiguraciju i odobrenje. Nijedan deploy/merge nije izvršen.
+Nakon tih provjera i posebnog odobrenja slijediti isključivo [aktualni rollout i oporavak](ROLE-ROLLOUT.md). Cijeli PR sada uključuje `fisSyncDaily`, `pestPhotoAnalyze`, `pestPhotoUsage` te nove `opgManageMember` i `opgSecurityControl`. Sadašnji frontend objavljuje se kroz GitHub Pages; Firebase Hosting nije potreban za popup. Opcionalni Hosting prelazak zahtijeva zasebnu konfiguraciju i odobrenje. Nijedan deploy/merge nije izvršen.

@@ -1,3 +1,5 @@
+> **Konačni model:** stari `allowedUids` više nije autoritet. Pristup zahtijeva Google OWNER/MEMBER i zaštićenu vezu; aktualni postupak je [ROLE-ROLLOUT.md](ROLE-ROLLOUT.md). Donje stare upute o dodavanju anonimnih UID-ova ne primjenjivati.
+
 > Ažuriranje sigurnosnog kandidata: ovaj raniji opis treba čitati uz [SECURITY-RELEASE-PLAN.md](SECURITY-RELEASE-PLAN.md). Pravila sada zadano odbijaju pristup bez posebno potvrđenih dopuštenja; emulator testovi su izvršeni, a privatni početni podaci uklonjeni iz HTML-a. Ne objavljivati prethodnu široku varijantu pravila.
 
 # Uključivanje AI analize fotografija
@@ -20,7 +22,8 @@ Odgovor sadrži stvarno vidljive znakove, do tri moguća uzroka, nisku/umjerenu 
 
 ## Zaštita pristupa i podataka
 
-Poziv zahtijeva postojeći Firebase Auth UID na serverskom popisu `allowedUids`; anonimna prijava sama po sebi nije dovoljna. Novi uređaj/preglednik ima drugi UID i dodaje se zasebno. CORS je ograničen na postojeću GitHub Pages domenu, ali CORS nije autentikacija. App Check još nije postavljen; dopuštene UID-ove treba čuvati kroz postojeću prijavu.
+Poziv zahtijeva verificirani Google Firebase token i aktualnu zaštićenu OWNER/MEMBER ulogu/vezu prema [ROLE-ROLLOUT.md](ROLE-ROLLOUT.md). Anonimni račun i stari allowedUids ne daju pristup. CORS nije autentikacija; App Check nije postavljen. Isti povezani Google račun zadržava UID na drugim uređajima u istom Firebase projektu.
+
 
 `ai_private` je namijenjen samo Admin SDK-u. Fotografije i opis ne spremaju se u Firebase ni aplikacijske logove; spremaju se hash zahtjeva, tekst rezultata i mjerenja potrošnje radi ponovljenih poziva. Opažanja, fotografije i rezultat mogu se korisnikovim gumbom spremiti lokalno na uređaj. Provider prima odabrane fotografije i opis tek nakon potvrde slanja. `store:false` isključuje spremanje Responses aplikacijskog stanja, ali nije obećanje Zero Data Retention; primjenjuju se uvjeti obrade i zadržavanja podataka OpenAI računa. Backend zapisi rezultata nemaju automatsko brisanje u ovoj verziji; ne brisati zahtjeve/brojače tijekom mjeseca jer se time može izgubiti zaštita od ponovljenog slanja/prekoračenja limita.
 
@@ -54,18 +57,11 @@ npm ci --prefix backend/pest-ai --ignore-scripts
 npx firebase-tools deploy --only functions:pest-ai --project opg-ojka
 ```
 
-Time se ciljaju samo `pestPhotoAnalyze` i `pestPhotoUsage`. Ne koristiti opći deploy ili potvrđivati brisanje ranije objavljenih funkcija. Dnevni FIS codebase i šest postojećih funkcija nisu zamjena za ovaj codebase.
+Codebase sada obuhvaća `pestPhotoAnalyze`, `pestPhotoUsage`, `opgManageMember` i `opgSecurityControl`; slijediti aktualni rollout. Ne koristiti opći deploy ili potvrđivati brisanje ranije objavljenih funkcija. Dnevni FIS codebase i šest postojećih funkcija nisu zamjena za ovaj codebase.
 
-### 4. Omogućiti točan uređaj
+### 4. Odobriti korisnike i uključiti AI
 
-U pregledanoj verziji aplikacije Zaštita → Fotografije i opažanje → Provjeri dostupnost AI-ja prikazuje Firebase UID u odjeljku za uključivanje uređaja. Prva provjera prije konfiguracije očekivano neće dopustiti AI. UID nije API ključ.
-
-U Firebase konzoli Firestore stvoriti dokument `ai_private/config`:
-
-- `enabled`: boolean `false`
-- `allowedUids`: array stringova s točno provjerenim UID-ovima uređaja
-
-Nakon objave i provjere pravila/funkcija, postaviti `enabled` na boolean `true`. Ne dodavati taj popis pod `settings`, gdje ga stara pravila dopuštaju mijenjati klijentu. Ako pregledana verzija aplikacije još nije objavljena, najprije pregledati i dogovoriti objavu sučelja.
+Slijediti isključivo [OWNER/MEMBER redoslijed](ROLE-ROLLOUT.md): zatvaranje širokih pravila, odobreni OWNER bootstrap, restriktivna pravila i OWNER-ovo odobravanje MEMBER-a. `ai_private/config.enabled` ostaje globalna kontrola; OWNER je mijenja kroz provjereni `opgSecurityControl`. Ne dodavati anonimne UID-ove ili koristiti stari allowedUids kao ovlasti. Kvota se ne resetira.
 
 ### 5. Jedna stvarna analiza i pregled nakon 20
 

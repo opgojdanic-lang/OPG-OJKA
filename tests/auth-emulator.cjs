@@ -10,6 +10,7 @@ const assert=require('node:assert/strict');
     const anonymous=await sdk.signInAnonymously(auth),uid=anonymous.user.uid;
     const linked=await sdk.linkWithCredential(anonymous.user,sdk.GoogleAuthProvider.credential(jwt('link-'+Date.now())));
     assert.equal(linked.user.uid,uid);assert.equal(linked.user.isAnonymous,false);assert.ok(linked.user.providerData.some(p=>p.providerId==='google.com'));
+    const linkedClaims=(await linked.user.getIdTokenResult(true)).claims;assert.equal(linkedClaims.firebase.sign_in_provider,'google.com');assert.equal(linkedClaims.email_verified,true);assert.equal(linked.user.emailVerified,true);
     await sdk.signOut(auth);assert.equal(auth.currentUser,null);
     const separate=await sdk.signInAnonymously(auth);assert.notEqual(separate.user.uid,uid);
     const existing=await sdk.signInWithCredential(auth,sdk.GoogleAuthProvider.credential(jwt('existing-'+Date.now()))),googleUid=existing.user.uid,token=await existing.user.getIdToken();assert.ok(token);await sdk.signOut(auth);

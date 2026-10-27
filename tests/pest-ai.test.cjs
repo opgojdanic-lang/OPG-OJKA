@@ -9,7 +9,7 @@ const input=()=>({requestId:randomUUID(),culture:'PAPRIKA BABURA',note:'Srebrnka
 const result={assessment:'possible_causes',summary:'Moguć je napad tripsa; potreban pregled.',visibleSigns:['Srebrnkasti tragovi'],possibleCauses:[{name:'Trips',kind:'pest',confidence:'low',evidence:'Tragovi na listu',check:'Pregledaj cvijet i donju stranu lista.'}],nextPhotos:['Makro fotografija kukca'],fieldChecks:['Pregledaj više biljaka.']};
 const raw=(r=result)=>({status:'completed',usage:{input_tokens:1000,output_tokens:200,input_tokens_details:{cached_tokens:100}},output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(r)}]}]});
 function database(seed={}){
-  const store=new Map(Object.entries({'ai_private/config':{enabled:true,allowedUids:['allowed']},...seed}));
+  const store=new Map(Object.entries({'access_members/allowed':{enabled:true,role:'MEMBER',roleVersion:1},'access_control/member':{uid:'allowed'},'ai_private/config':{enabled:true,allowedUids:['allowed']},...seed}));
   let queue=Promise.resolve();
   const doc=path=>({path,get:async()=>({data:()=>structuredClone(store.get(path))})});
   const db={doc,runTransaction:fn=>{
@@ -29,12 +29,12 @@ test('request has structured uncertain results, image inputs, no storage and bou
 });
 test('disabled, unauthenticated and unapproved users cannot call paid API',async()=>{
   let calls=0;const options=opts(async()=>{calls++;});
-  for(const [uid,config,code]of [[undefined,{enabled:true,allowedUids:['allowed']},'unauthenticated'],['stranger',{enabled:true,allowedUids:['allowed']},'permission-denied'],['allowed',{enabled:false,allowedUids:['allowed']},'failed-precondition']]){
+  for(const [uid,config,code]of [[undefined,{enabled:true,allowedUids:['allowed']},'unauthenticated'],['stranger',{enabled:true,allowedUids:['allowed']},'permission-denied'],['allowed',{enabled:false,allowedUids:['allowed']},'failed-precondition'],['allowed',undefined,'failed-precondition']]){
     const {db}=database({'ai_private/config':config});await assert.rejects(analyze(db,uid,input(),options),e=>e.code===code);
   }assert.equal(calls,0);
 });
 test('missing key and invalid image never reserve quota',async()=>{
-  const {db,store}=database();await assert.rejects(analyze(db,'allowed',input(),{apiKey:''}),e=>e.code==='failed-precondition');await assert.rejects(analyze(db,'allowed',{...input(),photos:['bad']},opts()));assert.equal(store.size,1);
+  const {db,store}=database();await assert.rejects(analyze(db,'allowed',input(),{apiKey:''}),e=>e.code==='failed-precondition');await assert.rejects(analyze(db,'allowed',{...input(),photos:['bad']},opts()));assert.equal(store.size,3);
 });
 test('one successful request is charged once; replay and changed-payload ID are safe',async()=>{
   const {db,store}=database();let calls=0;const options=opts(async()=>{calls++;return{ok:true,json:async()=>raw()};});const data=input();
