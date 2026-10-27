@@ -32,7 +32,7 @@ Slijediti isključivo aktualni [OWNER/MEMBER rollout](ROLE-ROLLOUT.md). `scripts
 
 ## Testovi i granice dokaza
 
-- `node --test tests/*.test.cjs`: 59 testova, uključujući povezivanje, konflikt bez automatskog prelaska, karantenu promjene UID-a, odjavu, redirect ograničenja, sanitizirane greške i operatorski plan.
+- `node --test tests/*.test.cjs`: 63 testova, uključujući povezivanje, konflikt bez automatskog prelaska, karantenu promjene UID-a, odjavu, redirect ograničenja, sanitizirane greške i operatorski plan.
 - `tests/auth-emulator.cjs`: pravi Firebase Web SDK 10.12.2 i lokalni Auth emulator; anonimni UID ostaje pri Google credential linku, odjava i novi anonimni račun su odvojeni, konflikt čuva anonimni identitet. Sintetički Google tokeni vrijede samo u emulatoru; ovo ne testira Google consent/popup mrežu.
 - `tests/pest-ai-rules.cjs`: 132 dopuštene / 583 odbijenih operacija, uključujući odbijanje anonimnog korisnika, Google bez ovlasti i OWNER/MEMBER uloge, zabranu samododjele ACL-a i privatne AI evidencije; stvarne emulator transakcije kvote.
 - `tests/auth-browser.cjs`: cijela aplikacija u Chromiumu i WebKitu s lažnim Firebase/OAuth adapterima; svi moduli, povezivanje istog UID-a, Google bez ovlasti, admin, promjena računa, zakašnjeli callbackovi, odjava/reload i očuvanje stare lokalne pohrane.

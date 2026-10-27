@@ -88,3 +88,5 @@ Aktualni pregled pravila, osjetljivih početnih podataka, povezivanja Laser SC i
 Google prijava, ovlasti i obavezne provjere prije produkcije: [docs/GOOGLE-AUTH.md](docs/GOOGLE-AUTH.md).
 
 Konačni OWNER/MEMBER model, hitno zatvaranje širokih pravila i oporavak: [docs/ROLE-ROLLOUT.md](docs/ROLE-ROLLOUT.md).
+
+Prije migracije: [operatorske provjere i privatni izvoz](docs/OPERATOR-PREFLIGHT.md), bez deploya i promjene IAM-a.
