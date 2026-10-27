@@ -22,12 +22,13 @@ Postojeći gornji safe-area i položaj gumba + već su bili definirani. Nedostaj
 - `node --test tests/*.test.cjs`: 30 prolaznih testova, bez preskočenih.
 - Playwright/Chromium: FIS povezivanje, promjene, neuspjeli dohvat, lokalna opažanja, zajednička predmemorija, neaktualni/ukinuti zapisi, AI suglasnost, šest odjeljaka, ponovljeni zahtjevi i kvota. Širine 320/360/390/430/1024 px; provjereni horizontalni overflow, razmak zadnje kartice, gumba + i navigacije.
 - Učitavanje oba Firebase ulaza pod Nodeom 22 bez produkcijskog poziva; za ovu lokalnu provjeru izostavljena je neupotrebljiva injektirana ADC datoteka samo u procesu provjere. Nijedna tajna ni autentikacija nije izmijenjena.
+- Stvarni FIS dohvat LASER 374 nakon primjene mrežne postavke: uspješan HTTP odgovor i validacija oba parsera; nije izveden produkcijski Firestore zapis.
 - Lokalni statički server vraća aplikacijski HTML. Frontend nema build korak; izvršene su i JS sintaksne provjere te `git diff --check`.
 
 ## Ručna provjera prije produkcijske objave
 
 1. U projektu `opg-ojka` pročitati `settings/fis_sync`, status i stvarne zalihe. Provjeriti da dokument zalihe Laser SC ima očekivani `fis_product_id: "374"` i naziv, nakon provjere etikete i službenog izvora. Ovaj rad nije pisao u produkcijsku bazu.
-2. Nakon omogućavanja `fis.mps.hr` provjeriti stvarni LASER 374, aktualni API oblik i nazive statusa. Mrežni CONNECT proxy u radnom okruženju vratio je 403; testni odgovori nisu dokaz stvarne registracije.
+2. Nakon primjene mrežne postavke ponovljeni stvarni dohvat 27. 10. 2026. uspješno je potvrdio FIS ID 374: naziv `LASER`, status `REGISTRIRAN`, šest redaka primjena. Serverski i klijentski parser prihvaćaju stvarni odgovor. Izvor: https://fis.mps.hr/fis/javna-trazilica-szb/pregled/374 . To ne potvrđuje da je konkretna zaliha Laser SC ispravno povezana niti da je sredstvo dopušteno za svaku kulturu, štetnika ili način uzgoja. Prije primjene ponovno provjeriti aktualni izvor i etiketu.
 3. Provjeriti sigurna pravila pristupa predmemoriji/statusu. Emulator pravila nije pokrenut; autentikacija i pravila nisu mijenjani.
 4. Na fizičkom iPhoneu/Androidu u instaliranoj PWA provjeriti notch, početni indikator, povećani font, tipkovnicu i donju navigaciju. Automatizirana provjera rasporeda ne zamjenjuje tu provjeru.
 5. Ovlašteno provjeriti AI na stvarnim fotografijama uz postojeći limit i obračun; ovaj rad nije pozivao plaćeni servis. Nema produkcijskog deploya ni automatskog spajanja.
