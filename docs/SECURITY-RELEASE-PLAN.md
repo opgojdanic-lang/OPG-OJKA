@@ -1,5 +1,7 @@
 # Sigurnosni pregled i uvjeti produkcijske objave — PR #2
 
+> Dopuna za Google prijavu i početnu dodjelu administratora: [GOOGLE-AUTH.md](GOOGLE-AUTH.md). Koristiti zajedno s ovim planom; aktualni testovi i OAuth ograničenja navedeni su tamo.
+
 Ovo je priprema, ne odobrenje objave. Pravila nisu primijenjena, članovi nisu dodani u produkciju, postojeći dokumenti nisu mijenjani i PR nije spojen.
 
 ## Što je potvrđeno, a što nije

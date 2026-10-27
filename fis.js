@@ -115,7 +115,7 @@
     return matches;
   }
   function mount({ host, getStock, saveLink }) {
-    let records = {}, shared = {}, products = null, busy = false, activeId = null, ticket = 0, detailRecord = null, detailId = null, detailCurrent = false, pendingLink = null;
+    let records = {}, shared = {}, products = null, busy = false, activeId = null, ticket = 0, detailRecord = null, detailId = null, detailCurrent = false, pendingLink = null, authEpoch=0;
     try { records = JSON.parse(localStorage.getItem(CACHE) || '{}') || {}; } catch (_) {}
     const status = document.createElement('p'); status.className = 'opg-hint'; status.setAttribute('aria-live', 'polite');
     const list = document.createElement('div');
@@ -128,6 +128,7 @@
     const results = document.createElement('div');
     searchPanel.append(heading, label, query, results);
     host.append(status, list, searchPanel, linkPanel, detail);
+    window.addEventListener('opg:auth-session',event=>{if(event.detail?.resetPrivate===false)return;authEpoch++;pendingLink=null;activeId=null;ticket++;linkPanel.hidden=true;searchPanel.hidden=true;detail.hidden=true;detailId=null;detailRecord=null;status.textContent='Identitet je promijenjen. Ponovno provjeri povezivanje zalihe.';});
     function el(tag, text, cls) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
     function button(text, action) { const b = el('button', text, 'opg-submit secondary'); b.type = 'button'; b.addEventListener('click', action); return b; }
     function persist() { try { localStorage.setItem(CACHE, JSON.stringify(records)); } catch (_) { status.textContent = 'Predmemoriju nije moguće spremiti na ovom uređaju.'; } }
@@ -203,15 +204,18 @@
     }
     async function refresh(id) {
       if (busy) return;
+      const epoch=authEpoch;
       busy = true; status.textContent = 'Provjeravam FIS…';
       try {
         const product = normalize(await request(BASE + '/' + encodeURIComponent(id)), id);
+        if(epoch!==authEpoch)return;
         const old = getRecord(id), changed = old?.product && JSON.stringify(old.product) !== JSON.stringify(product);
         records[String(id)] = { product, checkedAt: new Date().toISOString(),
           changedAt: changed ? new Date().toISOString() : old?.changedAt || null,
           previous: changed ? old.product : old?.previous || null, error: null, origin: 'Ručni dohvat na ovom uređaju', lastAttemptAt: new Date().toISOString() };
         persist(); showRecord(records[String(id)]); status.textContent = changed ? 'Pronađena je promjena. Pregledaj uvjete i izvornu uputu.' : 'Podaci su dohvaćeni iz FIS-a.';
       } catch (_) {
+        if(epoch!==authEpoch)return;
         const old = getRecord(id);
         if (old?.product) { records[String(id)] = {...old,error:'Provjera nije uspjela. Prikazana je zadnja spremljena verzija.',lastAttemptAt:new Date().toISOString()}; persist(); showRecord(records[String(id)]); }
         else { detail.hidden = true; }
@@ -240,9 +244,10 @@
       const label=el('label'),confirm=el('input');confirm.type='checkbox';label.append(confirm,el('span','Usporedio/la sam etiketu: naziv, registracijski broj i formulacija odgovaraju prikazanom FIS zapisu.'));
       const save=button('Potvrdi FIS povezivanje',async()=>{
         if(busy||!confirm.checked||!pendingLink||!assessment.ok)return;
-        const chosen=pendingLink;busy=true;save.disabled=true;
+        const chosen=pendingLink,epoch=authEpoch;busy=true;save.disabled=true;
         try{
           const latest=normalize(await request(BASE+'/'+encodeURIComponent(chosen.product.id)),chosen.product.id), now=new Date().toISOString();
+          if(epoch!==authEpoch)return;
           const currentStock=getStock().find(i=>i.id===chosen.stockId);
           if(!currentStock||currentStock.naziv!==chosen.stockName||String(currentStock.fis_product_id||'')!==String(chosen.oldId||''))throw new Error('Zaliha je promijenjena. Ponovno otvori povezivanje.');
           if(JSON.stringify(latest)!==JSON.stringify(chosen.product)){
@@ -250,6 +255,7 @@
           }
           if(!verified({product:latest,checkedAt:now})||!linkAssessment(currentStock,latest).ok)throw new Error('FIS identitet i formulacija nisu potvrđeni.');
           await saveLink(currentStock.id,{fis_product_id:String(latest.id),fis_product_name:latest.name,fis_link_verification:createLinkVerification(currentStock,latest,now)});
+          if(epoch!==authEpoch)return;
           searchPanel.hidden=true;linkPanel.hidden=true;pendingLink=null;detail.hidden=true;detailId=null;detailRecord=null;status.textContent='Povezivanje spremljeno nakon usporedbe etikete.';
         }catch(_){status.textContent='Povezivanje nije spremljeno. Provjeri podatke, Firestore ovlasti i vezu te ponovno otvori povezivanje.';}
         finally{busy=false;save.disabled=!confirm.checked||!assessment.ok||!current;render();}
@@ -258,10 +264,11 @@
       linkPanel.append(label,save,button('Odustani od povezivanja',()=>{pendingLink=null;linkPanel.hidden=true;}));
     }
     async function prepareLink(candidate){
-      if(busy||!activeId)return;busy=true;status.textContent='Provjeravam identitet i formulaciju u FIS-u…';
+      if(busy||!activeId)return;const epoch=authEpoch;busy=true;status.textContent='Provjeravam identitet i formulaciju u FIS-u…';
       try{
         const stock=getStock().find(i=>i.id===activeId);if(!stock)throw new Error('Zaliha ne postoji');
         const product=normalize(await request(BASE+'/'+encodeURIComponent(candidate.pppId)),candidate.pppId);
+        if(epoch!==authEpoch)return;
         if(tradeName(product.name)!==tradeName(candidate.productName))throw new Error('FIS katalog i detalj nisu usklađeni');
         showLinkConfirmation(stock,product,new Date().toISOString());status.textContent='Ništa nije spremljeno. Usporedi etiketu i izričito potvrdi povezivanje.';
       }catch(_){pendingLink=null;linkPanel.hidden=true;status.textContent='Identitet ili formulacija nisu dohvaćeni. Povezivanje nije spremljeno.';}

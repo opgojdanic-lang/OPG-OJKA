@@ -84,6 +84,18 @@ const {randomUUID}=require('node:crypto');
     await env.withSecurityRulesDisabled(async ctx=>updateDoc(doc(ctx.firestore(),'access_members/allowed'),{enabled:false}));
     await deny(getDoc(doc(user,'prodaja/legacy')));await deny(setDoc(doc(user,'zalihe/revoked'),{}));
     await env.withSecurityRulesDisabled(async ctx=>updateDoc(doc(ctx.firestore(),'access_members/allowed'),{enabled:true}));
+    // Google authentication is identity only; an operator's protected record grants explicit rights.
+    const google=env.authenticatedContext('google-unapproved',{firebase:{sign_in_provider:'google.com'},email:'administrator@trusted.example.test',email_verified:true,admin:true}).firestore();
+    const googleAdmin=env.authenticatedContext('google-admin',{firebase:{sign_in_provider:'google.com'},email_verified:true}).firestore();
+    await env.withSecurityRulesDisabled(async ctx=>setDoc(doc(ctx.firestore(),'access_members/google-admin'),{enabled:true,administrator:true,permissions:allPermissions}));
+    await allow(getDoc(doc(google,'access_members/google-unapproved')));
+    for(const p of ['prodaja/legacy','troskovi/legacy','zalihe/legacy','prskanje/legacy','settings/app']){await deny(getDoc(doc(google,p)));await deny(setDoc(doc(google,p),{administrator:true}));await allow(getDoc(doc(googleAdmin,p)));}
+    await allow(updateDoc(doc(googleAdmin,'settings/app'),{prag_pdv:65000}));
+    for(const db of [google,googleAdmin]){
+      await deny(setDoc(doc(db,'access_members/google-unapproved'),{enabled:true,administrator:true,permissions:allPermissions}));
+      await deny(updateDoc(doc(db,'access_members/google-admin'),{permissions:allPermissions}));
+      await deny(getDoc(doc(db,'ai_private/config')));await deny(setDoc(doc(db,'ai_private/config'),{enabled:true}));
+    }
     console.log(`PASS: Firestore permission matrix: ${passedAllow} allowed / ${passedDeny} denied operations; no owner inferred from display names`);
     // Exercise real Admin SDK transactions under concurrency, still with a mocked provider.
     if(!process.env.FIRESTORE_EMULATOR_HOST)throw new Error('Local emulator host is required');

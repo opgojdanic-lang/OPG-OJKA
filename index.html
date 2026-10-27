@@ -2,13 +2,14 @@
 <html lang="hr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-oThN3h6aweXdbfhT7esUGqKK/RsNtBFhyf/W09yQqjI=' https://www.gstatic.com/firebasejs/10.12.2/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-+50nRfEZytQg0J7FVssXt0EfSBVwzha8QB68wZo0iA8=' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com/js/api.js https://apis.google.com/_/scs/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OPG Ojdanić</title>
 <meta name="theme-color" content="#1F3D2B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="OPG Ojdanić">
+<link rel="stylesheet" href="./protection.css">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <link rel="icon" href="./icons/icon-192.png">
@@ -529,6 +530,7 @@ details.opg-coll > summary .opg-coll-tot { margin-left: auto; font-size: 15px; f
 details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px; }
 </style>
 <script src="./security.js"></script>
+<script src="./auth.js"></script>
 <script src="./fis.js"></script>
 <style>
 #fis-host input { width:100%; padding:12px; font:inherit; font-size:16px; border:1px solid var(--sage-line); border-radius:10px; margin:8px 0; }
@@ -551,8 +553,8 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       <div class="opg-setup-steps">
         <ol style="margin:0; padding-left:18px;">
           <li>Otvorite <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> i prijavite se Google računom.</li>
-          <li>"Add project" → upišite naziv (npr. <i>opg-ojdanic</i>) → Continue → Create project.</li>
-          <li>U lijevom izborniku: <b>Build → Firestore Database → Create database</b> → odaberite lokaciju (npr. europe-west) → Start in <b>test mode</b>.</li>
+          <li>Odaberi postojeći projekt <b>opg-ojka</b>; ne stvaraj novi projekt za postojeće poslovne podatke.</li>
+          <li>U lijevom izborniku otvori <b>Build → Firestore Database</b> u postojećem projektu <b>opg-ojka</b>. Koristi postojeću bazu i pregledana pravila; ne stvaraj novu bazu i ne uključuj javni test mode.</li>
           <li>U lijevom izborniku kliknite <b>⚙ Settings</b> (ispod "Project Overview") → odaberite <b>Project settings</b> → dolje pod "Your apps" kliknite ikonu <b>&lt;/&gt;</b> (Web) → nazovite je "OPG" → Register app.</li>
           <li>Pojavit će se kod s <code>const firebaseConfig = &#123; ... &#125;</code> — kopirajte cijeli taj dio i zalijepite dolje.</li>
         </ol>
@@ -1302,7 +1304,42 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   let sprayConditions = {};
   let rizikData = null;
   let currentSeason = String(new Date().getFullYear());
-  let firebaseApp = null;
+  let firebaseApp = null, authController = null, cloudSession = null, identityEpoch = 0, dataEpoch = 0, privateEpoch = 0, identityUid = null;
+  let dataStops = [], aclStop = null;
+  let cloudConfigured = !!localStorage.getItem('opg_fb_config');
+  const authHost=document.createElement('section');authHost.id='opg-auth';document.querySelector('.opg-header').append(authHost);
+  const authUi=window.OpgAuth.mount(authHost);
+  function canWrite(permission){return !cloudConfigured || (mode==='cloud' && fb?.auth.currentUser?.uid===cloudSession?.uid && cloudSession.permissions.includes(permission));}
+  function allowWrite(permission){const ok=canWrite(permission);if(!ok)toast('Nema potvrđenog dopuštenja za ovu radnju. Podaci nisu poslani.');return ok;}
+  function stopData(){dataEpoch++;dataStops.splice(0).forEach(stop=>stop());}
+  function clearCloudData(){
+    prodaja=[];troskovi=[];zalihe=[];prskanje=[];licences=[];parcele=[];sjetve=[];rokovi=[];planTasks=[];planStatuses=[];sharedSettings={};sprayConditions={};rizikData=null;
+  }
+  function lockCloud(clearForms=false){
+    stopData();mode='locked';cloudSession=null;window.OpgAuth.session=null;document.getElementById('opg-root').dataset.access='locked';
+    clearCloudData();setSyncStatus('local');
+    document.getElementById('opg-quick').classList.remove('show');
+    if(clearForms){
+      privateEpoch++;pendingTrosakRacun=null;pendingZalihaPhoto=null;lastCalcResult={value:0,label:'ml'};planOpenMenu=null;
+      ['isk-fullscreen','racun-fullscreen','activity-modal'].forEach(id=>{document.getElementById(id).style.display='none';});
+      document.getElementById('racun-fullscreen-img').removeAttribute('src');
+      ['isk-fullscreen-name','isk-fullscreen-meta','isk-fullscreen-svg','t-racun-preview','z-slika-preview','calc-fis-candidates'].forEach(id=>document.getElementById(id)?.replaceChildren());
+      EDIT.kind=null;EDIT.id=null;EDIT.rec=null;
+      document.querySelectorAll('#opg-content .opg-field input,#opg-content textarea').forEach(input=>{input.value=input.type==='date'?todayStr():'';});
+      ['activity-modal-list','print-report','protect-ai-result'].forEach(id=>document.getElementById(id)?.replaceChildren());
+    }
+    window.dispatchEvent(new CustomEvent('opg:auth-session',{detail:{uid:null,resetPrivate:clearForms}}));renderAll();
+  }
+  window.addEventListener('opg:auth-session',()=>applyWriteControls());
+  function applyWriteControls(){
+    const scopes={'f-prodaja-submit':'finance_write','f-trosak-submit':'finance_write','pa-submit':'finance_write','z-submit':'inventory_write','pr-submit':'treatments_write inventory_write','isk-submit':'licenses_write','parcela-submit':'farm_write','sj-submit':'farm_write','sd-submit':'farm_write','plan-submit':'farm_write','rok-submit':'farm_write','plan-set-save':'settings_manage','rok-prag-save':'settings_manage','vrijeme-save-thresholds':'settings_manage','import-json':'finance_write inventory_write treatments_write'};
+    for(const [id,permission] of Object.entries(scopes)){const button=document.getElementById(id);if(button){button.dataset.requiresWrite=permission;button.disabled=permission.split(' ').some(p=>!canWrite(p));}}
+  }
+  document.addEventListener('click',event=>{
+    const target=event.target.closest('[data-requires-write]');
+    if(target&&target.dataset.requiresWrite.split(' ').some(p=>!canWrite(p))){event.preventDefault();event.stopImmediatePropagation();toast('Ova radnja zahtijeva potvrđena dopuštenja.');}
+  },true);
+
 
   function updateUserChip(){
     document.getElementById('user-name-label').textContent = currentUser || 'Postavi ime';
@@ -1376,122 +1413,58 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
 
   async function initCloud(config){
     try {
-      const [{ initializeApp }, fsMod, authMod] = await Promise.all([
+      cloudConfigured=true;identityEpoch++;aclStop?.();aclStop=null;authController?.dispose();authController=null;window.OpgAuth.controller=null;authUi.bind(null);lockCloud();
+      const [apps,fs,authSdk]=await Promise.all([
         import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
         import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'),
         import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js')
       ]);
-      const app = initializeApp(config);
-      firebaseApp = app;
-      // Tiha (bez ikakve forme za prijavu) anonimna autentikacija — potrebna
-      // da Firestore pravila mogu tražiti "prijavljenog" korisnika umjesto da
-      // baza ostane potpuno otvorena bilo kome na internetu.
-      const auth = authMod.getAuth(app);
-      await new Promise((resolve) => {
-        const unsub = authMod.onAuthStateChanged(auth, (user) => {
-          unsub();
-          if (user) { resolve(); }
-          else { authMod.signInAnonymously(auth).then(resolve).catch(resolve); }
-        });
-      });
-      const db = fsMod.getFirestore(app);
-      try { await fsMod.enableIndexedDbPersistence(db); } catch(e) {}
-      fb = { db, ...fsMod, auth };
-
-      // No automatic seed/import writes. Existing data is loaded; imports require an explicit user action.
-      fb.onSnapshot(fb.collection(db, 'prodaja'), (snap) => {
-        prodaja = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setSyncStatus('live');
-        scheduleRenderAll();
-      }, () => setSyncStatus('local'));
-
-      fb.onSnapshot(fb.collection(db, 'troskovi'), (snap) => {
-        troskovi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'zalihe'), (snap) => {
-        zalihe = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'prskanje'), (snap) => {
-        prskanje = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'licences'), (snap) => {
-        licences = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'parcele'), (snap) => {
-        parcele = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'sjetva_sadnja'), (snap) => {
-        sjetve = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'plan'), (snap) => {
-        planTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'plan_status'), (snap) => {
-        planStatuses = snap.docs.map(d => ({ ...d.data(), id: d.id }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'rokovi'), (snap) => {
-        rokovi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      (async () => {
-        try {
-          // Namjerno getDocs (jednokratno, sa servera) umjesto onSnapshot —
-          // onSnapshot bi na uređaju s puno lokalnog cachea (IndexedDB) prvi put
-          // gotovo uvijek okinuo ODMAH iz cachea, prije nego stignu najnoviji
-          // unosi drugih ukućana, pa bi se ta obavijest tiho izgubila zauvijek.
-          const snap = await fb.getDocs(fb.collection(db, 'aktivnosti'));
-          const lastSeen = parseInt(localStorage.getItem('opg_last_seen')||'0', 10);
-          const myName = (currentUser||'').trim().toLowerCase();
-          const noviji = snap.docs
-            .map(d => d.data())
-            .filter(a => a.ts > lastSeen && (a.unio||'').trim().toLowerCase() !== myName)
-            .sort((a,b)=>a.ts-b.ts);
-          if (noviji.length) showActivityModal(noviji);
-          localStorage.setItem('opg_last_seen', String(Date.now()));
-        } catch(e) {}
-      })();
-
-      fb.onSnapshot(fb.doc(db, 'settings', 'app'), (snap) => {
-        sharedSettings = snap.exists() ? snap.data() : {};
-        if (sharedSettings.ai_url) localStorage.setItem('opg_ai_url', sharedSettings.ai_url);
-      });
-
-      fb.onSnapshot(fb.doc(db, 'settings', 'rizik'), (snap) => {
-        rizikData = snap.exists() ? snap.data() : null;
-        renderRizik(); renderPocetna(); renderPlan();
-      });
-
-      fb.onSnapshot(fb.doc(db, 'settings', 'spray_conditions'), (snap) => {
-        sprayConditions = snap.exists() ? snap.data() : {};
-        renderVrijeme();
-        renderPocetna();
-      });
-
-      mode = 'cloud';
-      localStorage.setItem('opg_fb_config', JSON.stringify(config));
-      setSyncStatus('connecting');
-      return true;
-    } catch(e) {
-      console.error(e);
-      return false;
-    }
+      const existing=apps.getApps()[0];
+      if(existing&&(existing.options.projectId!==config.projectId||existing.options.authDomain!==config.authDomain))throw new Error('project-change');
+      const app=existing||apps.initializeApp(config);firebaseApp=app;
+      const auth=authSdk.getAuth(app),db=fs.getFirestore(app);
+      // Use memory cache. Retain old IndexedDB files without reading, clearing or migrating them across identities.
+      fb={db,...fs,auth};localStorage.setItem('opg_fb_config',JSON.stringify(config));
+      authController?.dispose();aclStop?.();
+      async function session(user){
+        const generation=++identityEpoch,changed=identityUid!==(user?.uid||null);identityUid=user?.uid||null;
+        aclStop?.();aclStop=null;lockCloud(changed);authUi.access(null);
+        if(!user)return;
+        const active=()=>generation===identityEpoch&&auth.currentUser?.uid===user.uid;
+        let accessSignature=null;
+        function applyAccess(record){
+          if(!active())return;
+          const rights=window.OpgAuth.access(record),sig=JSON.stringify(rights);if(sig===accessSignature)return;accessSignature=sig;
+          lockCloud();authUi.access(rights);if(!rights.enabled)return;
+          cloudSession=Object.freeze({uid:user.uid,...rights,permissions:Object.freeze([...rights.permissions])});window.OpgAuth.session=cloudSession;mode='cloud';
+          document.getElementById('opg-root').dataset.access='authorized';
+          const ticket=dataEpoch,valid=()=>active()&&ticket===dataEpoch;
+          const listen=(ref,callback)=>dataStops.push(fs.onSnapshot(ref,snap=>{if(valid()&&!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites)callback(snap);},()=>{if(valid()){lockCloud();authUi.access(null);authUi.message('Baza je odbila pristup. Provjeri dopuštenja pa osvježi provjeru ovlasti.');}}));
+          const rows=[['prodaja','finance_read',v=>prodaja=v],['troskovi','finance_read',v=>troskovi=v],['zalihe','inventory_read',v=>zalihe=v],['prskanje','treatments_read',v=>prskanje=v],['licences','licenses_read',v=>licences=v],['parcele','farm_read',v=>parcele=v],['sjetva_sadnja','farm_read',v=>sjetve=v],['plan','farm_read',v=>planTasks=v],['plan_status','farm_read',v=>planStatuses=v],['rokovi','farm_read',v=>rokovi=v]];
+          for(const [name,permission,assign] of rows)if(rights.permissions.includes(permission))listen(fs.collection(db,name),snap=>{assign(snap.docs.map(d=>({...d.data(),id:d.id})));setSyncStatus('live');scheduleRenderAll();});
+          if(rights.permissions.includes('settings_read'))listen(fs.doc(db,'settings','app'),snap=>{sharedSettings=snap.exists()?snap.data():{};});
+          if(rights.permissions.includes('protection_read')){
+            listen(fs.doc(db,'settings','rizik'),snap=>{rizikData=snap.exists()?snap.data():null;scheduleRenderAll();});
+            listen(fs.doc(db,'settings','spray_conditions'),snap=>{sprayConditions=snap.exists()?snap.data():{};scheduleRenderAll();});
+          }
+          const activities=['activities_read','finance_read','licenses_read','inventory_read','treatments_read','farm_read'];
+          if(activities.every(p=>rights.permissions.includes(p)))fs.getDocsFromServer(fs.collection(db,'aktivnosti')).then(snap=>{
+            if(!valid())return;const key='opg_last_seen:'+user.uid,lastSeen=Number(localStorage.getItem(key)||0);
+            const items=snap.docs.map(d=>d.data()).filter(a=>a.ts>lastSeen&&a.auth_uid!==user.uid).sort((a,b)=>a.ts-b.ts);
+            if(items.length)showActivityModal(items);localStorage.setItem(key,String(Date.now()));
+          }).catch(()=>{});
+          window.dispatchEvent(new CustomEvent('opg:auth-session',{detail:{...cloudSession,resetPrivate:false}}));renderAll();applyWriteControls();
+        }
+        try{
+          const ref=fs.doc(db,'access_members',user.uid),snapshot=await fs.getDocFromServer(ref);
+          if(!active())return;if(snapshot.metadata?.fromCache||snapshot.metadata?.hasPendingWrites)throw new Error('unverified-acl');applyAccess(snapshot.exists()?snapshot.data():null);
+          aclStop=fs.onSnapshot(ref,{includeMetadataChanges:true},snap=>{if(active()&&!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites)applyAccess(snap.exists()?snap.data():null);},()=>{if(active()){lockCloud();authUi.access(null);authUi.message('Ovlasti nije moguće potvrditi. Pristup ostaje zatvoren.');}});
+        }catch(_){if(active()){lockCloud();authUi.access(null);authUi.message('Ovlasti nisu potvrđene na serveru. Lokalni podaci ostaju sačuvani, bez automatskog prijenosa.');}}
+      }
+      let redirectStorage=null;try{redirectStorage=window.sessionStorage;}catch(_){}
+      authController=window.OpgAuth.createController({sdk:authSdk,auth,origin:location.origin,authDomain:config.authDomain,storage:redirectStorage,onSession:session,onUser:authUi.user,onMessage:authUi.message,onBusy:authUi.busy});
+      window.OpgAuth.controller=authController;authUi.bind(authController);return await authController.start()!==false;
+    }catch(_){lockCloud();authUi.message('Firebase nije povezan. Provjeri konfiguraciju; promjena projekta ne prenosi podatke ili ovlasti.');return false;}
   }
 
   function showActivityModal(items){
@@ -1499,7 +1472,8 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     window.OpgSecurity.renderActivityItems(listEl,items);
     document.getElementById('activity-modal').style.display = 'flex';
   }
-  async function logActivity(text){
+  async function logActivity(text, activityEpoch){
+    if(activityEpoch!==privateEpoch)return;
     if (mode !== 'cloud') return;
     try { await fb.setDoc(fb.doc(fb.db, 'aktivnosti', uid('act')), { tekst: text, unio: currentUser || 'Netko', ts: Date.now(), auth_uid: fb.auth.currentUser.uid }); }
     catch(e) {}
@@ -1524,14 +1498,17 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     );
   }
   async function addProdaja(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('finance_write'))return;
     prodaja.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prodaja', entry.id), entry); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
     else { saveLocalProdaja(); }
-    if (entry.kupac === 'PAUL') logActivity(`Nova isplata (Paul): ${entry.proizvod||''} ${entry.kg||0}kg`);
-    else logActivity(`Nova prodaja: ${KUPAC_LABEL[entry.kupac]||entry.kupac} — ${entry.proizvod||''} ${entry.kg||0}kg`);
+    if (entry.kupac === 'PAUL') logActivity(`Nova isplata (Paul): ${entry.proizvod||''} ${entry.kg||0}kg`, activityEpoch);
+    else logActivity(`Nova prodaja: ${KUPAC_LABEL[entry.kupac]||entry.kupac} — ${entry.proizvod||''} ${entry.kg||0}kg`, activityEpoch);
   }
   async function toggleProdajaPlaceno(id){
+    if(!allowWrite('finance_write'))return;
     const row = prodaja.find(r=>r.id===id);
     if (!row) return;
     row.placeno = !row.placeno;
@@ -1540,19 +1517,23 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalProdaja(); }
   }
   async function deleteProdaja(id){
+    if(!allowWrite('finance_write'))return;
     prodaja = prodaja.filter(r=>r.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'prodaja', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalProdaja(); }
   }
   async function addTrosak(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('finance_write'))return;
     troskovi.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'troskovi', entry.id), entry); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
     else { saveLocalTroskovi(); }
-    logActivity(`Novi trošak: ${entry.naziv||''} (${fmt((entry.kolicina||0)*(entry.cijena||0))})`);
+    logActivity(`Novi trošak: ${entry.naziv||''} (${fmt((entry.kolicina||0)*(entry.cijena||0))})`, activityEpoch);
   }
   async function deleteTrosak(id){
+    if(!allowWrite('finance_write'))return;
     troskovi = troskovi.filter(r=>r.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'troskovi', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
@@ -1560,16 +1541,20 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   async function saveZalihaDoc(item){
+    if(!allowWrite('inventory_write'))return;
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'zalihe', item.id), item); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalZalihe(); }
   }
   async function addZaliha(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('inventory_write'))return;
     zalihe.push(entry);
     renderAll();
     await saveZalihaDoc(entry);
-    logActivity(`Nova zaliha: ${entry.naziv||''}`);
+    logActivity(`Nova zaliha: ${entry.naziv||''}`, activityEpoch);
   }
   async function updateZalihaQty(id, newQty){
+    if(!allowWrite('inventory_write'))return;
     const item = zalihe.find(z=>z.id===id);
     if (!item) return;
     item.trenutna_kolicina = Math.max(0, newQty);
@@ -1577,48 +1562,59 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     await saveZalihaDoc(item);
   }
   async function deleteZaliha(id){
+    if(!allowWrite('inventory_write'))return;
     zalihe = zalihe.filter(z=>z.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'zalihe', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalZalihe(); }
   }
   async function addLicenca(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('licenses_write'))return;
     licences.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'licences', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalLicences(); }
-    logActivity(`Nova vjerodajnica: ${entry.ime||''}`);
+    logActivity(`Nova vjerodajnica: ${entry.ime||''}`, activityEpoch);
   }
   async function deleteLicenca(id){
+    if(!allowWrite('licenses_write'))return;
     licences = licences.filter(l=>l.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'licences', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalLicences(); }
   }
   async function addParcela(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('farm_write'))return;
     parcele.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'parcele', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalParcele(); }
-    logActivity(`Nova parcela: ${entry.naziv||''}`);
+    logActivity(`Nova parcela: ${entry.naziv||''}`, activityEpoch);
   }
   async function saveParcela(id, updates){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('farm_write'))return;
     const p = parcele.find(x=>x.id===id);
     if (!p) return;
     Object.assign(p, updates);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'parcele', id), p); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalParcele(); }
-    logActivity(`Ažurirana parcela: ${p.naziv||''}`);
+    logActivity(`Ažurirana parcela: ${p.naziv||''}`, activityEpoch);
   }
   async function addSjetva(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('farm_write'))return;
     sjetve.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'sjetva_sadnja', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalSjetve(); }
-    logActivity(entry.tip==='sjetva' ? `Nova sjetva: ${entry.vrsta||''}` : `Nova sadnja: ${entry.kultura||''}`);
+    logActivity(entry.tip==='sjetva' ? `Nova sjetva: ${entry.vrsta||''}` : `Nova sadnja: ${entry.kultura||''}`, activityEpoch);
   }
   async function updateSjetva(id, updates){
+    if(!allowWrite('farm_write'))return;
     const s = sjetve.find(x=>x.id===id);
     if (!s) return;
     Object.assign(s, updates);
@@ -1627,18 +1623,21 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalSjetve(); }
   }
   async function deleteSjetva(id){
+    if(!allowWrite('farm_write'))return;
     sjetve = sjetve.filter(s=>s.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'sjetva_sadnja', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalSjetve(); }
   }
   async function addRok(entry){
+    if(!allowWrite('farm_write'))return;
     rokovi.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'rokovi', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalRokovi(); }
   }
   async function toggleRokZavrsen(id){
+    if(!allowWrite('farm_write'))return;
     const r = rokovi.find(x=>x.id===id);
     if (!r) return;
     r.zavrseno = !r.zavrseno;
@@ -1647,6 +1646,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalRokovi(); }
   }
   async function deleteRok(id){
+    if(!allowWrite('farm_write'))return;
     rokovi = rokovi.filter(r=>r.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'rokovi', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
@@ -1674,6 +1674,8 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     return Math.round((d-now)/86400000);
   }
   async function addPrskanje(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('treatments_write')||!allowWrite('inventory_write'))return;
     const match = zalihe.find(z => (z.naziv||'').trim().toLowerCase() === (entry.sredstvo||'').trim().toLowerCase());
     if (match) {
       match.trenutna_kolicina = Math.max(0, (match.trenutna_kolicina||0) - (entry.kolicina||0));
@@ -1683,9 +1685,10 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prskanje', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalPrskanje(); }
-    logActivity(`Novo tretiranje: ${entry.sredstvo||''} na ${entry.kultura||''}`);
+    logActivity(`Novo tretiranje: ${entry.sredstvo||''} na ${entry.kultura||''}`, activityEpoch);
   }
   async function deletePrskanje(id){
+    if(!allowWrite('treatments_write'))return;
     prskanje = prskanje.filter(r=>r.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'prskanje', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
@@ -2488,6 +2491,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       host: document.getElementById('fis-host'),
       getStock: () => zalihe,
       saveLink: async (id, fields) => {
+        if(!canWrite('inventory_write'))throw new Error('permission-denied');
         const item = zalihe.find(z => z.id === id);
         if (!item) throw new Error('Zaliha više ne postoji');
         if (mode === 'cloud') await fb.updateDoc(fb.doc(fb.db, 'zalihe', id), fields);
@@ -2573,17 +2577,18 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   let lastCalcResult = { value: 0, label: 'ml' };
+  const privateLocalKey=key=>cloudConfigured?key+':'+(cloudSession?.uid||'locked'):key;
   function loadSprayDose(name){
     if (!name) return null;
-    try { const map = JSON.parse(localStorage.getItem('opg_spray_doses')||'{}'); return map[name.trim().toLowerCase()] || null; }
+    try { const map = JSON.parse(localStorage.getItem(privateLocalKey('opg_spray_doses'))||'{}'); return map[name.trim().toLowerCase()] || null; }
     catch(e){ return null; }
   }
   function saveSprayDose(name, data){
     if (!name) return;
     try {
-      const map = JSON.parse(localStorage.getItem('opg_spray_doses')||'{}');
+      const map = JSON.parse(localStorage.getItem(privateLocalKey('opg_spray_doses'))||'{}');
       map[name.trim().toLowerCase()] = data;
-      localStorage.setItem('opg_spray_doses', JSON.stringify(map));
+      localStorage.setItem(privateLocalKey('opg_spray_doses'), JSON.stringify(map));
     } catch(e){}
   }
   function renderCalculator(){
@@ -2974,6 +2979,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     return localStorage.getItem('opg_spray_check_url') || '';
   }
   function askSprayCheckUrl(){
+    if(!allowWrite('settings_manage'))return;
     const current = getSprayCheckUrl();
     const url = prompt('Zalijepi adresu checkSprayConditionsNow funkcije (izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/checkSprayConditionsNow):', current);
     if (url && url.trim()) {
@@ -2989,6 +2995,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     return localStorage.getItem('opg_vapid_key') || '';
   }
   function askVapidKey(){
+    if(!allowWrite('settings_manage'))return;
     const current = getVapidKey();
     const key = prompt('Zalijepi VAPID ključ (Firebase konzola → Project settings → Cloud Messaging → Web configuration → Generate key pair):', current);
     if (key && key.trim()) {
@@ -3009,6 +3016,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     try {
       const resp = await fetch(url);
       const data = await resp.json();
+      if(epoch!==privateEpoch)return;
       if (data.error) { statusEl.textContent = 'Greška: ' + data.error; return; }
       statusEl.textContent = `Gotovo: ${data.temp}°C, vjetar ${data.wind} m/s → ${data.status}${data.notified ? ' (poslana obavijest)' : ''}`;
     } catch(e) {
@@ -3017,6 +3025,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   async function enableWeatherNotifications(){
+    if(!allowWrite('notifications_write'))return;
     if (!('Notification' in window)) { toast('Ovaj preglednik ne podržava obavijesti'); return; }
     if (mode !== 'cloud') { toast('Prvo se poveži s Firebase-om (⚙ gore desno)'); return; }
     let vapidKey = getVapidKey();
@@ -3043,6 +3052,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   function renderAll(){
+    applyWriteControls();
     populateSeasonSelect();
     applySeasonMode();
     populateCompareSelects();
@@ -3118,8 +3128,11 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     toast('Sigurnosna kopija spremljena');
   }
   function importJSON(file){
+    if(!allowWrite('finance_write')||!allowWrite('inventory_write')||!allowWrite('treatments_write'))return;
+    const importEpoch=privateEpoch;
     const reader = new FileReader();
     reader.onload = async () => {
+      if(importEpoch!==privateEpoch)return;
       try {
         const data = JSON.parse(reader.result);
         if (!Array.isArray(data.prodaja) || !Array.isArray(data.troskovi)) throw new Error('bad format');
@@ -3526,13 +3539,16 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   function saveLocalPlanStatus(){ try { localStorage.setItem('opg_plan_status', JSON.stringify(planStatuses)); } catch(e){} }
 
   async function addPlanTask(t){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('farm_write'))return;
     planTasks.push(t);
     renderPlan();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'plan', t.id), t); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
     else { saveLocalPlan(); }
-    logActivity(`Novi zadatak: ${t.naziv} (${planDmy(t.datum)}${t.vrijeme ? ' ' + t.vrijeme : ''})${t.ponavljanje ? ' — ponavlja se' : ''}`);
+    logActivity(`Novi zadatak: ${t.naziv} (${planDmy(t.datum)}${t.vrijeme ? ' ' + t.vrijeme : ''})${t.ponavljanje ? ' — ponavlja se' : ''}`, activityEpoch);
   }
   async function deletePlanTask(id){
+    if(!allowWrite('farm_write'))return;
     planTasks = planTasks.filter(t=>t.id!==id);
     renderPlan();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'plan', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
@@ -3543,6 +3559,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       dodijeljeno:o.dodijeljeno||null, napomena:o.napomena||null, ikona:o.ikona||null, auto:!!o.auto, taskId:o.taskId||null, akcija:o.akcija||null };
   }
   async function setPlanStatus(o, status, extra){
+    if(!allowWrite('farm_write'))return;
     const id = PlanLogic.statusId(o.key);
     const doc = Object.assign({ id, key:o.key, datum:o.datum, status, by:currentUser||null, ts:Date.now(), snapshot:planSnapshot(o) }, extra||{});
     planStatuses = planStatuses.filter(s=>s.key!==o.key);
@@ -3552,6 +3569,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalPlanStatus(); }
   }
   async function clearPlanStatus(o){
+    if(!allowWrite('farm_write'))return;
     const id = PlanLogic.statusId(o.key);
     planStatuses = planStatuses.filter(s=>s.key!==o.key);
     renderPlan();
@@ -3559,6 +3577,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalPlanStatus(); }
   }
   async function setPlanSetting(k, v){
+    if(!allowWrite('settings_manage'))return;
     if (v === '' || v == null || Number.isNaN(v)) { localStorage.removeItem('opg_plan_'+k); return; }
     localStorage.setItem('opg_plan_'+k, String(v));
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { ['plan_'+k]: v }, { merge: true }); } catch(e) {} }
@@ -3908,30 +3927,35 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   const $id = (i) => document.getElementById(i);
   const setV = (i, v) => { const el = $id(i); if (el) el.value = (v == null ? '' : v); };
   function editBtn(kind, id){
-    return isArchiveSeason() ? '' : `<button type="button" class="opg-edit" data-edit="${kind}" data-id="${escapeHtml(id)}" aria-label="Uredi">✎</button>`;
+    return isArchiveSeason() ? '' : `<button type="button" data-requires-write="${({prodaja:'finance_write',paul:'finance_write',trosak:'finance_write',zaliha:'inventory_write',prskanje:'treatments_write inventory_write',licenca:'licenses_write'}[kind]||'farm_write')}" class="opg-edit" data-edit="${kind}" data-id="${escapeHtml(id)}" aria-label="Uredi">✎</button>`;
   }
   function stampEdit(o){ o.uredio = currentUser || null; o.uredeno_ts = Date.now(); }
   async function persistDoc(col, obj, saveLocalFn){
+    const permission={prodaja:'finance_write',troskovi:'finance_write',zalihe:'inventory_write',prskanje:'treatments_write',licences:'licenses_write'}[col]||'farm_write';
+    if(!allowWrite(permission))return;
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, col, obj.id), obj); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalFn(); }
   }
   const normNm = (x) => (x || '').trim().toLowerCase();
 
   async function updateProdaja(id, f){
+    const activityEpoch=privateEpoch;
     const row = prodaja.find(r=>r.id===id); if (!row) return;
     Object.assign(row, f); stampEdit(row);
     renderAll();
     await persistDoc('prodaja', row, saveLocalProdaja);
-    logActivity(`Uređeno: ${row.kupac==='PAUL' ? 'isplata (Paul)' : (KUPAC_LABEL[row.kupac]||row.kupac)} — ${row.proizvod||''} ${row.kg||0}kg`);
+    logActivity(`Uređeno: ${row.kupac==='PAUL' ? 'isplata (Paul)' : (KUPAC_LABEL[row.kupac]||row.kupac)} — ${row.proizvod||''} ${row.kg||0}kg`, activityEpoch);
   }
   async function updateTrosak(id, f){
+    const activityEpoch=privateEpoch;
     const row = troskovi.find(r=>r.id===id); if (!row) return;
     Object.assign(row, f); stampEdit(row);
     renderAll();
     await persistDoc('troskovi', row, saveLocalTroskovi);
-    logActivity(`Uređen trošak: ${row.naziv||''}`);
+    logActivity(`Uređen trošak: ${row.naziv||''}`, activityEpoch);
   }
   async function updatePrskanje(id, f){
+    const activityEpoch=privateEpoch;
     const row = prskanje.find(r=>r.id===id); if (!row) return;
     // zalihe: vrati staru potrošnju pa oduzmi novu
     const oldM = zalihe.find(z=>normNm(z.naziv)===normNm(row.sredstvo));
@@ -3943,9 +3967,10 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     renderAll();
     for (const z of touched) await saveZalihaDoc(z);
     await persistDoc('prskanje', row, saveLocalPrskanje);
-    logActivity(`Uređeno tretiranje: ${row.sredstvo||''} na ${row.kultura||''}`);
+    logActivity(`Uređeno tretiranje: ${row.sredstvo||''} na ${row.kultura||''}`, activityEpoch);
   }
   async function updateZaliha(id, f){
+    const activityEpoch=privateEpoch;
     const z = zalihe.find(x=>x.id===id); if (!z) return;
     const stara = z.trenutna_kolicina || 0, delta = f.trenutna_kolicina - stara;
     const untouched = Math.abs((z.pocetna_kolicina||0) - stara) < 1e-9;
@@ -3955,7 +3980,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     stampEdit(z);
     renderAll();
     await saveZalihaDoc(z);
-    logActivity(`Uređena zaliha: ${z.naziv||''}`);
+    logActivity(`Uređena zaliha: ${z.naziv||''}`, activityEpoch);
   }
   async function updateRok(id, f){
     const r = rokovi.find(x=>x.id===id); if (!r) return;
@@ -3964,26 +3989,29 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     await persistDoc('rokovi', r, saveLocalRokovi);
   }
   async function updateLicenca(id, f){
+    const activityEpoch=privateEpoch;
     const l = licences.find(x=>x.id===id); if (!l) return;
     Object.assign(l, f); stampEdit(l);
     renderAll();
     await persistDoc('licences', l, saveLocalLicences);
-    logActivity(`Uređena vjerodajnica: ${l.ime||''}`);
+    logActivity(`Uređena vjerodajnica: ${l.ime||''}`, activityEpoch);
   }
   async function updateSjetvaFull(id, f){
+    const activityEpoch=privateEpoch;
     const x = sjetve.find(v=>v.id===id); if (!x) return;
     Object.assign(x, f); stampEdit(x);
     renderAll();
     await persistDoc('sjetva_sadnja', x, saveLocalSjetve);
-    logActivity(x.tip==='sjetva' ? `Uređena sjetva: ${x.vrsta||''}` : `Uređena sadnja: ${x.kultura||''}`);
+    logActivity(x.tip==='sjetva' ? `Uređena sjetva: ${x.vrsta||''}` : `Uređena sadnja: ${x.kultura||''}`, activityEpoch);
   }
   async function updatePlanTask(id, f){
+    const activityEpoch=privateEpoch;
     const t = planTasks.find(x=>x.id===id); if (!t) return;
     Object.assign(t, f); stampEdit(t);
     planSel = t.datum; planMonth = t.datum.slice(0,7);
     renderPlan();
     await persistDoc('plan', t, saveLocalPlan);
-    logActivity(`Uređen zadatak: ${t.naziv} (${planDmy(t.datum)})`);
+    logActivity(`Uređen zadatak: ${t.naziv} (${planDmy(t.datum)})`, activityEpoch);
   }
 
   const EDIT_CFG = {
@@ -4399,7 +4427,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const file = e.target.files[0];
     if (!file) return;
     try {
-      pendingTrosakRacun = await readAttachment(file, 900, 0.7);
+      const epoch=privateEpoch,prepared=await readAttachment(file,900,0.7);if(epoch!==privateEpoch)return;pendingTrosakRacun=prepared;
       document.getElementById('t-racun-preview').innerHTML = isPdfDataUrl(pendingTrosakRacun)
         ? `<div style="display:flex; align-items:center; gap:8px; margin-top:6px; font-size:13px; color:var(--ink-soft);"><span style="font-size:28px;">📄</span> PDF priložen</div>`
         : `<img src="${pendingTrosakRacun}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; margin-top:6px;">`;
@@ -4471,7 +4499,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const file = e.target.files[0];
     if (!file) return;
     try {
-      pendingZalihaPhoto = await readAttachment(file, 480, 0.7);
+      const epoch=privateEpoch,prepared=await readAttachment(file,480,0.7);if(epoch!==privateEpoch)return;pendingZalihaPhoto=prepared;
       document.getElementById('z-slika-preview').innerHTML = isPdfDataUrl(pendingZalihaPhoto)
         ? `<div style="display:flex; align-items:center; gap:8px; margin-top:6px; font-size:13px; color:var(--ink-soft);"><span style="font-size:28px;">📄</span> PDF priložen</div>`
         : `<img src="${pendingZalihaPhoto}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; margin-top:6px;">`;
@@ -4529,14 +4557,16 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     return local != null ? parseFloat(local) : 60000;
   }
   async function setPragPdv(val){
+    if(!allowWrite('settings_manage'))return;
     localStorage.setItem('opg_prag_pdv', String(val));
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { prag_pdv: val }, { merge: true }); } catch(e) {} }
   }
   function getAiUrl(){
-    if (mode === 'cloud' && sharedSettings.ai_url) return sharedSettings.ai_url;
+    if (cloudConfigured) return mode==='cloud' ? sharedSettings.ai_url||'' : '';
     return localStorage.getItem('opg_ai_url') || '';
   }
   function askAiUrl(){
+    if(!allowWrite('settings_manage'))return;
     const current = getAiUrl();
     const url = prompt('Zalijepi adresu fisPhotoLookup funkcije (iz README-FIS.md, izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/fisPhotoLookup):', current);
     if (url && url.trim()) {
@@ -4563,6 +4593,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     candBox.style.display = 'none';
     candBox.innerHTML = '';
 
+    const epoch=privateEpoch;
     const statusEl = document.getElementById('calc-photo-status');
     statusEl.style.display = 'block';
     const parts = [];
@@ -4575,6 +4606,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   function renderFisCandidates(items){
+    const epoch=privateEpoch;
     const statusEl = document.getElementById('calc-photo-status');
     statusEl.style.display = 'block';
     statusEl.textContent = 'Prepoznato je više redaka na slici — odaberite koji se odnosi na vaš problem:';
@@ -4620,6 +4652,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const url = getAiUrl();
     if (!url) { e.target.value=''; return; }
 
+    const epoch=privateEpoch;
     const statusEl = document.getElementById('calc-photo-status');
     document.getElementById('calc-photo-candidates').style.display = 'none';
     statusEl.style.display = 'block';
@@ -4634,6 +4667,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
         body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' })
       });
       const data = await resp.json();
+      if(epoch!==privateEpoch)return;
       if (data.error) { statusEl.textContent = 'Greška: ' + data.error; e.target.value=''; return; }
       const items = Array.isArray(data.parsed) ? data.parsed.filter(Boolean) : (data.parsed ? [data.parsed] : []);
       if (!items.length) { statusEl.textContent = 'AI nije uspio pročitati podatke sa slike. Pokušajte jasniju, bolje osvijetljenu fotografiju.'; e.target.value=''; return; }
@@ -5051,7 +5085,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     catch(e){ setStatus(e.message+' Kopiraj JSON ili firebaseConfig iz Firebase konzole.'); toast('Nije prepoznat format'); return; }
     setSyncStatus('connecting'); setStatus('Povezivanje…');
     const ok = await initCloud(cfg);
-    if (ok){ setStatus(''); closeSetup(); toast('Povezano! Sinkronizacija uživo aktivna.'); }
+    if (ok){ setStatus(''); closeSetup(); toast('Firebase je povezan. Prijava i ovlasti provjeravaju se zasebno.'); }
     else { setSyncStatus('local'); setStatus('Povezivanje nije uspjelo — provjeri config i internet pa pokušaj ponovno.'); toast('Povezivanje nije uspjelo'); }
   });
 
@@ -5066,7 +5100,8 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   document.getElementById('pa-datum').value = todayStr();
   document.getElementById('pr-datum').value = todayStr();
 
-  loadLocal();
+  if(!cloudConfigured)loadLocal();
+  else document.getElementById('opg-root').dataset.access='locked';
   document.getElementById('opg-loading').style.display = 'none';
   document.getElementById('opg-content').style.display = 'block';
   renderAll();

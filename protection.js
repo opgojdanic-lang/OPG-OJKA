@@ -4,7 +4,7 @@
   const bridge = window.OpgFis?.integration;
   const view = document.querySelector('[data-view="zastita"]');
   if (!bridge || !view) return;
-  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = './protection.css'; document.head.append(css);
+  if(!document.querySelector('link[href="./protection.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href='./protection.css';document.head.append(css);}
   view.classList.add('protection-workspace');
   const nav = document.getElementById('zastita-subnav');
   const state = { cache: {}, weather: null, risk: null, sync: null, parcels: [], treatments: [], connected: false, cacheError: null };
@@ -41,14 +41,15 @@
   const noteLabel = el('label', 'Što primjećuješ?', 'protect-field'); noteLabel.htmlFor = 'protect-note';
   const note = el('textarea'); note.id = 'protect-note'; note.rows = 2; note.maxLength = 1200; note.placeholder = 'Npr. sitni kukci ispod lista, uvijanje mladih vrhova…';
   const localStatus = el('p', '', 'protect-muted'); localStatus.setAttribute('aria-live','polite');
-  let photos = [], pestAi = null;
+  let photos = [], pestAi = null,photoEpoch=0;
+  const observationKey=()=>window.OpgAuth?(window.OpgAuth.session?'opg_observations_v1:'+window.OpgAuth.session.uid:localStorage.getItem('opg_fb_config')?'opg_observations_v1:locked':'opg_observations_v1'):'opg_observations_v1';
   const save = button('Spremi opažanje na ovaj uređaj',()=>{
     if (!note.value.trim()) { localStatus.textContent='Opiši što primjećuješ prije spremanja.'; return; }
     try {
-      const all = JSON.parse(localStorage.getItem('opg_observations_v1') || '[]');
+      const all = JSON.parse(localStorage.getItem(observationKey()) || '[]');
       const aiAnalysis=pestAi?.current()||null;
       all.push({ culture: crop.value, note: note.value.trim(), photos, aiAnalysis, createdAt: new Date().toISOString(), status: 'opažanje — bez potvrđene dijagnoze' });
-      localStorage.setItem('opg_observations_v1', JSON.stringify(all));
+      localStorage.setItem(observationKey(), JSON.stringify(all));
       localStatus.textContent=aiAnalysis?'Opažanje, fotografije i AI rezultat spremljeni su na ovom uređaju. Dijagnoza nije potvrđena.':'Opažanje i fotografije spremljeni su samo na ovom uređaju. Nije provedena AI analiza.';
       note.value=''; photos=[]; thumbs.replaceChildren(); upload.value=''; pestAi?.reset(); renderObservations();
     } catch (_) { localStatus.textContent='Nema dovoljno prostora. Opažanje nije spremljeno; sačuvaj fotografije u galeriji.'; }
@@ -56,11 +57,12 @@
   photo.append(noteLabel,note,save,localStatus);
   text(photo,'AI analiza pomaže izdvojiti moguće uzroke. Potrebno ju je uključiti u Firebaseu. Postojeći čitač FIS preporuke dostupan je u Kalkulatoru.','protect-disclaimer');
   upload.addEventListener('change',async()=>{
+    const epoch=photoEpoch;
     photos=[]; thumbs.replaceChildren(); localStatus.textContent='Pripremam do tri fotografije…'; save.disabled=true;
     try {
       for (const file of Array.from(upload.files).slice(0,3)) {
         if (file.size > 15 * 1024 * 1024 || !['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Odaberi JPG, PNG ili WebP fotografiju manju od 15 MB.');
-        const bitmap=await createImageBitmap(file); const scale=Math.min(1,700/Math.max(bitmap.width,bitmap.height));
+        const bitmap=await createImageBitmap(file);if(epoch!==photoEpoch){bitmap.close();return;} const scale=Math.min(1,700/Math.max(bitmap.width,bitmap.height));
         const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();
         const src=canvas.toDataURL('image/jpeg',0.65); if(src.length>220000) throw new Error('Fotografija je prevelika nakon pripreme; odaberi manji izrez.');
         photos.push(src);const img=el('img');img.src=src;img.alt='Fotografija opaženog problema';thumbs.append(img);
@@ -79,7 +81,7 @@
   const candidateList=el('div');candidates.append(problemLabel,problem,candidateList);advice.append(candidates);
   function renderObservations(){
     observations.replaceChildren(el('h3','Moja opažanja'));
-    let all=[];try{all=JSON.parse(localStorage.getItem('opg_observations_v1')||'[]');}catch(_){}
+    let all=[];try{all=JSON.parse(localStorage.getItem(observationKey())||'[]');}catch(_){}
     const filtered=all.filter(o=>o.culture===crop.value).slice(-5).reverse();
     if(!filtered.length)text(observations,'Nema opažanja za ovu kulturu na ovom uređaju.');
     filtered.forEach(o=>{const d=el('details');d.append(el('summary',dt(o.createdAt)),el('p',o.note));const imgs=el('div',null,'protect-thumbnails');(o.photos||[]).forEach(src=>{if(!/^data:image\/jpeg;base64,/.test(src))return;const i=el('img');i.src=src;i.alt='Fotografija uz opažanje';imgs.append(i);});d.append(imgs);if(o.aiAnalysis){text(d,'Spremljen AI rezultat — nije potvrđena dijagnoza.');text(d,o.aiAnalysis.summary);}observations.append(d);});
@@ -137,19 +139,29 @@
   const oldNotice=by('sub-fis').querySelector('.opg-hint');if(oldNotice)oldNotice.textContent='Poveži točan FIS proizvod. Zajednički dnevni dohvat odvojen je od ručne provjere na ovom uređaju.';
   go('zastita-pregled');render();
   // Reuse the app's Firebase instance and authentication. Never sign in a second user.
-  let connectionStarted=false;
+  let connectionStarted=false,connectionEpoch=0,stops=[];
+  window.addEventListener('opg:auth-session',event=>{
+    connectionEpoch++;stops.splice(0).forEach(stop=>stop());connectionStarted=false;
+    state.cache={};state.weather=null;state.risk=null;state.sync=null;state.treatments=[];state.connected=false;state.cacheError=null;
+    if(event.detail?.resetPrivate!==false){photoEpoch++;photos=[];thumbs.replaceChildren();note.value='';upload.value='';localStatus.textContent='';pestAi?.reset();}bridge.setShared({});render();connect();
+  });
   async function connect(){
     if(connectionStarted)return;
+    if(window.OpgAuth&&!window.OpgAuth.session?.permissions.includes('protection_read'))return;
+    const generation=connectionEpoch;
     if(!localStorage.getItem('opg_fb_config'))return;
     connectionStarted=true;
     try{
       const [apps,fs,auth]=await Promise.all([import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'),import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js')]);
       let attempts=0;
       async function attach(){
+        if(generation!==connectionEpoch)return;
         const app=apps.getApps()[0];
         if(!app||!auth.getAuth(app).currentUser){if(attempts++<30)setTimeout(attach,2000);return;}
         const db=fs.getFirestore(app);state.connected=true;
-        fs.onSnapshot(fs.collection(db,'fis_cache'),snap=>{
+        const uid=auth.getAuth(app).currentUser.uid;
+        const listen=(ref,next,error)=>stops.push(fs.onSnapshot(ref,snap=>{if(generation===connectionEpoch&&auth.getAuth(app).currentUser?.uid===uid&&(!window.OpgAuth||window.OpgAuth.session?.uid===uid)&&!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites)next(snap);},()=>{if(generation===connectionEpoch)error?.();}));
+        listen(fs.collection(db,'fis_cache'),snap=>{
           state.cache={};snap.docs.forEach(d=>{
             const v=d.data();
             try {
@@ -161,8 +173,8 @@
           });
           state.cacheError=null;bridge.setShared(state.cache);render();
         },()=>{state.cacheError='zajednički dohvat nije dostupan';Object.values(state.cache).forEach(r=>r.error=state.cacheError);bridge.setShared(state.cache);render();});
-        [['settings/weather_live','weather'],['settings/rizik','risk'],['fis_sync_status/daily','sync']].forEach(([path,key])=>fs.onSnapshot(fs.doc(db,path),snap=>{state[key]=snap.exists()?snap.data():null;render();},()=>{state[key]=null;render();}));
-        fs.onSnapshot(fs.collection(db,'prskanje'),snap=>{state.treatments=snap.docs.map(d=>d.data());render();},()=>{state.connected=false;render();});
+        [['settings/weather_live','weather'],['settings/rizik','risk'],['fis_sync_status/daily','sync']].forEach(([path,key])=>listen(fs.doc(db,path),snap=>{state[key]=snap.exists()?snap.data():null;render();},()=>{state[key]=null;render();}));
+        if(!window.OpgAuth||window.OpgAuth.session.permissions.includes('treatments_read'))listen(fs.collection(db,'prskanje'),snap=>{state.treatments=snap.docs.map(d=>d.data());render();},()=>{state.connected=false;render();});
       }await attach();
     }catch(_){state.cacheError='povezivanje nije uspjelo';render();}
   }

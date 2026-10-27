@@ -21,6 +21,6 @@ test('external regulatory requests are never served from app cache',()=>{
 });
 test('activation expires previous app assets with private seeds while preserving other applications caches',async()=>{
   const listeners={},deleted=[];let claimed=false;
-  vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../sw.js'),'utf8'),{self:{location:{origin:'https://example.test'},clients:{claim:async()=>{claimed=true;}},addEventListener:(name,fn)=>listeners[name]=fn},URL,caches:{keys:async()=>['opg-evidencija-v25','opg-evidencija-v26','another-app'],delete:async name=>deleted.push(name)}});
-  let pending;listeners.activate({waitUntil:p=>pending=p});await pending;assert.deepEqual(deleted,['opg-evidencija-v25']);assert.equal(claimed,true);
+  vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../sw.js'),'utf8'),{self:{location:{origin:'https://example.test'},clients:{claim:async()=>{claimed=true;}},addEventListener:(name,fn)=>listeners[name]=fn},URL,caches:{keys:async()=>['opg-evidencija-v25','opg-evidencija-v26','opg-evidencija-v27','another-app'],delete:async name=>deleted.push(name)}});
+  let pending;listeners.activate({waitUntil:p=>pending=p});await pending;assert.deepEqual(deleted,['opg-evidencija-v25','opg-evidencija-v26']);assert.equal(claimed,true);
 });

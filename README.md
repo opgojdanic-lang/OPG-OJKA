@@ -84,3 +84,5 @@ U zaglavlju aplikacije, ispod naziva "OPG Ojdanić", piše status:
 ## Kandidat za sigurnu objavu
 
 Aktualni pregled pravila, osjetljivih početnih podataka, povezivanja Laser SC i kontroliranog redoslijeda objave: [SECURITY-RELEASE-PLAN.md](docs/SECURITY-RELEASE-PLAN.md). Kandidat nije produkcijski objavljen.
+
+Google prijava, ovlasti i obavezne provjere prije produkcije: [docs/GOOGLE-AUTH.md](docs/GOOGLE-AUTH.md).

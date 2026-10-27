@@ -1,9 +1,10 @@
-const CACHE_NAME = 'opg-evidencija-v26';
+const CACHE_NAME = 'opg-evidencija-v27';
 const ASSETS = [
   './',
   './index.html',
   './fis.js',
   './security.js',
+  './auth.js',
   './protection.js',
   './pest-ai.js',
   './protection.css',

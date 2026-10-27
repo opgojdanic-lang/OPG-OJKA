@@ -9,9 +9,11 @@
 .protection-workspace .protect-ai{border-top:1px solid var(--protect-line);margin-top:16px;padding-top:6px}.protection-workspace .protect-ai-consent{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.5;margin:12px 0}.protection-workspace .protect-ai-consent input{flex:0 0 20px;width:20px;height:20px;accent-color:var(--protect-green)}.protection-workspace #protect-ai-result{font-size:13px;line-height:1.55;overflow-wrap:anywhere}.protection-workspace #protect-ai-result li{margin:7px 0}
 
 /* Reserve room for the floating action and navigation, including standalone PWA insets. */
-.protection-workspace{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px));overflow-wrap:anywhere}
+#opg-root .protection-workspace{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px));overflow-wrap:anywhere}
 .protection-workspace :is(input,select,textarea,button,.opg-card,.protect-card){min-width:0;max-width:100%}
 .protection-workspace button{white-space:normal;overflow-wrap:anywhere}
 .protection-workspace #protect-ai-result>p{margin:8px 0;line-height:1.55}
 .protection-workspace #protect-ai-result ul{padding-left:20px}
 @media(max-width:360px){.protection-workspace .protect-card{padding:12px}.protection-workspace #zastita-subnav{grid-template-columns:repeat(2,minmax(0,1fr))}.protection-workspace .protect-metrics{grid-template-columns:1fr}.protection-workspace .protect-metrics>div{display:flex;align-items:center;justify-content:space-between}}
+.opg-auth-panel{overflow-wrap:anywhere;margin-top:14px;padding:12px;border:1px solid #d9dfd2;border-radius:14px;background:#fffdf6;color:#253728;font:13px/1.5 Inter,system-ui,sans-serif}.opg-auth-panel p{margin:6px 0}.opg-auth-panel .opg-auth-uid{font-size:11px;overflow-wrap:anywhere}.opg-auth-panel button{min-height:44px;white-space:normal;margin-top:7px}.opg-auth-panel details{margin-top:10px}.opg-auth-panel [hidden]{display:none!important}
+#opg-root[data-access="locked"]>:not(.opg-header):not(#opg-setup):not(.opg-toast){display:none!important}
