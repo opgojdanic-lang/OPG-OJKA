@@ -26,7 +26,7 @@ test('HTTP failure is not a successful empty product', async () => {
 });
 test('disabled job makes no stock or network requests', async () => {
   let called=false;
-  const result=await syncStocks({doc:()=>({get:async()=>({data:()=>({enabled:false})})})},{fetchImpl:()=>{called=true;}});
+  const result=await syncStocks({doc:()=>({get:async()=>({data:()=>({enabled:false})}),set:async data=>{assert.equal(data.outcome,'disabled');}})},{fetchImpl:()=>{called=true;}});
   assert.equal(result.enabled,false); assert.equal(called,false);
 });
 test('daily job deduplicates stocks, stores versions once and preserves cache on failure', async () => {
@@ -42,11 +42,26 @@ test('daily job deduplicates stocks, stores versions once and preserves cache on
   let calls=0;
   const options={fetchImpl:async()=>{calls++;return{ok:true,json:async()=>product};},now:()=> '2026-10-26T05:00:00Z',logger:{warn:()=>{}}};
   const first=await syncStocks(db,options);
-  assert.equal(calls,1);assert.equal(first.checked,1);
+  assert.equal(calls,1);assert.equal(first.checked,1);assert.equal(first.scanned,2);assert.equal(first.attempted,1);assert.equal(first.updated,1);assert.equal(first.changed,0);assert.equal(first.outcome,'completed');
   await syncStocks(db,options);
   assert.equal([...store.keys()].filter(k=>k.includes('/versions/')).length,1);
   const old=store.get('fis_cache/1');
   const failure=await syncStocks(db,{...options,now:()=> '2026-10-27T05:00:00Z',fetchImpl:async()=>({ok:false,status:503})});
-  assert.equal(failure.failed,1);assert.equal(store.get('fis_cache/1').checkedAt,old.checkedAt);
+  assert.equal(failure.failed,1);assert.equal(failure.attempted,1);assert.equal(failure.checked,0);assert.equal(failure.updated,0);assert.equal(failure.outcome,'unavailable');assert.deepEqual(failure.errorsByKind,{http_503:1});assert.equal(store.get('fis_cache/1').checkedAt,old.checkedAt);
   assert.ok(store.get('fis_cache/1').error);
+});
+
+test('empty inventory and unlinked inventory are distinct successful no-op outcomes', async () => {
+  for (const [items,outcome] of [[[],'no_stock'],[[{naziv:'Laser SC'}],'no_links']]) {
+    let saved;
+    const db={doc:()=>({get:async()=>({data:()=>({enabled:true})}),set:async r=>{saved=r;}}),collection:()=>({limit:()=>({get:async()=>({size:items.length,docs:items.map(d=>({data:()=>d}))})})})};
+    const r=await syncStocks(db,{logger:{},fetchImpl:()=>assert.fail('no linked products: no fetch')});
+    assert.equal(r.outcome,outcome);assert.equal(r.scanned,items.length);assert.equal(r.checked,0);assert.equal(r.attempted,0);assert.equal(saved,r);
+  }
+});
+
+test('invalid JSON, missing product and timeout have safe distinct error categories', async()=>{
+  await assert.rejects(loadProduct(374,async()=>({ok:true,json:async()=>null})),e=>e.code==='invalid_payload');
+  await assert.rejects(loadProduct(374,async()=>({ok:true,json:async()=>{throw new Error('untrusted body');}})),e=>e.code==='invalid_json'&&!e.message.includes('untrusted'));
+  await assert.rejects(loadProduct(374,async()=>{throw Object.assign(new Error('secret-bearing URL'),{name:'TimeoutError'});}),e=>e.code==='timeout'&&!e.message.includes('secret'));
 });

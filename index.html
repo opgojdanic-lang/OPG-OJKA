@@ -342,7 +342,7 @@ body {
 /* ===== NOVI IZGLED ===== */
 body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest:#1E4D35; --forest-2:#2A6347; --sage:#5F7366; --sage-line:#E7E3D6; --ok-bg:#E3EEE5; --ok-ink:#1E4D35; font-family:'Figtree','Inter',-apple-system,sans-serif; }
 #opg-root input, #opg-root select, #opg-root textarea, #opg-root button, .opg-field input, .opg-field select, .opg-field textarea, .opg-chip, .opg-submit { font-family:'Figtree','Inter',-apple-system,sans-serif; }
-#opg-root { padding-bottom: 120px; }
+#opg-root { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
 .opg-header { background: transparent; color: var(--ink); border-radius: 0; padding: calc(16px + env(safe-area-inset-top)) 20px 6px; overflow: visible; }
 .opg-brand-row { margin-bottom: 12px; }
 .opg-brand-logo { width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--sage-line); }

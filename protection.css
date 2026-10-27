@@ -7,3 +7,11 @@
 
 .protection-workspace #zastita-subnav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.protection-workspace #zastita-subnav>.opg-chip{padding:9px 4px;font-size:11px;white-space:normal}.protection-workspace .protect-tools{grid-column:1/-1;border:0;padding:0 0 8px}.protection-workspace .protect-tools summary{color:var(--protect-muted);min-height:36px;padding:8px 2px}.protection-workspace .protect-tools .opg-chip{margin:4px 4px 0 0}
 .protection-workspace .protect-ai{border-top:1px solid var(--protect-line);margin-top:16px;padding-top:6px}.protection-workspace .protect-ai-consent{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.5;margin:12px 0}.protection-workspace .protect-ai-consent input{flex:0 0 20px;width:20px;height:20px;accent-color:var(--protect-green)}.protection-workspace #protect-ai-result{font-size:13px;line-height:1.55;overflow-wrap:anywhere}.protection-workspace #protect-ai-result li{margin:7px 0}
+
+/* Reserve room for the floating action and navigation, including standalone PWA insets. */
+.protection-workspace{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px));overflow-wrap:anywhere}
+.protection-workspace :is(input,select,textarea,button,.opg-card,.protect-card){min-width:0;max-width:100%}
+.protection-workspace button{white-space:normal;overflow-wrap:anywhere}
+.protection-workspace #protect-ai-result>p{margin:8px 0;line-height:1.55}
+.protection-workspace #protect-ai-result ul{padding-left:20px}
+@media(max-width:360px){.protection-workspace .protect-card{padding:12px}.protection-workspace #zastita-subnav{grid-template-columns:repeat(2,minmax(0,1fr))}.protection-workspace .protect-metrics{grid-template-columns:1fr}.protection-workspace .protect-metrics>div{display:flex;align-items:center;justify-content:space-between}}

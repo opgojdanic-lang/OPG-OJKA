@@ -6,7 +6,7 @@
   const CACHE = 'opg_fis_v1';
   const DAY = 24 * 60 * 60 * 1000;
   function normalize(raw, id) {
-    if (!raw || !raw.basicInfo || typeof raw.basicInfo.productName !== 'string' ||
+    if (!raw || !raw.basicInfo || typeof raw.basicInfo.productName !== 'string' || !raw.basicInfo.productName.trim() || typeof raw.basicInfo.registrationStatus !== 'string' ||
         !Array.isArray(raw.culturesAndHarmfulOrganisms)) throw new Error('FIS je vratio nepotpune podatke.');
     return { id: String(id), name: raw.basicInfo.productName,
       registration: raw.basicInfo.registrationNumber || '',
@@ -20,6 +20,10 @@
           max: o.maxNumberOfTreatmentsPerSeason ?? row.culture?.maxNumberOfTreatmentsPerSeason ?? null
         }))
       })) };
+  }
+  function verified(record, now = Date.now()) {
+    return !!record?.product && !record.error && !stale(record, now) &&
+      record.product.status?.trim().toLocaleUpperCase('hr') === 'REGISTRIRAN';
   }
   function stale(record, now = Date.now()) {
     const t = Date.parse(record?.checkedAt || '');
@@ -46,6 +50,14 @@
       if (!data.content.length) break;
     }
     throw new Error('Popis FIS sredstava nije potpuno dohvaćen.');
+  }
+  function findProducts(products, query) {
+    const term = query.trim().toLocaleLowerCase('hr');
+    if (term.length < 2) return [];
+    const matches = products.filter(p => String(p.productName).toLocaleLowerCase('hr').includes(term));
+    // Alias is a search aid only: identity still requires the user's explicit choice.
+    if (!matches.length && term === 'laser sc') matches.push(...products.filter(p => String(p.pppId) === '374' && String(p.productName).toLocaleUpperCase('hr') === 'LASER'));
+    return matches;
   }
   function mount({ host, getStock, saveLink }) {
     let records = {}, shared = {}, products = null, busy = false, activeId = null, ticket = 0;
@@ -99,8 +111,14 @@
         el('p', 'Broj registracije: ' + record.product.registration, 'opg-hint'),
         el('p', 'Prikaz nije preporuka tretiranja. Provjeri točnu kulturu, otvoreni/zaštićeni uzgoj i izvornu uputu. Nepotpuni podaci nisu odobrenje primjene.', 'opg-hint'));
       if (record.error || stale(record)) detail.append(el('p', 'Aktualnost ovih spremljenih podataka nije potvrđena.', 'opg-hint'));
+      if (record.checkedAt) detail.append(el('p', 'Datum provjere: ' + new Date(record.checkedAt).toLocaleString('hr-HR'), 'opg-hint'));
+      if (!verified(record)) {
+        detail.append(el('p', 'Registracijski uvjeti nisu potvrđeno aktualni. Obnovi provjeru i provjeri status u službenom izvoru.', 'opg-hint'));
+        const source = el('a', 'Otvori izvorni FIS zapis ↗'); source.href = SOURCE + 'pregled/' + encodeURIComponent(record.product.id); source.target = '_blank'; source.rel = 'noopener noreferrer'; detail.append(source);
+        return;
+      }
       if (record.previous) {
-        const d = el('details'); d.append(el('summary', 'Prethodna verzija podataka'));
+        const d = el('details'); d.append(el('summary', 'Prethodna verzija podataka — povijesno, nije za primjenu'));
         const pre = el('pre', JSON.stringify(record.previous, null, 2)); pre.style.whiteSpace = 'pre-wrap'; d.append(pre); detail.append(d);
       }
       if (!record.product.uses.length) detail.append(el('p', 'Nema navedenih primjena — provjeri izvornu uputu.', 'opg-hint'));
@@ -136,8 +154,8 @@
       if (!products) return;
       const term = query.value.trim().toLocaleLowerCase('hr');
       if (term.length < 2) { results.append(el('p', 'Upiši najmanje dva znaka.', 'opg-hint')); return; }
-      const matches = products.filter(p => String(p.productName).toLocaleLowerCase('hr').includes(term));
-      results.append(el('p', matches.length + ' rezultata. Provjeri naziv i broj registracije prije povezivanja.', 'opg-hint'));
+      const matches = findProducts(products, term);
+      results.append(el('p', matches.length + ' rezultata u dohvaćenom katalogu (prazan rezultat nije dokaz nepostojanja registracije). Provjeri naziv i broj registracije prije povezivanja.', 'opg-hint'));
       matches.slice(0, 30).forEach(p => results.append(button(p.productName + ' · ' + (p.productRegistrationNumber || 'bez broja'), async () => {
         if (busy || !activeId) return;
         busy = true;
@@ -159,7 +177,7 @@
     }
     query.addEventListener('input', filter);
     render();
-    const integration = { render, getStock, showRecord, setShared: data => { shared=data; render(); } };
+    const integration = { render, getStock, getRecord, showRecord, setShared: data => { shared=data; render(); } };
     scope.OpgFis.integration = integration;
     if (!document.getElementById('opg-protection-loader')) {
       const script=document.createElement('script');script.id='opg-protection-loader';script.src='./protection.js';
@@ -167,7 +185,7 @@
     }
     return integration;
   }
-  const api = { normalize, stale, mount };
+  const api = { normalize, stale, verified, findProducts, mount };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else scope.OpgFis = api;
 })(typeof window === 'undefined' ? globalThis : window);

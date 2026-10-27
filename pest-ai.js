@@ -51,18 +51,28 @@
       finally{setBusy(false);}
     }
     function renderResult(r){
-      result.replaceChildren(el('h4','Rezultat AI analize — mogući uzroci'),el('p',r.summary));
+      result.replaceChildren(el('h4','Rezultat AI analize — mogući uzroci'));
+      const summary=el('details');summary.append(el('summary','Sažetak analize'),el('p',r.summary));result.append(summary);
       result.append(el('p','Ovo nije potvrđena dijagnoza niti preporuka prskanja.','protect-disclaimer'));
       const addList=(title,items)=>{if(!items?.length)return;result.append(el('h4',title));const list=el('ul');items.forEach(x=>list.append(el('li',x)));result.append(list);};
-      addList('Vidljivi znakovi',r.visibleSigns);
-      (r.possibleCauses||[]).forEach(c=>{
-        const d=el('div',null,'protect-candidate');d.append(el('h4',c.name+' · '+(c.confidence==='moderate'?'umjerena':'niska')+' sigurnost'),el('p',c.evidence),el('p','Provjeri u nasadu: '+c.check));
+      const causes=r.possibleCauses||[], primary=causes[0];
+      result.append(el('h4','1. Najvjerojatniji uzrok'),el('p',primary?primary.name+' — AI pretpostavka, nije potvrđena dijagnoza.':'Nije moguće izdvojiti uzrok iz fotografija.'));
+      result.append(el('h4','2. Razina pouzdanosti'),el('p',primary?(primary.confidence==='moderate'?'Umjerena':'Niska')+' — procjena AI-ja, bez potvrde u nasadu.':'Nedovoljno podataka za procjenu.'));
+      addList('3. Vidljivi simptomi — opažanja AI-ja na fotografiji',r.visibleSigns.length?r.visibleSigns:['Nema jasno izdvojenih vidljivih simptoma.']);
+      addList('4. Što provjeriti u nasadu',[...new Set([...causes.map(c=>c.check),...(r.fieldChecks?.length?r.fieldChecks:['Pregledaj više biljaka i zabilježi razvoj simptoma.'])])]);
+      const hypothesis=(c,parent)=>{
+        const d=el('div',null,'protect-candidate');d.append(el('h4',c.name+' · '+(c.confidence==='moderate'?'umjerena':'niska')+' sigurnost'),el('p','AI pretpostavka i obrazloženje: '+c.evidence));
         if(c.kind!=='abiotic'){
           const label=el('label',null,'protect-ai-consent'),confirmed=el('input');confirmed.type='checkbox';label.append(confirmed,el('span','Pregledao sam nasad i želim provjeriti FIS zapise za ovaj mogući uzrok.'));
           const open=makeButton('Pretraži FIS za: '+c.name,()=>{if(!confirmed.checked)return;const input=document.getElementById('protect-problem');input.value=c.name;input.dispatchEvent(new Event('input'));document.querySelector('#zastita-subnav [data-sub="zastita-prijedlozi"]')?.click();});open.disabled=true;confirmed.addEventListener('change',()=>open.disabled=!confirmed.checked);d.append(label,open);
-        }result.append(d);
-      });
-      addList('Što još fotografirati',r.nextPhotos);addList('Što pregledati u nasadu',r.fieldChecks);
+        }parent.append(d);
+      };
+      const alternatives=el('details');alternatives.append(el('summary','5. Alternativni mogući uzroci'));
+      if(causes.length<2)alternatives.append(el('p','Analiza nije izdvojila dodatne uzroke. To ih ne isključuje.'));
+      causes.slice(1).forEach(c=>hypothesis(c,alternatives));result.append(alternatives);
+      result.append(el('h4','6. Sljedeći preporučeni korak'),el('p','Pregledaj više biljaka i provjeri navedene znakove. Ako uzrok ostane nejasan, zatraži stručni pregled. FIS pretraga nakon potvrde opažanja nije automatska preporuka za prskanje.'));
+      if(primary)hypothesis(primary,result);
+      const more=el('details');more.append(el('summary','Dodatne fotografije za provjeru'));(r.nextPhotos||[]).forEach(x=>more.append(el('p',x)));result.append(more);
     }
     async function run(){
       if(busy||isPreparing())return;

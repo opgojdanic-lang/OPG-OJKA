@@ -71,7 +71,8 @@
   const meteo=panel('protect-meteo','Meteo stanica'), risk=panel('protect-risk','Zahtijeva pažnju'), phi=panel('protect-phi','Tretiranja i karenca'), observations=panel('protect-observations','Moja opažanja');
   overview.append(photo,risk,meteo,phi,observations);
   const candidates=panel('protect-candidates','Primjene sredstava iz zalihe');
-  text(candidates,'Pretraga pokazuje zapise za provjeru. Ne odobrava primjenu i ne određuje potrebu za tretiranjem.');
+  text(candidates,'Pretraga obuhvaća samo povezane proizvode iz zalihe, a ne cijeli FIS registar. Ne odobrava primjenu i ne određuje potrebu za tretiranjem.');
+  const officialSearch=el('a','Pretraži cijeli službeni FIS registar ↗');officialSearch.href='https://fis.mps.hr/fis/javna-trazilica-szb/';officialSearch.target='_blank';officialSearch.rel='noopener noreferrer';candidates.append(officialSearch);
   const problemLabel=el('label','Štetnik ili bolest iz potvrđenog opažanja','protect-field');problemLabel.htmlFor='protect-problem';
   const problem=el('input');problem.id='protect-problem';problem.placeholder='Npr. trips';problem.type='search';
   const candidateList=el('div');candidates.append(problemLabel,problem,candidateList);advice.append(candidates);
@@ -84,24 +85,30 @@
   }
   function renderCandidates(){
     candidateList.replaceChildren(); let found=0;
-    const needles=crop.value==='TIKVICA'?['tikvic']:crop.value==='BUTTERNUT TIKVA'?['butternut','tikva','tikve']:['paprik'];
+    const needles=crop.value==='TIKVICA'?['tikvica','tikvice']:crop.value==='BUTTERNUT TIKVA'?['butternut']:['paprika'];
+    let unavailable=0;
+    if (!bridge.getStock().length) text(candidateList,'Nema podataka o zalihama. Ova pretraga obuhvaća samo povezane proizvode iz zalihe.');
     bridge.getStock().forEach(stock=>{
-      const r=state.cache[String(stock.fis_product_id)];if(!r?.product)return;
-      const uses=r.product.uses.filter(u=>needles.some(n=>u.culture.toLocaleLowerCase('hr').includes(n)));
+      const r=bridge.getRecord?.(stock.fis_product_id)||state.cache[String(stock.fis_product_id)];if(!window.OpgFis.verified(r)){unavailable++;return;}
+      const uses=r.product.uses.filter(u=>needles.some(n=>new RegExp('(^|[^a-zčćđšž])'+n+'([^a-zčćđšž]|$)','i').test(u.culture)));
       const matching=uses.map(u=>({...u,organisms:u.organisms.filter(o=>!problem.value.trim()||o.name.toLocaleLowerCase('hr').includes(problem.value.trim().toLocaleLowerCase('hr')))})).filter(u=>u.organisms.length);
       if(!matching.length)return;found++;
       const card=el('div',null,'protect-candidate');card.append(el('h4',stock.naziv));
       text(card,'Preostalo: '+stock.trenutna_kolicina+' '+(stock.jedinica||'')+' · FIS: '+r.product.status);
-      text(card,r.error||window.OpgFis.stale(r)?'Aktualnost nije potvrđena — potrebna nova provjera.':'Dohvaćeno: '+dt(r.checkedAt));
+      text(card,'Provjereno: '+dt(r.checkedAt));
+      const source=el('a','Izvor: službeni FIS zapis ↗');source.href='https://fis.mps.hr/fis/javna-trazilica-szb/pregled/'+encodeURIComponent(r.product.id);source.target='_blank';source.rel='noopener noreferrer';card.append(source);
       matching.forEach(u=>{const d=el('details');d.append(el('summary',u.culture+' · karenca: '+u.phi));u.organisms.forEach(o=>{d.append(el('h4',o.name));text(d,o.usage||'Primjena nije navedena u ovom polju.');if(o.additional)text(d,o.additional);text(d,'Najviše primjena: '+(o.max??'nije navedeno'));});card.append(d);});
       text(card,'Prije odluke provjeri otvoreni/zaštićeni uzgoj, izvornu uputu, prethodna tretiranja, otpornost i plan berbe. Nema automatskog odabira doze.','protect-disclaimer');
       card.append(button('Otvori FIS zapis',()=>{go('fis');bridge.showRecord(r);}));candidateList.append(card);
     });
+    if(unavailable)text(candidateList,unavailable+' zaliha nema povezane, aktualne i potvrđeno registrirane FIS podatke. Provjeri ih u Zalihe / FIS.');
     if(!found)text(candidateList,'Nema pronađenih zapisa za odabranu kulturu i unos. To ne dokazuje da primjena postoji ili ne postoji: provjeri povezanost zaliha, aktualnost podataka i izvornu FIS uputu.');
   }
   function render(){
     const s=state.sync;
-    sync.textContent=state.cacheError?'FIS · '+state.cacheError:s?'FIS · posljednji završetak '+dt(s.finishedAt)+' · provjereno '+(s.checked??0)+' · neuspjelo '+(s.failed??0)+(s.error?' · '+s.error:''):'FIS · '+(state.connected?'nema rezultata dnevne provjere':'zajednički podaci još nisu povezani');
+    const outcomes={disabled:'dnevna provjera je isključena',no_stock:'nema zaliha za pregled',no_links:'zalihe nemaju FIS povezivanje',partial:'djelomična provjera',unavailable:'FIS dohvat nije uspio',failed:'zadatak nije dovršen',completed:'zadatak dovršen'};
+    const count=n=>Number.isInteger(n)?n:'nije zabilježeno';
+    sync.textContent=state.cacheError?'FIS · '+state.cacheError:s?'FIS · '+(outcomes[s.outcome]||'stariji zapis statusa')+' · pokušaj '+dt(s.lastAttemptAt||s.startedAt)+' · završetak '+dt(s.finishedAt)+' · pregledano zaliha '+count(s.scanned)+' · pokušano proizvoda '+count(s.attempted)+' · provjereno '+count(s.checked)+' · osvježeno '+count(s.updated)+' · promijenjeno '+count(s.changed)+' · pogreške '+count(s.failed)+(s.error?' · '+s.error:''):'FIS · '+(state.connected?'nema rezultata dnevne provjere':'zajednički podaci još nisu povezani');
     risk.replaceChildren(el('h3','Zahtijeva pažnju'));
     const r=state.risk;
     if(!r||!fresh(r.checked_at,90))text(risk,'Nema aktualne procjene rizika. To ne znači da nema bolesti ili štetnika.');
