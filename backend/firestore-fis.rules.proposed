@@ -1,23 +1,129 @@
-// Prijedlog prema pravilima prikazanim 26. 10. 2026. NIJE automatski objavljeno.
-// Čuva postojeći opseg pristupa poslovnim podacima; ne rješava obiteljske ovlasti.
+// Candidate only. Do not deploy until real rules, Auth UIDs and grants are reviewed.
+// access_members is a NEW server-managed permission registry, not an assumed user schema.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /fis_cache/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if false;
+    function has(permission) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/access_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('enabled', false) == true
+        && get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('permissions', []) is list
+        && permission in get(/databases/$(database)/documents/access_members/$(request.auth.uid)).data.get('permissions', []);
     }
-    match /fis_sync_status/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if false;
+    function own(uid) { return request.auth != null && request.auth.uid == uid; }
+    function nullableNumber(data, key) { return data.get(key, null) == null || data[key] is number; }
+    function optionalUrl(data, key) {
+      return !(key in data) || (data[key] is string && data[key].size() <= 2000
+        && (data[key] == '' || data[key].matches('^https://[A-Za-z0-9.-]+(/.*)?$')));
     }
-    // Private AI configuration, quota and idempotency records: Admin SDK only.
+    function validAppSettings() {
+      let data = request.resource.data;
+      return optionalUrl(data, 'ai_url') && optionalUrl(data, 'spray_check_url')
+        && (!('vapid_key' in data) || (data.vapid_key is string && data.vapid_key.size() <= 512))
+        && nullableNumber(data, 'prag_pdv')
+        && nullableNumber(data, 'plan_razmak_prskanja') && nullableNumber(data, 'plan_nicanje_dana')
+        && nullableNumber(data, 'plan_presadjivanje_dana') && nullableNumber(data, 'plan_mraz_prag');
+    }
+    function appSettingKeys() {
+      return ['ai_url','spray_check_url','vapid_key','prag_pdv','plan_razmak_prskanja',
+        'plan_nicanje_dana','plan_presadjivanje_dana','plan_mraz_prag'];
+    }
+    function validSpraySettings() {
+      return nullableNumber(request.resource.data, 'temp_ideal')
+        && nullableNumber(request.resource.data, 'temp_max')
+        && nullableNumber(request.resource.data, 'wind_max');
+    }
+    function mayReadActivities() {
+      // Existing events mix financial, personal and farm data; no trustworthy type/owner field exists.
+      return has('activities_read') && has('finance_read') && has('licenses_read')
+        && has('inventory_read') && has('treatments_read') && has('farm_read');
+    }
+
+    match /access_members/{uid} {
+      allow get: if own(uid);
+      allow list, create, update, delete: if false;
+    }
+    match /prodaja/{id} {
+      allow read: if has('finance_read');
+      allow create, update, delete: if has('finance_write');
+    }
+    match /troskovi/{id} {
+      allow read: if has('finance_read');
+      allow create, update, delete: if has('finance_write');
+    }
+    match /zalihe/{id} {
+      allow read: if has('inventory_read');
+      allow create, update, delete: if has('inventory_write');
+    }
+    match /prskanje/{id} {
+      allow read: if has('treatments_read');
+      allow create, update, delete: if has('treatments_write');
+    }
+    match /licences/{id} {
+      allow read: if has('licenses_read');
+      allow create, update, delete: if has('licenses_write');
+    }
+    match /{collection}/{id} {
+      allow read: if collection in ['parcele','sjetva_sadnja','plan','plan_status','rokovi'] && has('farm_read');
+      allow create, update, delete: if collection in ['parcele','sjetva_sadnja','plan','plan_status','rokovi'] && has('farm_write');
+    }
+    match /aktivnosti/{id} {
+      allow read: if mayReadActivities();
+      allow create: if has('activities_create')
+        && request.resource.data.keys().hasOnly(['tekst','unio','ts','auth_uid'])
+        && request.resource.data.auth_uid == request.auth.uid
+        && request.resource.data.tekst is string && request.resource.data.tekst.size() <= 8000
+        && request.resource.data.unio is string && request.resource.data.unio.size() <= 200
+        && request.resource.data.ts is int;
+      allow update, delete: if false;
+    }
+    match /settings/app {
+      allow get: if has('settings_read');
+      allow create: if has('settings_manage') && request.resource.data.keys().hasOnly(appSettingKeys()) && validAppSettings();
+      allow update: if has('settings_manage')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(appSettingKeys()) && validAppSettings();
+      allow delete: if false;
+    }
+    match /settings/spray_conditions {
+      allow get: if has('protection_read');
+      allow create: if has('settings_manage')
+        && request.resource.data.keys().hasOnly(['temp_ideal','temp_max','wind_max']) && validSpraySettings();
+      allow update: if has('settings_manage')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['temp_ideal','temp_max','wind_max']) && validSpraySettings();
+      allow delete: if false;
+    }
+    match /settings/{id} {
+      allow get: if id in ['weather_live','rizik'] && has('protection_read');
+      // Scheduler/AI controls and derived weather/risk remain Admin SDK/console only.
+      allow list, create, update, delete: if false;
+    }
+    match /fis_cache/{id} {
+      allow read: if has('protection_read');
+      allow create, update, delete: if false;
+    }
+    match /fis_sync_status/daily {
+      allow get: if has('protection_read');
+      allow list, create, update, delete: if false;
+    }
     match /ai_private/{document=**} {
       allow read, write: if false;
     }
-    match /{collection}/{document=**} {
-      allow read, write: if request.auth != null
-        && collection != 'fis_cache' && collection != 'fis_sync_status' && collection != 'ai_private';
+    match /fcm_tokens/{tokenId} {
+      // Old documents without auth_uid require an administrator's verified migration, never takeover.
+      allow create: if has('notifications_write')
+        && request.resource.data.keys().hasOnly(['token','user','created_at','auth_uid'])
+        && request.resource.data.auth_uid == request.auth.uid
+        && request.resource.data.token == tokenId && request.resource.data.token is string
+        && request.resource.data.created_at is int
+        && (request.resource.data.user == null || request.resource.data.user is string);
+      allow update: if has('notifications_write') && resource.data.get('auth_uid', '') == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['token','user','created_at','auth_uid'])
+        && request.resource.data.auth_uid == request.auth.uid && request.resource.data.token == tokenId
+        && request.resource.data.created_at is int
+        && (request.resource.data.user == null || request.resource.data.user is string);
+      allow delete: if has('notifications_write') && resource.data.get('auth_uid', '') == request.auth.uid;
+      allow read: if false;
     }
+    match /{document=**} { allow read, write: if false; }
   }
 }

@@ -17,7 +17,7 @@ jednom (bilo tko od obitelji to može napraviti):
    prijavite se Google računom.
 2. **Add project** → upišite naziv (npr. `opg-ojdanic`) → Continue → Create project.
 3. U lijevom izborniku: **Build → Firestore Database → Create database** → odaberite
-   lokaciju (npr. `europe-west`) → **Start in test mode**.
+   lokaciju (npr. `europe-west`) → **Production mode** (zadano odbijanje pristupa). Ne uključivati javni test mode za stvarne podatke. Prije povezivanja pregledati [sigurnosni plan](docs/SECURITY-RELEASE-PLAN.md) i potvrditi ovlasti stvarnih Firebase UID-ova.
 4. U lijevom izborniku kliknite **⚙ Settings** (odmah ispod "Project Overview") →
    **Project settings** → dolje pod "Your apps" kliknite ikonu **`</>`** (Web) →
    nazovite je "OPG" → Register app.
@@ -76,7 +76,11 @@ U zaglavlju aplikacije, ispod naziva "OPG Ojdanić", piše status:
 
 ## Sadržaj mape
 
-- `index.html` — sama aplikacija (uključuje već prebačene podatke iz vaše Excel tablice)
+- `index.html` — aplikacija bez ugrađenih privatnih početnih podataka; postojeće evidencije čitaju se iz lokalne pohrane ili odobrene zajedničke baze
 - `manifest.json` — podaci za instalaciju (ime, ikona, boje)
 - `sw.js` — service worker za rad bez interneta
 - `icons/` — ikona aplikacije (vaš logo OPG Ojdanić)
+
+## Kandidat za sigurnu objavu
+
+Aktualni pregled pravila, osjetljivih početnih podataka, povezivanja Laser SC i kontroliranog redoslijeda objave: [SECURITY-RELEASE-PLAN.md](docs/SECURITY-RELEASE-PLAN.md). Kandidat nije produkcijski objavljen.

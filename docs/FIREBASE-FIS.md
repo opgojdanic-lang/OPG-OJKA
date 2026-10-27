@@ -1,3 +1,5 @@
+> Aktualne sigurnosne uvjete, potvrdu FIS identiteta i redoslijed objave određuje [SECURITY-RELEASE-PLAN.md](SECURITY-RELEASE-PLAN.md). Ovaj raniji opis nije odobrenje aktivacije ni širokog pristupa.
+
 # Zalihe / FIS — prva nadogradnja
 
 ## Što je spremno

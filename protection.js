@@ -89,7 +89,7 @@
     let unavailable=0;
     if (!bridge.getStock().length) text(candidateList,'Nema podataka o zalihama. Ova pretraga obuhvaća samo povezane proizvode iz zalihe.');
     bridge.getStock().forEach(stock=>{
-      const r=bridge.getRecord?.(stock.fis_product_id)||state.cache[String(stock.fis_product_id)];if(!window.OpgFis.verified(r)){unavailable++;return;}
+      const r=bridge.getRecord?.(stock.fis_product_id)||state.cache[String(stock.fis_product_id)];if(!window.OpgFis.verified(r)||!window.OpgFis.linkVerified(stock,r)){unavailable++;return;}
       const uses=r.product.uses.filter(u=>window.OpgFis.cultureMatches(u.culture,crop.value));
       const matching=uses.map(u=>({...u,organisms:u.organisms.filter(o=>window.OpgFis.organismMatches(o,problem.value))})).filter(u=>u.organisms.length);
       if(!matching.length)return;found++;
@@ -101,7 +101,7 @@
       text(card,'Prije odluke provjeri otvoreni/zaštićeni uzgoj, izvornu uputu, prethodna tretiranja, otpornost i plan berbe. Nema automatskog odabira doze.','protect-disclaimer');
       card.append(button('Otvori FIS zapis',()=>{go('fis');bridge.showRecord(r);}));candidateList.append(card);
     });
-    if(unavailable)text(candidateList,unavailable+' zaliha nema povezane, aktualne i potvrđeno registrirane FIS podatke. Provjeri ih u Zalihe / FIS.');
+    if(unavailable)text(candidateList,unavailable+' zaliha nema potvrđen identitet/formulaciju povezivanja ili aktualne registracijske podatke. Provjeri ih u Zalihe / FIS.');
     if(!found)text(candidateList,'Nema pronađenih zapisa za odabranu kulturu i unos. To ne dokazuje da primjena postoji ili ne postoji: provjeri povezanost zaliha, aktualnost podataka i izvornu FIS uputu.');
   }
   function render(){

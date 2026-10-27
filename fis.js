@@ -12,6 +12,7 @@
     return { id: String(id), name: raw.basicInfo.productName,
       registration: raw.basicInfo.registrationNumber || '',
       status: raw.basicInfo.registrationStatus || 'Status nije naveden',
+      formulations: Array.isArray(raw.additionalData?.productFormulation) ? raw.additionalData.productFormulation.map(f=>typeof f?.hr==='string'?f.hr:typeof f?.en==='string'?f.en:'').map(f=>f.trim()).filter(Boolean) : [],
       uses: raw.culturesAndHarmfulOrganisms.map(row => {
         if (!row || typeof row!=='object' || Array.isArray(row) || (row.harmfulOrganisms != null && !Array.isArray(row.harmfulOrganisms))) throw new Error('Nepotpune FIS primjene.');
         return {
@@ -50,6 +51,27 @@
     const contains=(a,b)=>(' '+a+' ').includes(' '+b+' ');
     const name=words(organism.name), latin=words(organism.nameLat);
     return contains(name,term) || (!!latin && (contains(latin,term) || contains(term,latin)));
+  }
+  function tradeName(value){return String(value||'').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleUpperCase('hr');}
+  function linkAssessment(stock, product) {
+    const local=tradeName(stock?.naziv), remote=tradeName(product?.name);
+    const sc=(Array.isArray(product?.formulations)?product.formulations:[]).some(f=>['koncentrat za suspenziju','suspension concentrate','sc'].includes(words(f)));
+    if (local==='LASER SC') return {ok:String(product?.id)==='374' && remote==='LASER' && sc,
+      message:'Laser SC zahtijeva LASER, ID 374, i izričito potvrđenu SC formulaciju (koncentrat za suspenziju).'};
+    return {ok:!!local && local===remote && Array.isArray(product?.formulations) && product.formulations.length>0,
+      message:'Naziv zalihe mora odgovarati FIS nazivu, a formulacija mora biti dostupna za usporedbu s etiketom. Nepoznate sinonime ne povezujemo automatski.'};
+  }
+  function createLinkVerification(stock, product, checkedAt) {
+    return {method:'label-confirmation',stockName:stock.naziv,productId:String(product.id),productName:product.name,
+      registration:product.registration,formulations:product.formulations,checkedAt,source:SOURCE+'pregled/'+encodeURIComponent(product.id)};
+  }
+  function linkVerified(stock, record) {
+    const proof=stock?.fis_link_verification, p=record?.product, time=Date.parse(proof?.checkedAt||'');
+    return !!proof && !!p && proof.method==='label-confirmation' && Number.isFinite(time) && time<=Date.now()
+      && String(stock.fis_product_id)===String(p.id) && proof.productId===String(p.id)
+      && proof.stockName===stock.naziv && proof.productName===p.name && proof.registration===p.registration
+      && proof.source===SOURCE+'pregled/'+encodeURIComponent(p.id)
+      && JSON.stringify(proof.formulations)===JSON.stringify(p.formulations) && linkAssessment(stock,p).ok;
   }
   function verified(record, now = Date.now()) {
     return !!record?.product && /^[1-9]\d{0,8}$/.test(String(record.product.id)) &&
@@ -93,18 +115,19 @@
     return matches;
   }
   function mount({ host, getStock, saveLink }) {
-    let records = {}, shared = {}, products = null, busy = false, activeId = null, ticket = 0, detailRecord = null, detailId = null, detailCurrent = false;
+    let records = {}, shared = {}, products = null, busy = false, activeId = null, ticket = 0, detailRecord = null, detailId = null, detailCurrent = false, pendingLink = null;
     try { records = JSON.parse(localStorage.getItem(CACHE) || '{}') || {}; } catch (_) {}
     const status = document.createElement('p'); status.className = 'opg-hint'; status.setAttribute('aria-live', 'polite');
     const list = document.createElement('div');
     const detail = document.createElement('div'); detail.className = 'opg-card'; detail.hidden = true;
     const searchPanel = document.createElement('div'); searchPanel.className = 'opg-card'; searchPanel.hidden = true;
+    const linkPanel=document.createElement('section');linkPanel.className='opg-card';linkPanel.hidden=true;
     const heading = document.createElement('h3'); heading.textContent = 'Poveži točan FIS proizvod';
     const label = document.createElement('label'); label.textContent = 'Naziv sredstva'; label.htmlFor = 'fis-query';
     const query = document.createElement('input'); query.id = 'fis-query'; query.type = 'search';
     const results = document.createElement('div');
     searchPanel.append(heading, label, query, results);
-    host.append(status, list, searchPanel, detail);
+    host.append(status, list, searchPanel, linkPanel, detail);
     function el(tag, text, cls) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
     function button(text, action) { const b = el('button', text, 'opg-submit secondary'); b.type = 'button'; b.addEventListener('click', action); return b; }
     function persist() { try { localStorage.setItem(CACHE, JSON.stringify(records)); } catch (_) { status.textContent = 'Predmemoriju nije moguće spremiti na ovom uređaju.'; } }
@@ -126,8 +149,9 @@
         const linked = item.fis_product_id;
         const record = linked && getRecord(linked);
         card.append(el('p', !linked ? 'Nije povezano s FIS-om' : record ?
-          (!verified(record) ? 'Aktualnost nije potvrđena' : 'Dohvat uspješan — provjeri uvjete primjene') : 'Povezano — podaci još nisu dohvaćeni', 'opg-hint'));
+          (!verified(record) ? 'Aktualnost nije potvrđena' : !linkVerified(item,record) ? 'Povezano — identitet i formulaciju treba potvrditi prema etiketi' : 'Dohvat uspješan — provjeri uvjete primjene') : 'Povezano — podaci još nisu dohvaćeni', 'opg-hint'));
         if (linked) {
+          if(!linkVerified(item,record))card.append(el('p','Identitet i formulacija zalihe nisu potvrđeni prema etiketi. Ponovno provjeri povezivanje.','opg-hint'));
           card.append(el('p', item.fis_product_name || 'FIS ID: ' + linked, 'opg-hint'));
           if (record?.origin) card.append(el('p',record.origin,'opg-hint'));
           if (record?.checkedAt) card.append(el('p', 'Posljednji uspješan dohvat: ' + new Date(record.checkedAt).toLocaleString('hr-HR'), 'opg-hint'));
@@ -136,7 +160,7 @@
           if (record?.product) card.append(button('Otvori spremljene uvjete', () => showRecord(record)));
           card.append(button('Provjeri i otvori uvjete', () => refresh(linked)));
         }
-        card.append(button(linked ? 'Promijeni FIS povezivanje' : 'Pronađi u FIS-u', () => openSearch(item)));
+        card.append(button(linked ? 'Provjeri ili promijeni FIS povezivanje' : 'Pronađi u FIS-u', () => openSearch(item)));
         list.append(card);
       });
       if (detailId && !detail.hidden) {
@@ -201,18 +225,52 @@
       if (term.length < 2) { results.append(el('p', 'Upiši najmanje dva znaka.', 'opg-hint')); return; }
       const matches = findProducts(products, term);
       results.append(el('p', matches.length + ' rezultata u dohvaćenom katalogu (prazan rezultat nije dokaz nepostojanja registracije). Provjeri naziv i broj registracije prije povezivanja.', 'opg-hint'));
-      matches.slice(0, 30).forEach(p => results.append(button(p.productName + ' · ' + (p.productRegistrationNumber || 'bez broja'), async () => {
-        if (busy || !activeId) return;
-        busy = true;
-        try {
-          await saveLink(activeId, { fis_product_id: String(p.pppId), fis_product_name: p.productName });
-          searchPanel.hidden = true; detail.hidden = true; detailId = null; detailRecord = null; status.textContent = 'Povezivanje spremljeno.';
-        } catch (_) { status.textContent = 'Povezivanje nije spremljeno. Provjeri Firestore ovlasti i vezu.'; }
-        finally { busy = false; render(); }
-      })));
+      matches.slice(0, 30).forEach(p => results.append(button(p.productName + ' · ' + (p.productRegistrationNumber || 'bez broja'), () => prepareLink(p))));
     }
+    function showLinkConfirmation(stock, product, checkedAt) {
+      pendingLink={stockId:stock.id,stockName:stock.naziv,oldId:stock.fis_product_id,product,checkedAt};
+      linkPanel.hidden=false;linkPanel.replaceChildren();
+      linkPanel.append(el('h3','Provjeri etiketu prije povezivanja'),el('p','Zaliha: '+stock.naziv),el('p','FIS: '+product.name+' · ID '+product.id),
+        el('p','Registracija: '+(product.registration||'nije potvrđena')),el('p','Formulacija iz FIS-a: '+(product.formulations.join(' · ')||'nije dostupna')),
+        el('p','Dohvaćeno: '+new Date(checkedAt).toLocaleString('hr-HR'),'opg-hint'));
+      const source=el('a','Usporedi sa službenim FIS zapisom ↗');source.href=SOURCE+'pregled/'+encodeURIComponent(product.id);source.target='_blank';source.rel='noopener noreferrer';linkPanel.append(source);
+      const assessment=linkAssessment(stock,product), current=verified({product,checkedAt});
+      linkPanel.append(el('p',assessment.message,'opg-hint'));
+      if(!assessment.ok||!current)linkPanel.append(el('p','Povezivanje je blokirano: naziv, formulacija ili aktualna registracija nisu potvrđeni. Nije spremljena nikakva promjena.','opg-hint'));
+      const label=el('label'),confirm=el('input');confirm.type='checkbox';label.append(confirm,el('span','Usporedio/la sam etiketu: naziv, registracijski broj i formulacija odgovaraju prikazanom FIS zapisu.'));
+      const save=button('Potvrdi FIS povezivanje',async()=>{
+        if(busy||!confirm.checked||!pendingLink||!assessment.ok)return;
+        const chosen=pendingLink;busy=true;save.disabled=true;
+        try{
+          const latest=normalize(await request(BASE+'/'+encodeURIComponent(chosen.product.id)),chosen.product.id), now=new Date().toISOString();
+          const currentStock=getStock().find(i=>i.id===chosen.stockId);
+          if(!currentStock||currentStock.naziv!==chosen.stockName||String(currentStock.fis_product_id||'')!==String(chosen.oldId||''))throw new Error('Zaliha je promijenjena. Ponovno otvori povezivanje.');
+          if(JSON.stringify(latest)!==JSON.stringify(chosen.product)){
+            showLinkConfirmation(currentStock,latest,now);status.textContent='FIS podaci su se promijenili. Ponovno usporedi etiketu i potvrdi.';return;
+          }
+          if(!verified({product:latest,checkedAt:now})||!linkAssessment(currentStock,latest).ok)throw new Error('FIS identitet i formulacija nisu potvrđeni.');
+          await saveLink(currentStock.id,{fis_product_id:String(latest.id),fis_product_name:latest.name,fis_link_verification:createLinkVerification(currentStock,latest,now)});
+          searchPanel.hidden=true;linkPanel.hidden=true;pendingLink=null;detail.hidden=true;detailId=null;detailRecord=null;status.textContent='Povezivanje spremljeno nakon usporedbe etikete.';
+        }catch(_){status.textContent='Povezivanje nije spremljeno. Provjeri podatke, Firestore ovlasti i vezu te ponovno otvori povezivanje.';}
+        finally{busy=false;save.disabled=!confirm.checked||!assessment.ok||!current;render();}
+      });
+      save.disabled=true;confirm.disabled=!assessment.ok||!current;confirm.addEventListener('change',()=>save.disabled=!confirm.checked||!assessment.ok||!current||busy);
+      linkPanel.append(label,save,button('Odustani od povezivanja',()=>{pendingLink=null;linkPanel.hidden=true;}));
+    }
+    async function prepareLink(candidate){
+      if(busy||!activeId)return;busy=true;status.textContent='Provjeravam identitet i formulaciju u FIS-u…';
+      try{
+        const stock=getStock().find(i=>i.id===activeId);if(!stock)throw new Error('Zaliha ne postoji');
+        const product=normalize(await request(BASE+'/'+encodeURIComponent(candidate.pppId)),candidate.pppId);
+        if(tradeName(product.name)!==tradeName(candidate.productName))throw new Error('FIS katalog i detalj nisu usklađeni');
+        showLinkConfirmation(stock,product,new Date().toISOString());status.textContent='Ništa nije spremljeno. Usporedi etiketu i izričito potvrdi povezivanje.';
+      }catch(_){pendingLink=null;linkPanel.hidden=true;status.textContent='Identitet ili formulacija nisu dohvaćeni. Povezivanje nije spremljeno.';}
+      finally{busy=false;}
+    }
+
     async function openSearch(item) {
       if (busy) return;
+      pendingLink=null;linkPanel.hidden=true;
       activeId = item.id; const current = ++ticket;
       query.value = item.naziv || ''; searchPanel.hidden = false; results.textContent = 'Dohvaćam popis iz FIS-a…';
       query.focus();
@@ -233,7 +291,7 @@
     }
     return integration;
   }
-  const api = { normalize, stale, verified, cultureMatches, organismMatches, findProducts, mount };
+  const api = { normalize, stale, verified, linkAssessment, createLinkVerification, linkVerified, cultureMatches, organismMatches, findProducts, mount };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else scope.OpgFis = api;
 })(typeof window === 'undefined' ? globalThis : window);

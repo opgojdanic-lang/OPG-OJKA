@@ -1,3 +1,5 @@
+> Aktualne sigurnosne uvjete, potvrdu FIS identiteta i redoslijed objave određuje [SECURITY-RELEASE-PLAN.md](SECURITY-RELEASE-PLAN.md). Ovaj raniji opis nije odobrenje aktivacije ni širokog pristupa.
+
 # Zaštita — prvi funkcionalni prikaz
 
 Zaštita se učitava kroz postojeći `fis.js`, bez izmjene glavnog HTML dokumenta. Pregled i Prijedlozi koriste postojeće zalihe, a postojeći dnevnik tretiranja, kalkulator i postavke ostaju dostupni.

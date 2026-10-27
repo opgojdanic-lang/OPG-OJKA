@@ -1,3 +1,5 @@
+> Ažuriranje sigurnosnog kandidata: ovaj raniji opis treba čitati uz [SECURITY-RELEASE-PLAN.md](SECURITY-RELEASE-PLAN.md). Pravila sada zadano odbijaju pristup bez posebno potvrđenih dopuštenja; emulator testovi su izvršeni, a privatni početni podaci uklonjeni iz HTML-a. Ne objavljivati prethodnu široku varijantu pravila.
+
 # Postavljanje dnevne FIS provjere — opg-ojka
 
 ## Pripremljeno, nije objavljeno

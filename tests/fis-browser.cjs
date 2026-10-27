@@ -11,6 +11,7 @@ const assert = require('node:assert/strict');
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(() => {
     localStorage.setItem('opg_zalihe', JSON.stringify([{id:'test',naziv:'Test proizvod',trenutna_kolicina:1,pocetna_kolicina:1,jedinica:'L'}]));
+    localStorage.setItem('opg_prodaja',JSON.stringify([{id:'preserved-sale',kupac:'RIBOLA',datum:'2026-10-01',proizvod:'<img src=x onerror=window.financialXss=true>',cijena_kg:2,kg:3,placeno:false,pak:null}]));
   });
   if(process.env.SAFE_AREA_TEST==='1')await page.route('http://127.0.0.1:8766/',route=>{
     const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8').replace(/env\(safe-area-inset-top(?:,\s*0px)?\)/g,'47px').replace(/env\(safe-area-inset-bottom(?:,\s*0px)?\)/g,'34px');
@@ -21,12 +22,22 @@ const assert = require('node:assert/strict');
     if (fail) return route.abort();
     const search = route.request().url().includes('/search?');
     return route.fulfill({ json: search ? {content:[{pppId:42,productName:'Test proizvod',productRegistrationNumber:'TEST'}],totalElements:1} : {
-      basicInfo:{productName:'Test proizvod',registrationStatus:'REGISTRIRAN',registrationNumber:'TEST'},
+      basicInfo:{productName:'Test proizvod',registrationStatus:'REGISTRIRAN',registrationNumber:'TEST'},additionalData:{productFormulation:[{hr:'koncentrat za suspenziju'}]},
       culturesAndHarmfulOrganisms:[{culture:{name:{hr:'Paprika'},safetyPeriod:version === 1 ? '3 dana' : '7 dana'},harmfulOrganisms:[{name:{hr:'<img src=x onerror=alert(1)>'},maxNumberOfTreatmentsPerSeason:2}]}]
     }});
   });
   await page.goto('http://127.0.0.1:8766/');
   await page.locator('#setup-skip').click();
+  await page.evaluate(()=>window.OpgSecurity.renderActivityItems(document.getElementById('activity-modal-list'),[{tekst:'<img src=x onerror="window.activityXss=true">',unio:'<script>malicious</script>',ts:1}]));
+  assert.equal(await page.locator('#activity-modal-list img, #activity-modal-list script').count(),0,'stored activity text never executes as HTML');
+  assert.ok((await page.locator('#activity-modal-list').textContent()).includes('<img'));
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('opg_prodaja')).length),1,'existing local finance records are preserved, not seeded or deleted');
+  assert.equal(await page.locator('#prodaja-list-card img, #sum-by-kupac img, #proizvod-list img').count(),0,'financial text is not HTML');
+  const csp=await page.evaluate(()=>new Promise(resolve=>{
+    const violations=[];const listener=e=>violations.push(e.effectiveDirective);document.addEventListener('securitypolicyviolation',listener);
+    const img=document.createElement('img');img.setAttribute('onerror','window.cspInjected=true');img.addEventListener('error',()=>setTimeout(()=>{img.remove();document.removeEventListener('securitypolicyviolation',listener);resolve({executed:!!window.cspInjected,violations});},50));img.src='data:image/png;base64,invalid';document.body.append(img);
+  }));
+  assert.equal(csp.executed,false);assert.ok(csp.violations.some(v=>v.startsWith('script-src')),'CSP blocks injected inline handlers');
   await page.locator('[data-tab="zastita"]').click();
   if(process.env.SAFE_AREA_TEST==='1'){
     await page.addStyleTag({content:'*{transition:none!important}'});
@@ -42,6 +53,12 @@ const assert = require('node:assert/strict');
   await page.locator('[data-sub="fis"]').click();
   await page.getByRole('button',{name:'Pronađi u FIS-u',exact:true}).click();
   await page.getByRole('button',{name:'Test proizvod · TEST',exact:true}).click();
+  await page.getByText('Provjeri etiketu prije povezivanja',{exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('opg_zalihe'))[0].fis_product_id),undefined,'product selection never writes stock');
+  const confirmLink=page.getByRole('button',{name:'Potvrdi FIS povezivanje',exact:true});assert.equal(await confirmLink.isDisabled(),true);
+  await page.getByText('Usporedio/la sam etiketu: naziv, registracijski broj i formulacija odgovaraju prikazanom FIS zapisu.',{exact:true}).click();
+  await confirmLink.click();await page.getByText('Povezivanje spremljeno nakon usporedbe etikete.',{exact:true}).waitFor();
+
   await page.getByRole('button',{name:'Provjeri i otvori uvjete',exact:true}).click();
   await page.locator('#fis-host').getByText('Paprika · karenca: 3 dana', {exact:true}).waitFor();
   version=2;
@@ -58,7 +75,7 @@ const assert = require('node:assert/strict');
   assert.equal(await page.locator('#fis-host').getByText('Status u FIS-u: REGISTRIRAN',{exact:true}).count(),0,'failed data cannot claim current status');
   assert.equal(await page.locator('#fis-host summary').filter({hasText:'karenca:'}).count(),0,'failed detail hides conditions');
   await page.evaluate(()=>{
-    const product={id:'42',name:'Test proizvod',status:'REGISTRIRAN',registration:'TEST',uses:[{culture:'Paprika',phi:'TEST',organisms:[]}]};
+    const product={id:'42',name:'Test proizvod',status:'REGISTRIRAN',registration:'TEST',formulations:['koncentrat za suspenziju'],uses:[{culture:'Paprika',phi:'TEST',organisms:[]}]};
     window.OpgFis.integration.setShared({'42':{product,checkedAt:new Date().toISOString(),lastAttemptAt:new Date().toISOString()}});
     window.OpgFis.integration.showRecord(window.OpgFis.integration.getRecord('42'));
   });
@@ -69,7 +86,7 @@ const assert = require('node:assert/strict');
   await page.evaluate(()=>{const original=Date.now;Date.now=()=>original()+86400001;document.dispatchEvent(new Event('visibilitychange'));Date.now=original;});
   assert.equal(await page.locator('#fis-host').getByText('Status u FIS-u: REGISTRIRAN',{exact:true}).count(),0,'open detail ages safely');
   assert.equal(await page.locator('#fis-host summary').filter({hasText:'karenca:'}).count(),0,'aged detail hides conditions');
-  await page.evaluate(()=>window.OpgFis.integration.setShared({'42':{product:{id:'99',name:'Wrong product',registration:'TEST',status:'REGISTRIRAN',uses:[]},checkedAt:new Date().toISOString(),lastAttemptAt:new Date().toISOString()}}));
+  await page.evaluate(()=>window.OpgFis.integration.setShared({'42':{product:{id:'99',name:'Wrong product',registration:'TEST',status:'REGISTRIRAN',formulations:['koncentrat za suspenziju'],uses:[]},checkedAt:new Date().toISOString(),lastAttemptAt:new Date().toISOString()}}));
   assert.equal(await page.evaluate(()=>window.OpgFis.verified(window.OpgFis.integration.getRecord('42'))),false,'cache identity must match linked stock');
   assert.equal(await page.locator('#fis-host').getByText('Status u FIS-u: REGISTRIRAN',{exact:true}).count(),0);
 
@@ -88,7 +105,7 @@ const assert = require('node:assert/strict');
   await page.locator('#protect-crop').selectOption('TIKVICA');
   await page.getByText('Nema opažanja za ovu kulturu na ovom uređaju.',{exact:true}).waitFor();
   await page.locator('#protect-crop').selectOption('PAPRIKA BABURA');
-  await page.evaluate(()=>window.OpgFis.integration.setShared({'42':{product:{id:'42',name:'Test proizvod',status:'REGISTRIRAN',registration:'TEST',uses:[]},checkedAt:new Date().toISOString(),lastAttemptAt:new Date().toISOString(),origin:'Zajednički dnevni dohvat'}}));
+  await page.evaluate(()=>window.OpgFis.integration.setShared({'42':{product:{id:'42',name:'Test proizvod',status:'REGISTRIRAN',registration:'TEST',formulations:['koncentrat za suspenziju'],uses:[]},checkedAt:new Date().toISOString(),lastAttemptAt:new Date().toISOString(),origin:'Zajednički dnevni dohvat'}}));
   await page.locator('[data-sub="fis"]').click();
   await page.getByText('Zajednički dnevni dohvat',{exact:true}).waitFor();
   await page.locator('[data-sub="zastita-pregled"]').click();
@@ -109,14 +126,42 @@ const assert = require('node:assert/strict');
   await page.screenshot({path:'/tmp/opg-protection-overview.png',fullPage:true});
   assert.deepEqual(errors,[]);
 
+  // Laser SC: legacy links are unverified; formula mismatch and changes during confirmation never write.
+  const laser=await browser.newPage({viewport:{width:320,height:800},serviceWorkers:'block'});laser.on('pageerror',e=>errors.push(e.message));
+  const originalLaser={id:'laser-stock',naziv:'Laser SC',fis_product_id:374,fis_product_name:'LASER',trenutna_kolicina:2,pocetna_kolicina:2,jedinica:'L'};
+  await laser.addInitScript(stock=>localStorage.setItem('opg_zalihe',JSON.stringify([stock])),originalLaser);
+  let laserForm='emulzija';
+  await laser.route('https://fis.mps.hr/**',route=>route.fulfill({json:route.request().url().includes('/search?')?{content:[{pppId:374,productName:'LASER',productRegistrationNumber:'TEST'}],totalElements:1}:{basicInfo:{productName:'LASER',registrationNumber:'TEST',registrationStatus:'REGISTRIRAN'},additionalData:{productFormulation:[{hr:laserForm}]},culturesAndHarmfulOrganisms:[{culture:{name:{hr:'Paprika (u zaštićenom prostoru)'}},harmfulOrganisms:[{name:{hr:'kalifornijski trips'},nameLat:'Frankliniella occidentalis'}]}]}}));
+  await laser.goto('http://127.0.0.1:8766/');await laser.locator('#setup-skip').click();await laser.locator('[data-tab="zastita"]').click();await laser.locator('[data-sub="fis"]').click();
+  await laser.getByText('Identitet i formulacija zalihe nisu potvrđeni prema etiketi. Ponovno provjeri povezivanje.',{exact:true}).waitFor();
+  await laser.getByRole('button',{name:'Provjeri i otvori uvjete',exact:true}).click();
+  await laser.locator('[data-sub="zastita-prijedlozi"]').click();assert.equal(await laser.locator('#protect-candidates .protect-candidate').count(),0,'unconfirmed legacy link is not a verified stock candidate');
+  await laser.locator('[data-sub="fis"]').click();await laser.getByRole('button',{name:'Provjeri ili promijeni FIS povezivanje',exact:true}).click();
+  await laser.getByRole('button',{name:'LASER · TEST',exact:true}).click();
+  await laser.getByText('Povezivanje je blokirano: naziv, formulacija ili aktualna registracija nisu potvrđeni. Nije spremljena nikakva promjena.',{exact:true}).waitFor();
+  assert.equal(await laser.getByRole('button',{name:'Potvrdi FIS povezivanje',exact:true}).isDisabled(),true);
+  assert.deepEqual(await laser.evaluate(()=>JSON.parse(localStorage.getItem('opg_zalihe'))[0]),originalLaser);
+  laserForm='koncentrat za suspenziju';await laser.getByRole('button',{name:'Odustani od povezivanja',exact:true}).click();await laser.getByRole('button',{name:'LASER · TEST',exact:true}).click();
+  await laser.getByText('Usporedio/la sam etiketu: naziv, registracijski broj i formulacija odgovaraju prikazanom FIS zapisu.',{exact:true}).click();
+  laserForm='emulzija';await laser.getByRole('button',{name:'Potvrdi FIS povezivanje',exact:true}).click();
+  await laser.getByText('FIS podaci su se promijenili. Ponovno usporedi etiketu i potvrdi.',{exact:true}).waitFor();
+  assert.deepEqual(await laser.evaluate(()=>JSON.parse(localStorage.getItem('opg_zalihe'))[0]),originalLaser,'changed source never silently confirms old data');
+  laserForm='koncentrat za suspenziju';await laser.getByRole('button',{name:'Odustani od povezivanja',exact:true}).click();await laser.getByRole('button',{name:'LASER · TEST',exact:true}).click();
+  await laser.getByText('Usporedio/la sam etiketu: naziv, registracijski broj i formulacija odgovaraju prikazanom FIS zapisu.',{exact:true}).click();await laser.getByRole('button',{name:'Potvrdi FIS povezivanje',exact:true}).click();
+  await laser.getByText('Povezivanje spremljeno nakon usporedbe etikete.',{exact:true}).waitFor();
+  const confirmedLaser=await laser.evaluate(()=>JSON.parse(localStorage.getItem('opg_zalihe'))[0]);assert.equal(confirmedLaser.fis_product_id,'374');assert.equal(confirmedLaser.fis_link_verification.productName,'LASER');assert.equal(confirmedLaser.trenutna_kolicina,2);
+  await laser.getByRole('button',{name:'Provjeri i otvori uvjete',exact:true}).click();await laser.locator('[data-sub="zastita-prijedlozi"]').click();await laser.locator('#protect-problem').fill('Trips (Frankliniella occidentalis)');
+  assert.equal(await laser.locator('#protect-candidates .protect-candidate').count(),1);assert.equal(await laser.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await laser.close();
+
   // Verify the shared Firebase read adapter with deterministic SDK snapshots.
   const cloud = await browser.newPage({serviceWorkers:'block'});
   cloud.on('pageerror',e=>errors.push(e.message));
-  await cloud.route('**/cloud-fixture',r=>r.fulfill({contentType:'text/html',body:`<meta charset="utf-8"><div data-view="zastita"><div id="zastita-subnav"><button data-sub="iskaznica"></button><button data-sub="vrijeme"></button><button data-sub="kalkulator"></button><button data-sub="zalihe"></button><button data-sub="fis"></button><button data-sub="tretiranja"></button></div><div id="sub-fis"></div></div><select id="season-select"><option>2026</option></select><script src="/fis.js"></script><script>localStorage.setItem('opg_fb_config','{}');window.OpgFis={...window.OpgFis,normalize:r=>r,integration:{getStock:()=>[{naziv:'Test proizvod',fis_product_id:'42',trenutna_kolicina:1,jedinica:'L'}],setShared:()=>{},showRecord:()=>{}}};</script><script src="/protection.js"></script>`}));
+  await cloud.route('**/cloud-fixture',r=>r.fulfill({contentType:'text/html',body:`<meta charset="utf-8"><div data-view="zastita"><div id="zastita-subnav"><button data-sub="iskaznica"></button><button data-sub="vrijeme"></button><button data-sub="kalkulator"></button><button data-sub="zalihe"></button><button data-sub="fis"></button><button data-sub="tretiranja"></button></div><div id="sub-fis"></div></div><select id="season-select"><option>2026</option></select><script src="/fis.js"></script><script>localStorage.setItem('opg_fb_config','{}');window.OpgFis={...window.OpgFis,normalize:r=>r,integration:{getStock:()=>[{naziv:'Test proizvod',fis_product_id:'42',trenutna_kolicina:1,jedinica:'L',fis_link_verification:window.OpgFis.createLinkVerification({naziv:'Test proizvod'},{id:'42',name:'Test proizvod',registration:'TEST',formulations:['koncentrat za suspenziju']},new Date().toISOString())}],setShared:()=>{},showRecord:()=>{}}};</script><script src="/protection.js"></script>`}));
   await cloud.route('https://www.gstatic.com/firebasejs/**',r=>{
     const url=r.request().url();
     if(url.endsWith('firebase-functions.js'))return r.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body:`export const getFunctions=()=>({});export const httpsCallable=(_,name)=>async data=>{window.aiCalls=window.aiCalls||[];if(name==='pestPhotoUsage')return{data:{month:'2026-10',attempts:1,limit:100,remaining:99,estimatedUsd:0.00381,sampleCount:1,sampleUsd:0.00381,unaccounted:0}};window.aiCalls.push(data);if(window.aiMode==='quota')throw Object.assign(new Error('Dosegnuto je 100 analiza za ovaj mjesec.'),{code:'functions/resource-exhausted'});return{data:{result:window.aiMode==='unclear'?{assessment:'insufficient_evidence',summary:'Nema dovoljno vidljivih znakova.',visibleSigns:[],possibleCauses:[],nextPhotos:['Fotografiraj donju stranu lista.'],fieldChecks:[]}:{assessment:'possible_causes',summary:'Mogući uzrok: trips. <img src=x onerror=alert(1)>',visibleSigns:['Srebrnkasti tragovi'],possibleCauses:[{name:'Trips',kind:'pest',confidence:'low',evidence:'Tragovi na listu',check:'Pregledaj cvjetove.'}],nextPhotos:[],fieldChecks:['Pregledaj više biljaka.']},usage:{month:'2026-10',attempts:1,limit:100,remaining:99,estimatedUsd:0.00381,sampleCount:1,sampleUsd:0.00381,unaccounted:0}}};};`});
-    let body=url.endsWith('firebase-app.js')?'export const getApps=()=>[{}];':url.endsWith('firebase-auth.js')?'export const getAuth=()=>({currentUser:{uid:"test"}});':`export const getFirestore=()=>({});export const collection=(_,p)=>p;export const doc=(_,p)=>p;export function onSnapshot(p,ok){window.snapshots=window.snapshots||{};window.snapshots[p]=ok;const now=new Date().toISOString();const rows={fis_cache:[{id:'42',data:()=>({checkedAt:now,rawJson:JSON.stringify({id:'42',name:'Test proizvod',status:'REGISTRIRAN',registration:'TEST',uses:[{culture:'Paprika',phi:'3 dana',organisms:[{name:'Trips',usage:'Testna primjena',max:2}]}]})})}],prskanje:[{data:()=>({kultura:'PAPRIKA BABURA',datum:'2026-06-01'})}]};const data={'settings/weather_live':{temp:22,hum:75,wind:1.5,ts:Date.now()},'settings/rizik':{checked_at:now,items:[{kulture:['PAPRIKA BABURA'],razina:1,naziv:'Testni rizik',razlog:'Vlažno vrijeme'}]},'fis_sync_status/daily':{finishedAt:now,checked:1,failed:0}};ok(rows[p]?{docs:rows[p]}:{exists:()=>!!data[p],data:()=>data[p]});}`;
+    let body=url.endsWith('firebase-app.js')?'export const getApps=()=>[{}];':url.endsWith('firebase-auth.js')?'export const getAuth=()=>({currentUser:{uid:"test"}});':`export const getFirestore=()=>({});export const collection=(_,p)=>p;export const doc=(_,p)=>p;export function onSnapshot(p,ok){window.snapshots=window.snapshots||{};window.snapshots[p]=ok;const now=new Date().toISOString();const rows={fis_cache:[{id:'42',data:()=>({checkedAt:now,rawJson:JSON.stringify({id:'42',name:'Test proizvod',status:'REGISTRIRAN',registration:'TEST',formulations:['koncentrat za suspenziju'],uses:[{culture:'Paprika',phi:'3 dana',organisms:[{name:'Trips',usage:'Testna primjena',max:2}]}]})})}],prskanje:[{data:()=>({kultura:'PAPRIKA BABURA',datum:'2026-06-01'})}]};const data={'settings/weather_live':{temp:22,hum:75,wind:1.5,ts:Date.now()},'settings/rizik':{checked_at:now,items:[{kulture:['PAPRIKA BABURA'],razina:1,naziv:'Testni rizik',razlog:'Vlažno vrijeme'}]},'fis_sync_status/daily':{finishedAt:now,checked:1,failed:0}};ok(rows[p]?{docs:rows[p]}:{exists:()=>!!data[p],data:()=>data[p]});}`;
     return r.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body});
   });
   await cloud.goto('http://127.0.0.1:8766/cloud-fixture');
@@ -134,10 +179,10 @@ const assert = require('node:assert/strict');
   assert.equal(await cloud.locator('.protect-candidate').count(),0);
   await cloud.locator('#protect-crop').selectOption('PAPRIKA BABURA');
   for(const change of [{error:'offline'},{checkedAt:'2020-01-01T00:00:00Z'},{status:'UKINUT'}]){
-    await cloud.evaluate(change=>window.snapshots.fis_cache({docs:[{id:'42',data:()=>({checkedAt:change.checkedAt||new Date().toISOString(),error:change.error||null,rawJson:JSON.stringify({id:'42',name:'Test',status:change.status||'REGISTRIRAN',registration:'TEST',uses:[{culture:'Paprika',phi:'Test',organisms:[{name:'Trips'}]}]})})}]}),change);
+    await cloud.evaluate(change=>window.snapshots.fis_cache({docs:[{id:'42',data:()=>({checkedAt:change.checkedAt||new Date().toISOString(),error:change.error||null,rawJson:JSON.stringify({id:'42',name:'Test',status:change.status||'REGISTRIRAN',registration:'TEST',formulations:['koncentrat za suspenziju'],uses:[{culture:'Paprika',phi:'Test',organisms:[{name:'Trips'}]}]})})}]}),change);
     assert.equal(await cloud.locator('.protect-candidate').count(),0,'unverified records never qualify');
   }
-  await cloud.evaluate(()=>window.snapshots.fis_cache({docs:[{id:'42',data:()=>({checkedAt:new Date().toISOString(),rawJson:JSON.stringify({id:'42',name:'Test',registration:'TEST',status:'REGISTRIRAN',uses:[{culture:'Paprika',phi:'TEST',organisms:[{name:'Trips'}]}]}),previousRawJson:'invalid historical JSON'})}]}));
+  await cloud.evaluate(()=>window.snapshots.fis_cache({docs:[{id:'42',data:()=>({checkedAt:new Date().toISOString(),rawJson:JSON.stringify({id:'42',name:'Test proizvod',registration:'TEST',status:'REGISTRIRAN',formulations:['koncentrat za suspenziju'],uses:[{culture:'Paprika',phi:'TEST',organisms:[{name:'Trips'}]}]}),previousRawJson:'invalid historical JSON'})}]}));
   assert.equal(await cloud.locator('.protect-candidate').count(),1,'invalid history cannot invalidate separately verified current data');
   // AI flow uses mocked callable responses; never calls a paid provider.
   await cloud.locator('#protect-ai-analyze').waitFor();

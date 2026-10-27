@@ -1,3 +1,5 @@
+> Ažuriranje sigurnosnog kandidata: ovaj raniji opis treba čitati uz [SECURITY-RELEASE-PLAN.md](SECURITY-RELEASE-PLAN.md). Pravila sada zadano odbijaju pristup bez posebno potvrđenih dopuštenja; emulator testovi su izvršeni, a privatni početni podaci uklonjeni iz HTML-a. Ne objavljivati prethodnu široku varijantu pravila.
+
 # Uključivanje AI analize fotografija
 
 Ovo je pripremljen kod u draft PR-u. Funkcije nisu postavljene u produkciju ovim GitHub zapisom. Stvarna analiza i račun provjeravaju se tek nakon postavljanja API ključa. Nemoj slati API ključ u razgovor ili ga upisivati u HTML, Firebase web config ili Firestore.
