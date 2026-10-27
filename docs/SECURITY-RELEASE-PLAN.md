@@ -33,3 +33,5 @@ Suite briše samo izoliranu demo bazu i dodatno testira emergency pravila, prave
 Operatorske prijave, keyless ADC, stvarne permission provjere, privatni izvoz objavljenih pravila i AI stop kontrolni popis: [OPERATOR-PREFLIGHT.md](OPERATOR-PREFLIGHT.md). Potvrđena su dva ljudska IAM Ownera; postojeći IAM se ne mijenja.
 
 Potvrđeni javni Cloud Run servisi, granice interne autorizacije, selektivna karantena/povrat i migracija bez brisanja legacy funkcija: [HTTP-ENDPOINT-CONTAINMENT.md](HTTP-ENDPOINT-CONTAINMENT.md).
+
+Novo potvrđeno privatno podrijetlo legacy definicija i prioritetni fisPhotoLookup rizik: [HTTP-ENDPOINT-CONTAINMENT.md](HTTP-ENDPOINT-CONTAINMENT.md); pripremljeni guard i blokade privatne integracije: [FIS-PHOTO-AUTH-PATCH.md](FIS-PHOTO-AUTH-PATCH.md). Ranije navode da je legacy izvor nepronađen treba čitati kao povijesni nalaz, ne aktualni status.

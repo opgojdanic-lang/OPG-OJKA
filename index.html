@@ -2,7 +2,7 @@
 <html lang="hr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-Y5eRRBDqXElVDyv3pQRfSvqo6uPgKLV+GthmyfXFDDg=' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com/js/api.js https://apis.google.com/_/scs/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-/QD725p7wG/dMi+vmJEN11JoLsnthxTFbAiF6NSH+es=' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com/js/api.js https://apis.google.com/_/scs/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OPG Ojdanić</title>
 <meta name="theme-color" content="#1F3D2B">
@@ -531,6 +531,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
 </style>
 <script src="./security.js"></script>
 <script src="./auth.js"></script>
+<script src="./fis-photo-client.js"></script>
 <script src="./fis.js"></script>
 <style>
 #fis-host input { width:100%; padding:12px; font:inherit; font-size:16px; border:1px solid var(--sage-line); border-radius:10px; margin:8px 0; }
@@ -4617,7 +4618,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     box.style.display = 'block';
     box.innerHTML = items.map((it, i) => {
       const label = [it.stetnik_ili_bolest, it.kultura].filter(Boolean).join(' · ') || ('Redak ' + (i+1));
-      return `<button type="button" class="opg-submit ghost" style="margin-bottom:6px; text-align:left;" data-idx="${i}">${label}</button>`;
+      return `<button type="button" class="opg-submit ghost" style="margin-bottom:6px; text-align:left;" data-idx="${i}">${window.OpgSecurity.escapeHtml(label)}</button>`;
     }).join('');
     box.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => applyFisItem(items[parseInt(btn.dataset.idx, 10)]));
@@ -4663,11 +4664,9 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     try {
       const dataUrl = await resizeImageFile(file, 1200, 0.85);
       const base64 = dataUrl.split(',')[1];
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' })
-      });
+      const user=fb?.auth?.currentUser,session=window.OpgAuth?.session;
+      const resp = await window.OpgFisPhoto.request({url,user,session,image:base64,mimeType:'image/jpeg',
+        isCurrent:()=>epoch===privateEpoch&&fb?.auth?.currentUser?.uid===user?.uid&&window.OpgAuth?.session?.uid===user?.uid});
       const data = await resp.json();
       if(epoch!==privateEpoch)return;
       if (data.error) { statusEl.textContent = 'Greška: ' + data.error; e.target.value=''; return; }
@@ -4677,6 +4676,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       if (items.length === 1) { applyFisItem(items[0]); }
       else { renderFisCandidates(items); }
     } catch(err) {
+      if(epoch!==privateEpoch)return;
       statusEl.textContent = 'Greška pri obradi slike: ' + err.message;
     }
     e.target.value = '';

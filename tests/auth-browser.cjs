@@ -15,7 +15,7 @@ const {chromium,webkit,devices}=require('playwright'),fs=require('node:fs'),path
     else if(name==='firebase-auth.js')body=`
       const stored=sessionStorage.getItem('test-auth-user');const auth={app:window.testApp,currentUser:stored?JSON.parse(stored):{uid:'anon-original',isAnonymous:true,providerData:[]}};window.testAuth=auth;window.authCalls=[];const listeners=new Set();
       const change=user=>{auth.currentUser=user;sessionStorage.setItem('test-auth-user',JSON.stringify(user));listeners.forEach(fn=>queueMicrotask(()=>fn(user)));};window.testChangeUser=change;
-      const google=uid=>({uid,isAnonymous:false,emailVerified:true,email:uid+'@example.test',displayName:'Google account',providerData:[{providerId:'google.com'}]});
+      const google=uid=>({uid,isAnonymous:false,emailVerified:true,email:uid+'@example.test',displayName:'Google account',getIdToken:async()=> 'synthetic-firebase-token',providerData:[{providerId:'google.com'}]});
       export const getAuth=()=>auth;export const onAuthStateChanged=(_,fn)=>{queueMicrotask(()=>fn(auth.currentUser));return()=>{};};export const onIdTokenChanged=(_,fn)=>{listeners.add(fn);return()=>listeners.delete(fn);};
       export class GoogleAuthProvider{setCustomParameters(p){window.providerParameters=p;}}
       export const linkWithPopup=async user=>{window.authCalls.push('link');if(window.linkError)throw Object.assign(new Error('do-not-display-provider-secret'),{code:window.linkError});const linked=google(user.uid);change(linked);return{user:linked};};
@@ -26,7 +26,7 @@ const {chromium,webkit,devices}=require('playwright'),fs=require('node:fs'),path
     else if(name==='firebase-firestore.js')body=`
       const permissions=['finance_read','finance_write','inventory_read','inventory_write','treatments_read','treatments_write','licenses_read','licenses_write','farm_read','farm_write','settings_read','settings_manage','protection_read','activities_read','activities_create','notifications_write'];
       const grants={'anon-original':{enabled:true,roleVersion:1,role:'MEMBER'},'google-admin':{enabled:true,roleVersion:1,role:'OWNER'}};
-      const data=ref=>ref.path.startsWith('access_members/')?(window.testGrants||grants)[ref.path.split('/')[1]]:ref.path==='settings/app'?{prag_pdv:60000}:ref.path==='access_control/member'?{uid:'anon-original'}:{};
+      const data=ref=>ref.path.startsWith('access_members/')?(window.testGrants||grants)[ref.path.split('/')[1]]:ref.path==='settings/app'?{prag_pdv:60000}:ref.path==='settings/security'?{ai_url:'https://europe-west1-opg-ojka.cloudfunctions.net/fisPhotoLookup'}:ref.path==='access_control/member'?{uid:'anon-original'}:{};
       const snapshot=ref=>({metadata:{fromCache:false,hasPendingWrites:false},exists:()=>!!data(ref),data:()=>data(ref),docs:ref.path==='prodaja'?[{id:'shared-sale',data:()=>({proizvod:'APPROVED SHARED DATA',kupac:'RIBOLA',datum:'2026-10-01',kg:2,cijena_kg:3,placeno:true})}]:[]});
       window.testSubscriptions=[];window.testReads=[];window.testWrites=[];
       export const getFirestore=()=>({});export const doc=(_, ...parts)=>({path:parts.join('/')});export const collection=(_, ...parts)=>({path:parts.join('/'),collection:true});
@@ -40,6 +40,14 @@ const {chromium,webkit,devices}=require('playwright'),fs=require('node:fs'),path
     else return route.abort();
     return route.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body});
   });
+  let photoCalls=0,photoDenied=false;
+  await page.route('https://europe-west1-opg-ojka.cloudfunctions.net/fisPhotoLookup',async route=>{
+    const cors={'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'POST,OPTIONS'};
+    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
+    photoCalls++;assert.equal(route.request().headers().authorization,'Bearer synthetic-firebase-token');
+    const payload=route.request().postDataJSON();assert.deepEqual(Object.keys(payload).sort(),['image','mimeType']);assert.equal(payload.mimeType,'image/jpeg');assert.ok(payload.image.length>0);
+    return route.fulfill({status:photoDenied?401:200,headers:cors,json:photoDenied?{error:'private-error-must-not-display'}:{parsed:[{proizvod:'TESTNI ODGOVOR',stetnik_ili_bolest:'<img src=x onerror=alert(1)>'},{proizvod:'TESTNI DRUGI',kultura:'Test'}]}});
+  });
   await page.goto('http://127.0.0.1:8768/');
   await page.waitForFunction(()=>window.testAuth?.currentUser?.uid==='anon-original');
   await page.locator('#opg-google-login').waitFor();
@@ -52,6 +60,15 @@ const {chromium,webkit,devices}=require('playwright'),fs=require('node:fs'),path
   assert.ok(!(await page.locator('#opg-content').textContent()).includes('PRIVATE LEGACY DATA'));
   assert.ok((await page.locator('#opg-content').textContent()).includes('APPROVED SHARED DATA'));
   for(const name of ['pocetna','plan','financije','proizvodnja','zastita','pregled'])await page.locator('[data-tab="'+name+'"]').click();
+  await page.locator('[data-tab="zastita"]').click();
+  await page.locator('.protect-tools summary').click();await page.locator('[data-sub="kalkulator"]').click();await page.locator('#kalkulator-toggle').click();
+  const labelImage=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=4;c.height=4;return c.toDataURL('image/png').split(',')[1];});
+  await page.locator('#calc-photo-input').setInputFiles({name:'synthetic-label.png',mimeType:'image/png',buffer:Buffer.from(labelImage,'base64')});
+  await page.locator('#calc-photo-candidates button').first().waitFor();assert.equal(photoCalls,1);assert.equal(await page.locator('#calc-photo-candidates img').count(),0);
+  await page.locator('#calc-photo-candidates button').first().click();assert.equal(await page.locator('#calc-sredstvo').inputValue(),'TESTNI ODGOVOR');
+  photoDenied=true;await page.locator('#calc-photo-input').setInputFiles({name:'synthetic-label.png',mimeType:'image/png',buffer:Buffer.from(labelImage,'base64')});
+  await page.locator('#calc-photo-status').filter({hasText:'Prijava je istekla ili nije prihvaćena'}).waitFor();assert.equal(photoCalls,2);assert.ok(!(await page.locator('#calc-photo-status').textContent()).includes('private-error-must-not-display'));
+  await page.locator('[data-sub="zastita-pregled"]').click();
   await page.locator('[data-tab="zastita"]').click();await page.locator('#protect-note').fill('Unsent observation on the same UID');
   await page.evaluate(()=>{window.holdActivities=true;window.OpgAuth.controller.refresh();});
   await page.waitForFunction(()=>!!window.releaseOldActivities);
@@ -83,5 +100,5 @@ const {chromium,webkit,devices}=require('playwright'),fs=require('node:fs'),path
   await page.evaluate(()=>window.linkError='auth/credential-already-in-use');await page.locator('#opg-google-login').click();await page.getByText(/Google račun već pripada drugom Firebase UID-u/).waitFor();
   assert.equal(await page.evaluate(()=>window.testAuth.currentUser.uid),'new-anon');assert.equal(await page.evaluate(()=>window.authCalls.includes('google')),false);
   assert.ok(!(await page.locator('#opg-auth').textContent()).includes('do-not-display-provider-secret'));assert.deepEqual(errors,[]);
-  await browser.close();server.close();console.log(engine+': PASS full app anonymous UID linking, Google without rights, server-granted OWNER and MEMBER, account switching, stale callback isolation, logout/reload, preserved legacy data and all module navigation');
+  await browser.close();server.close();console.log(engine+': PASS full app anonymous UID linking, Google without rights, server-granted OWNER and MEMBER, account switching, stale callback isolation, logout/reload, preserved legacy data, authenticated FIS photo contract/401/no retry/escaped labels and all module navigation');
 })().catch(error=>{console.error(error);process.exit(1);});

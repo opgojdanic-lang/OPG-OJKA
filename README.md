@@ -92,3 +92,5 @@ Konačni OWNER/MEMBER model, hitno zatvaranje širokih pravila i oporavak: [docs
 Prije migracije: [operatorske provjere i privatni izvoz](docs/OPERATOR-PREFLIGHT.md), bez deploya i promjene IAM-a.
 
 Pregled šest javnih HTTP servisa i budući postupak privremene karantene: [HTTP-ENDPOINT-CONTAINMENT.md](docs/HTTP-ENDPOINT-CONTAINMENT.md).
+
+Potvrđeni privatni fisPhotoLookup nalaz i pripremljeni autorizacijski sloj (privatna integracija još blokirana): [FIS-PHOTO-AUTH-PATCH.md](docs/FIS-PHOTO-AUTH-PATCH.md).
