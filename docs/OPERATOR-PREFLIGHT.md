@@ -4,6 +4,40 @@ Projekt **opg-ojka**, Draft PR #2. Vlasnik je u Google Cloud IAM konzoli potvrdi
 
 Aktualan kasniji migracijski redoslijed i oporavak: [ROLE-ROLLOUT.md](ROLE-ROLLOUT.md). Ovdje se provode samo prethodne provjere i privatno lokalno spremanje konfiguracije. Naredbe se izvršavaju na vlasnikovu pouzdanom računalu, pojedinačno uz pregled rezultata; izlaz s identitetima/konfiguracijom ne lijepiti u javni PR ili chat.
 
+## Google Cloud Shell — postojeći metadata ADC (aktualna dopuna)
+
+Vlasnik je potvrdio Cloud Shell: Node **22.23.4**, Firebase CLI **15.33.0**, ADC tip `google.auth.compute_engine.credentials`, Auth REST HTTP **403 bez** quota zaglavlja i **200 s** `x-goog-user-project: opg-ojka`. To je opažanje iz vlasnikova Cloud Shella, ne novo produkcijsko mjerenje iz Codex okruženja. Skripta koristi Node Google Auth biblioteku iz zaključanih backend ovisnosti, ne Python credential objekt niti Firebase CLI za API upite.
+
+U tom kontekstu **ne pokretati** `gcloud auth application-default login`, `set-quota-project`, izvoz service-account ključa ili zamjenu postojeće ADC konfiguracije. Metadata ADC ne mora imati lokalnu ADC datoteku, pa `set-quota-project` nije odgovarajući popravak. Desktop postupak niže odnosi se samo na lokalnu radnu stanicu i ne predstavlja preduvjet za ovaj potvrđeni Cloud Shell slučaj.
+
+Iz korijena postojećeg OPG-OJKA checkouta s ovom izmjenom:
+
+```sh
+node scripts/operator-preflight.cjs --help
+node scripts/operator-preflight.cjs --project opg-ojka --cloud-shell
+```
+
+`--help` / `-h`: exit 0, lokalne upute bez učitavanja credential SDK-a, mreže, ADC provjera ili stvaranja snapshot direktorija. Nije potreban `--project`. Ostali argumenti uz help se ne izvršavaju.
+
+Druga naredba koristi **postojeći** ADC bez promjene globalnog okruženja/datoteka. Projekt i quota projekt strogo su `opg-ojka`. Google `AuthClient.quotaProjectId` postavlja se samo na objektu u ovom procesu i svaki dopušteni API zahtjev nosi `x-goog-user-project: opg-ojka`. Obje mjere su potrebne: u provjerenoj biblioteci **google-auth-library 9.15.1** OAuth/Compute SDK može prepisati ručno zaglavlje ranijim client quota projektom. Postojeći quota override zato se ne smije neprimjetno koristiti za drugi projekt. Ne piše se ADC niti mijenja `GOOGLE_CLOUD_QUOTA_PROJECT`; nema stvaranja novih vjerodajnica. Pravo `serviceusage.services.use` i dalje mora već postojati — zaglavlje ga ne dodjeljuje. Izvori: instalirani službeni SDK (`authclient.js:addSharedMetadataHeaders`, `oauth2client.js:requestAsync`) i [Google quota project upute](https://cloud.google.com/docs/quotas/set-quota-project).
+
+Očekivani izlaz uključuje:
+
+```text
+ADC token: obtained; token not printed. ...
+Quota project: opg-ojka (process-local client/header only; existing ADC unchanged).
+adc-principal: NOT_VERIFIED (Cloud Shell mode; ...)
+auth-users-read: PASS
+firestore-read: PASS
+project-iam: PASS
+```
+
+`NOT_VERIFIED` nije uspješna potvrda osobe. Cloud Shell metadata credential ne jamči korisnički `userinfo`/email scope, pa se taj zahtjev u izričitom `--cloud-shell` načinu ne šalje i ne traži se nepotrebni userinfo email scope. Rezultat bilježi `operatorIdentityVerified:false` i `credentialMode:cloud-shell`, čak i uz exit 0 / `complete:true`. Ti rezultati znače da su svi obavezni API/permission testovi prošli; ljudski identitet provjerava se odvojeno privatno kroz aktivni Cloud Shell/gcloud račun, IAM i po potrebi audit evidenciju. Aktivni gcloud račun nije sam po sebi dokaz identiteta ADC tokena. Ne dodjeljuju se aplikacijske uloge. Bez `--cloud-shell` prethodna stroga `userinfo` provjera i dalje vrijedi.
+
+Bilo koji Auth/Firestore/IAM 403 ili drugi obavezni neuspjeh ostaje `BLOCKED` i exit 1; nema fallbacka bez quota zaglavlja, automatske promjene IAM-a ili preskakanja tih provjera. Skripta ne ispisuje tokene, korisničke profile ili poslovne uzorke. API permission PASS nije deploy dry-run. Za privatni snapshot tek na izričit zahtjev koristiti isti `--cloud-shell` uz postojeće `--snapshot --out PRIVATE_NEW_DIRECTORY` uvjete; zadana naredba ne stvara snapshot.
+
+U Codex radnom okruženju ponovljena je read-only naredba, ali postojeći ADC ovdje nije omogućio token (exit 1 prije API upita), a `gcloud` nije instaliran. Stvarni Auth/Firestore/IAM rezultati u vlasnikovu Cloud Shellu moraju se potvrditi ponavljanjem druge naredbe. Lokalni testovi koriste pravi Node Compute/OAuth klijent sa sintetičkim tokenom i presretnutim transportom: simuliraju 403 s pogrešnim quota projektom i prolaz s ispravnim zaglavljem, bez vanjskih poziva ili stvarnih credential vrijednosti.
+
 ## 1. Lokalni alati i privatni radni direktorij
 
 Potrebni su Node **22**, instalirani Google Cloud CLI (`gcloud`), Firebase CLI (kandidat je provjeren s **14.27.0**), Python 3 te zaključane backend ovisnosti. Ako Firebase CLI nije instaliran, može se koristiti `npm exec --yes --package=firebase-tools@14.27.0 -- firebase ...` umjesto `firebase ...`; to je lokalna instalacija alata, nije cloud deploy.
@@ -47,7 +81,7 @@ Očekivanja, redom:
 
 Ovo su provjere pristupa **Firebase CLI identiteta**, koji može koristiti vlastiti login ili ADC. Uvijek navoditi `--project opg-ojka` gdje naredba podržava projekt. Lokalni `.firebaserc`/`firebase use` alias ili činjenica da `projects:list` radi ne dokazuju ADC pristup ni pravo deploya. Ne prikazivati CI tokene ni izvoziti lokalne auth datoteke.
 
-## 3. gcloud prijava i ADC bez service-account ključa
+## 3. Lokalna radna stanica: gcloud prijava i korisnički ADC bez service-account ključa
 
 ```sh
 gcloud auth list --filter=status:ACTIVE --format='value(account)'
@@ -68,7 +102,7 @@ fi
 
 Ne otvarati/dumpati credential datoteke u logove. Postojeći `GOOGLE_APPLICATION_CREDENTIALS` može zasjeniti korisnički ADC za Node SDK. Iduće Node naredbe namjerno koriste `env -u GOOGLE_APPLICATION_CREDENTIALS` kako bi provjerile baš odabrani lokalni korisnički ADC, bez trajne promjene sesije. Za drugi već odobren keyless credential chain potreban je zaseban pregled identiteta i preduvjeta, ne slijepa zamjena.
 
-Za prvi osnovni ADC test, samo ako korisnički ADC još nije uspostavljen:
+Samo na lokalnoj radnoj stanici, ako korisnički ADC još nije uspostavljen (ne za postojeći Cloud Shell metadata ADC):
 
 ```sh
 gcloud auth application-default login
@@ -78,9 +112,9 @@ gcloud auth application-default print-access-token >/dev/null
 
 Očekivanje: osobna prijava namjeravanog Ownera, lokalno spremljen ADC s quota projektom `opg-ojka` i posljednja naredba exit 0 bez ispisa tokena. `set-quota-project` mijenja lokalnu ADC konfiguraciju i provjerava postojeći `serviceusage.services.use`; ne dodjeljuje ga. Ove naredbe **ne stvaraju niti preuzimaju service-account JSON privatni ključ**, ali lokalni ADC sadrži osjetljiv refresh token: ne kopirati ga u snapshot/repo niti dijeliti.
 
-### Važno ograničenje Firebase Authenticationa
+### Ograničenje određenih lokalnih gcloud korisničkih ADC vjerodajnica
 
-Prema [službenim Firebase Admin uputama](https://firebase.google.com/docs/admin/setup#test-gcloud-end-user-credentials), **Firebase Authentication ne prihvaća korisnički ADC izdan zadanim gcloud OAuth client ID-em**. Valjan token i uspješan Firestore upit zato nisu dovoljan dokaz da `listUsers`/`getUser` rade.
+Prema [službenim Firebase Admin uputama](https://firebase.google.com/docs/admin/setup#test-gcloud-end-user-credentials), **Firebase Authentication ne prihvaća korisnički ADC izdan zadanim gcloud OAuth client ID-em**. Valjan token i uspješan Firestore upit zato nisu dovoljan dokaz da `listUsers`/`getUser` rade. Ovo se ne smije primijeniti kao dijagnoza za potvrđeni Cloud Shell slučaj u kojem isti postojeći token uz quota zaglavlje već daje HTTP 200.
 
 Ako Auth provjera ne prolazi zbog tog ograničenja, podržani ljudski keyless postupak koristi **postojeću, odobrenu Desktop OAuth client konfiguraciju**, kako navodi ista dokumentacija:
 
@@ -94,7 +128,7 @@ gcloud auth application-default set-quota-project opg-ojka
 gcloud auth application-default print-access-token >/dev/null
 ```
 
-Zamijeniti cijeli ilustrativni put stvarnim privatnim putom, ne koristiti primjer doslovno. OAuth aplikacija mora dopuštati prijavu namjeravanog računa (consent/organizacijska politika/test users). Ne izvoziti ovu konfiguraciju ili ADC u sigurnosni snimak. Ako takva odobrena Desktop konfiguracija nije dostupna ili organizacijska politika blokira prijavu, to je **preostala blokada**; ne stvarati servisni ključ ili mijenjati IAM kao prečac. Prethodno odobrena keyless impersonacija/workload identitet mogu biti drugi put samo uz postojeće ovlasti i zasebnu provjeru; skripta je namijenjena potvrdi dvaju ljudskih operatora.
+Zamijeniti cijeli ilustrativni put stvarnim privatnim putom, ne koristiti primjer doslovno. OAuth aplikacija mora dopuštati prijavu namjeravanog računa (consent/organizacijska politika/test users). Ne izvoziti ovu konfiguraciju ili ADC u sigurnosni snimak. Ako takva odobrena Desktop konfiguracija nije dostupna ili organizacijska politika blokira prijavu, to je **preostala blokada**; ne stvarati servisni ključ ili mijenjati IAM kao prečac. Prethodno odobrena keyless impersonacija/workload identitet mogu biti drugi put samo uz postojeće ovlasti i zasebnu provjeru; za Cloud Shell metadata ADC koristiti izričiti `--cloud-shell` i zasebnu privatnu potvrdu operatora.
 
 ## 4. Stvarne provjere čitanja i efektivnih dozvola
 
@@ -160,7 +194,7 @@ env -u GOOGLE_APPLICATION_CREDENTIALS node "$opg_repo/scripts/operator-preflight
 
 Očekivanje: novi direktorij `before` s mode 0700, datoteke 0600, exit 0 i `report.json` s `complete:true`. Skripta odbija postojeći output (ne prepisuje kopiju), repo, zajednički `/workspace` i neprivatni roditeljski direktorij. Ako provjera padne, kopija je nepotpuna, ne oslanjati se na nju kao potvrđeni backup; ne prepisivati je, ponoviti u novom direktoriju nakon dijagnoze.
 
-Sadrži aktivne `firestore-releases.json` i **`firestore-rules-N.json` s vezom na objavljeni ruleset i izvornim files/content**, project/database metadata, IAM policy v3 s uvjetima, ADC identitet, Functions v1/v2 metadata i njihove invoker policyje te odabrane konfiguracijske dokumente i postojeći `access_members` registry (s paginacijom). Default Firestore release mora biti pronađen; za druge baze/Storage/Realtime Database ovo nije potpuni izvoz. Ako `settings/security` ili nova ACL veza još ne postoji, spremi se `{exists:false}`, bez stvaranja dokumenta.
+Sadrži aktivne `firestore-releases.json` i **`firestore-rules-N.json` s vezom na objavljeni ruleset i izvornim files/content**, project/database metadata, IAM policy v3 s uvjetima, ADC identitet kada je provjerljiv (ili Cloud Shell NOT_VERIFIED oznaku u reportu), Functions v1/v2 metadata i njihove invoker policyje te odabrane konfiguracijske dokumente i postojeći `access_members` registry (s paginacijom). Default Firestore release mora biti pronađen; za druge baze/Storage/Realtime Database ovo nije potpuni izvoz. Ako `settings/security` ili nova ACL veza još ne postoji, spremi se `{exists:false}`, bez stvaranja dokumenta.
 
 Prepoznata osjetljiva polja (npr. private key, OAuth token, hash config, API key/password) i vrijednosti Functions environment varijabli redaktiraju se; postojeći `secretEnvironmentVariables` ostaju **reference na tajne**, ne njihove vrijednosti. Ne izvoze se ADC, servisni ključevi, Auth korisnici/hashovi, poslovni uzorci, secret-version payload ili izvorni deploy bundle. Redakcija nije jamstvo odsutnosti svih mogućih tajni u nepoznatim poljima — snimak je i dalje privatan. Ovo je inventar konfiguracije i točna kopija izvora pravila, ne automatski restore paket niti puni poslovni backup. Poslovni backup/recovery treba zasebno potvrditi bez pokretanja novog produkcijskog export posla ovim zadatkom.
 
@@ -179,7 +213,7 @@ print('PASS: complete report, active rules source and snapshot checksums')
 PY
 ```
 
-Očekivanje: `PASS`. Privatno otvoriti `adc-principal.json` i `project-iam.json`, potvrditi točan identitet/uvjete i usporediti s dva ljudska Owner računa iz konzole; ne kopirati ih u PR. Manifest potvrđuje nepromijenjen lokalni sadržaj, ne dokazuje neovisni autoritet kopije. Snimak držati na šifriranom disku i napraviti vlasnički kontroliranu šifriranu kopiju na odvojenoj privatnoj lokaciji; javni Git/Pages, zajednički `/workspace` i dijeljeni environment snapshot nisu backup destinacije. Ne vraćati staro široko pravilo kao rollback.
+Očekivanje: `PASS`. Privatno otvoriti `adc-principal.json` kada postoji i `project-iam.json` (Cloud Shell namjerno ne stvara userinfo identitet), potvrditi točan identitet/uvjete i usporediti s dva ljudska Owner računa iz konzole; ne kopirati ih u PR. Manifest potvrđuje nepromijenjen lokalni sadržaj, ne dokazuje neovisni autoritet kopije. Snimak držati na šifriranom disku i napraviti vlasnički kontroliranu šifriranu kopiju na odvojenoj privatnoj lokaciji; javni Git/Pages, zajednički `/workspace` i dijeljeni environment snapshot nisu backup destinacije. Ne vraćati staro široko pravilo kao rollback.
 
 ## 6. Dokaz operatorskog pristupa nakon deny-all pravila
 
@@ -207,10 +241,10 @@ Razlog: privilegirani Firestore REST/Admin SDK pozivi s valjanim Google Cloud IA
 - [ ] Po budućem odobrenom zaustavljanju provjeriti nove zahtjeve i odgodu/zaustavljanje okidača te Cloud Logging/AI provider usage; ne kopirati promptove, fotografije, tokene ili tajne u izvještaj.
 - [ ] Ponovno uključiti samo uz zasebno odobrenje, nakon sigurne serverske autorizacije OWNER/MEMBER i provjere kvote/IAM-a. Ne vraćati stari neprovjereni endpoint ili široka pravila kao oporavak.
 
-## Trenutačne blokade i dokaz iz ovog okruženja
+## Granice prethodnog lokalnog preflighta (dopunjeno Cloud Shell odjeljkom iznad)
 
 Dva ljudska IAM Ownera potvrđena su **od korisnika**, nisu neovisno provjerena cloud API-jem. U ovom okruženju nema `gcloud` izvršne datoteke; prisutan ADC override nije omogućio token (preflight exit 1, bez ispisa credential detalja). Stvarne Auth/Firestore/Rules/Functions/IAM dozvole i privatni produkcijski snapshot stoga **nisu potvrđeni/izrađeni**. Firebase CLI paket je prisutan, ali lokalni account store nije dokaz potvrđene prijave; potrebna je vlasnička provjera gore navedenim naredbama. Nema novog servisnog ključa niti izmjene IAM-a.
 
 Lokalni testovi skripte koriste lažne API odgovore: provjeravaju dozvoljene read/query/test rute, negativne rezultate, paginaciju, privatni output, odbijanje overwritea i izostavljanje tokena/poslovnih uzoraka/osjetljivih konfiguracijskih vrijednosti. Oni nisu dokaz produkcijskih dozvola. Dodatni gateovi ostaju stvarni Google OAuth/iPhone Safari/PWA, runtime/build IAM, vanjski backendovi, provjereno zaustavljanje starih AI putova, privatnost starijih artefakata i OWNER/MEMBER migracija prema zasebnom planu.
 
-Završna lokalna provjera ove dopune: **63/63 Node testova** (4 nova testa operatorskog preflighta), sintaksa i `git diff --check` prolaze. Firebase CLI 14.27.0 provjeren je s writable lokalnim config storeom i utišanim update notifierom; to ne potvrđuje prijavljeni produkcijski račun. Nema deploya niti produkcijskog izvoza ovim radom.
+Završna lokalna provjera ove dopune: **67/67 Node testova** (8 testova operatorskog preflighta), sintaksa i `git diff --check` prolaze. Firebase CLI 14.27.0 provjeren je s writable lokalnim config storeom i utišanim update notifierom; to ne potvrđuje prijavljeni produkcijski račun. Nema deploya niti produkcijskog izvoza ovim radom.

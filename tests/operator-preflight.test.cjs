@@ -45,3 +45,57 @@ test('private snapshot exports active rules/config metadata, omits credential va
  const s=scrub({hashConfig:{signerKey:'hidden'},refresh_token:'hidden',clientSecret:'hidden'});assert.ok(!JSON.stringify(s).includes('hidden'));
  }finally{fs.rmSync(parent,{recursive:true,force:true});}
 });
+
+test('help exits before credential loading, network, emulator guards or snapshot filesystem writes',()=>{
+ const {spawnSync}=require('node:child_process');
+ const parent=fs.mkdtempSync(path.join(os.tmpdir(),'opg-help-'));
+ try{
+ const guard=path.join(parent,'guard.cjs');fs.writeFileSync(guard,`
+ const Module=require('node:module'),load=Module._load;
+ Module._load=function(name,...args){if(/google-auth-library|gaxios|gcp-metadata/.test(name))throw new Error('Credential SDK forbidden during help');return load.call(this,name,...args);};
+ const forbidden=()=>{throw new Error('Network or filesystem write forbidden during help');};
+ global.fetch=forbidden;for(const mod of ['node:http','node:https']){const m=require(mod);m.request=m.get=forbidden;}
+ const net=require('node:net');net.connect=net.createConnection=forbidden;require('node:fs').mkdirSync=forbidden;require('node:fs').writeFileSync=forbidden;
+ `);
+ for(const flag of ['--help','-h']){
+ const out=path.join(parent,'must-not-exist');
+ const r=spawnSync(process.execPath,['--require',guard,path.resolve(__dirname,'../scripts/operator-preflight.cjs'),flag,'--snapshot','--out',out],{encoding:'utf8',timeout:10000,env:{...process.env,GOOGLE_APPLICATION_CREDENTIALS:'/missing/never-print-fixture',FIRESTORE_EMULATOR_HOST:'127.0.0.1:8088'}});
+ assert.equal(r.status,0,r.stderr);assert.match(r.stdout,/Usage:/);assert.match(r.stdout,/--cloud-shell/);assert.ok(!r.stdout.includes('never-print-fixture'));assert.equal(fs.existsSync(out),false);
+ }
+ }finally{fs.rmSync(parent,{recursive:true,force:true});}
+});
+
+test('real Compute and OAuth clients preserve fixed quota header through SDK merging without ADC/env edits',async()=>{
+ const req=require('node:module').createRequire(path.resolve(__dirname,'../backend/pest-ai/package.json'));
+ const {Compute,OAuth2Client}=req('google-auth-library'),{createRequest}=require('../scripts/operator-preflight.cjs');
+ const before={quota:process.env.GOOGLE_CLOUD_QUOTA_PROJECT,adc:process.env.GOOGLE_APPLICATION_CREDENTIALS};
+ for(const Client of [Compute,OAuth2Client]){
+ const client=new Client();client.quotaProjectId='previous-quota-project';
+ client.setCredentials({access_token:'synthetic-not-real',token_type:'Bearer',expiry_date:Date.now()+3600000});
+ client.refreshTokenNoCache=async()=>{throw new Error('No metadata/token network allowed in this test');};
+ const credentials=structuredClone(client.credentials),calls=[];
+ client.transporter={request:async opts=>{calls.push(opts);if(opts.headers['x-goog-user-project']!==project)throw{response:{status:403,config:opts,data:{error:{message:'Fixture quota mismatch'}}}};return{data:{ok:true}};}};
+ // Reproduces SDK overriding a caller header with the client's previous quota project.
+ await assert.rejects(client.request({url:'https://identitytoolkit.googleapis.com/v1/projects/opg-ojka/accounts:batchGet?maxResults=1',headers:{'x-goog-user-project':project}}),e=>e.response?.status===403);
+ const request=createRequest(client);
+ for(const [method,url,data]of [['GET','https://identitytoolkit.googleapis.com/v1/projects/opg-ojka/accounts:batchGet?maxResults=1'],['POST','https://firestore.googleapis.com/v1/projects/opg-ojka/databases/(default)/documents:runQuery',{}],['POST','https://cloudresourcemanager.googleapis.com/v1/projects/opg-ojka:getIamPolicy',{}]])assert.deepEqual(await request(method,url,data),{ok:true});
+ assert.ok(calls.slice(1).every(c=>c.headers['x-goog-user-project']===project));
+ assert.deepEqual(client.credentials,credentials);assert.deepEqual({quota:process.env.GOOGLE_CLOUD_QUOTA_PROJECT,adc:process.env.GOOGLE_APPLICATION_CREDENTIALS},before);
+ }
+});
+
+test('request wrapper blocks non-Google destinations, non-HTTPS and mutation APIs before sending credentials',async()=>{
+ const {createRequest}=require('../scripts/operator-preflight.cjs');let sent=0;const request=createRequest({request:()=>{sent++;}});
+ for(const [method,url]of [['GET','https://example.test/'],['GET','http://identitytoolkit.googleapis.com/'],['POST','https://firestore.googleapis.com/v1/projects/opg-ojka/databases/(default)/documents:commit'],['DELETE','https://cloudfunctions.googleapis.com/v2/projects/opg-ojka/locations/x/functions/x'],['POST','https://cloudresourcemanager.googleapis.com/v1/projects/opg-ojka:setIamPolicy']])await assert.rejects(request(method,url));assert.equal(sent,0);
+});
+
+test('Cloud Shell mode checks all APIs with quota header but never claims a verified human principal',async()=>{
+ const {createRequest}=require('../scripts/operator-preflight.cjs'),f=fixture(),logs=[],calls=[];
+ const client={request:async opts=>{calls.push(opts);assert.equal(opts.headers['x-goog-user-project'],project);return{data:await f.request(opts.method,opts.url,opts.data)};}};
+ const r=await run({request:createRequest(client),cloudShell:true,log:s=>logs.push(s)});
+ assert.equal(r.complete,true);assert.equal(r.operatorIdentityVerified,false);assert.equal(r.quotaProjectId,project);assert.equal(r.credentialMode,'cloud-shell');assert.equal(r.results.find(x=>x.check==='adc-principal').status,'NOT_VERIFIED');assert.ok(!calls.some(c=>c.url.includes('userinfo')));
+ for(const name of ['auth-users-read','firestore-read','project-iam','project-permissions'])assert.equal(r.results.find(r=>r.check===name).status,'PASS');
+ assert.ok(logs.some(l=>l.includes('NOT_VERIFIED')));assert.ok(!logs.join('').includes('private-'));
+ const denied=await run({cloudShell:true,request:(m,u,d)=>u.includes('accounts:batchGet')?Promise.reject({response:{status:403}}):f.request(m,u,d),log:()=>{}});assert.equal(denied.complete,false);assert.equal(denied.results.find(r=>r.check==='auth-users-read').status,'BLOCKED');
+ assert.deepEqual(options(['--project',project,'--cloud-shell']),{project,cloudShell:true});assert.throws(()=>options(['--project','other','--cloud-shell']));
+});
