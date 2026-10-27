@@ -52,7 +52,7 @@ function privateDirectory(target){
 function scrub(value){
  if(Array.isArray(value))return value.map(scrub);
  if(!value||typeof value!=='object')return value;
- return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,key==='environmentVariables'?Object.fromEntries(Object.keys(v||{}).map(name=>[name,'[VALUE OMITTED]'])):/password|private.?key|client.?secret|token|hashConfig|signerKey|api.?key|credential|sourceUploadUrl/i.test(key)?'[VALUE OMITTED]':scrub(v)]));
+ return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,key==='env'&&Array.isArray(v)?v.map(e=>({...scrub(e),...(Object.hasOwn(e,'value')?{value:'[VALUE OMITTED]'}:{})})):key==='environmentVariables'?Object.fromEntries(Object.keys(v||{}).map(name=>[name,'[VALUE OMITTED]'])):/password|private.?key|client.?secret|token|hashConfig|signerKey|api.?key|credential|sourceUploadUrl/i.test(key)?'[VALUE OMITTED]':scrub(v)]));
 }
 function missingPermissions(granted){const set=new Set(granted||[]);return Object.fromEntries(Object.entries(PERMISSIONS).map(([k,v])=>[k,v.filter(p=>!set.has(p))]));}
 function code(error){return Number(error?.response?.status)||String(error?.code||'UNAVAILABLE').replace(/[^A-Z0-9_-]/gi,'').slice(0,40);}
@@ -91,7 +91,7 @@ async function run({request,out,serviceAccount,cloudShell=false,log=console.log}
  const f=functions[i];if(!new RegExp('^projects/'+PROJECT+'/locations/[^/]+/functions/[^/]+$').test(f.name||''))throw new Error('Invalid function resource');
  // Gen2 invocation policy is on the backing Cloud Run service; Gen1 on the function.
  const svc=f.serviceConfig?.service;
- if(version==='v2'&&svc){if(!new RegExp('^projects/[^/]+/locations/[^/]+/services/[^/]+$').test(svc))throw new Error('Invalid service resource');save('function-v2-invoker-'+i+'.json',await request('GET','https://run.googleapis.com/v2/'+svc+':getIamPolicy'));}
+ if(version==='v2'&&svc){if(!new RegExp('^projects/[^/]+/locations/[^/]+/services/[^/]+$').test(svc))throw new Error('Invalid service resource');save('function-v2-service-'+i+'.json',await request('GET','https://run.googleapis.com/v2/'+svc));save('function-v2-invoker-'+i+'.json',await request('GET','https://run.googleapis.com/v2/'+svc+':getIamPolicy'));}
  else if(version==='v1')save('function-v1-invoker-'+i+'.json',await request('GET','https://cloudfunctions.googleapis.com/v1/'+f.name+':getIamPolicy'));
  }
  });

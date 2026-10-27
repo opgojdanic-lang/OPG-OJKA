@@ -31,3 +31,5 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8088 node tests/pest-ai-rules.cjs
 Suite briše samo izoliranu demo bazu i dodatno testira emergency pravila, prave transakcije ovlasti/kvote uz lažnog providera. Browser testovi su `tests/auth-browser.cjs` i `tests/fis-browser.cjs`, Chromium i WebKit odvojeno; FIS test ima `SAFE_AREA_TEST=1`. Nema plaćenih AI poziva. Auth emulator postupak i Google OAuth granice opisani su u [GOOGLE-AUTH.md](GOOGLE-AUTH.md).
 
 Operatorske prijave, keyless ADC, stvarne permission provjere, privatni izvoz objavljenih pravila i AI stop kontrolni popis: [OPERATOR-PREFLIGHT.md](OPERATOR-PREFLIGHT.md). Potvrđena su dva ljudska IAM Ownera; postojeći IAM se ne mijenja.
+
+Potvrđeni javni Cloud Run servisi, granice interne autorizacije, selektivna karantena/povrat i migracija bez brisanja legacy funkcija: [HTTP-ENDPOINT-CONTAINMENT.md](HTTP-ENDPOINT-CONTAINMENT.md).

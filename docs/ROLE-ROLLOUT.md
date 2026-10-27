@@ -29,6 +29,8 @@ Ni OWNER ne može klijentskim Firestore upisom mijenjati ACL ili veze uloga. `op
 
 Prije svih produkcijskih koraka slijediti [operatorski preflight](OPERATOR-PREFLIGHT.md). Korisnik je potvrdio dva ljudska IAM Ownera; njihove postojeće IAM ovlasti ostaju netaknute i ne dodjeljuju automatski aplikacijsku OWNER ulogu.
 
+Za potvrđenih šest javnih Cloud Run servisa vrijedi preciznija [HTTP karantena i provjera internih gateova](HTTP-ENDPOINT-CONTAINMENT.md). Ona dopunjuje redoslijed ispod: ne čekati bootstrap da se zatvore neprovjereni AI/Admin SDK putovi; samo Firestore deny-all nije HTTP stop.
+
 ## Hitan postupak — zašto prvo zatvaranje pristupa
 
 Korisnik je potvrdio da objavljena pravila dopuštaju širok pristup svim autentificiranim korisnicima. To nije sigurna početna točka za upis OWNER/MEMBER zapisa: dok su takva pravila aktivna, drugi korisnik može unaprijed upisati vlastitu ulogu ili izmijeniti vezu. Sama nova kolekcija ili novo polje ne štite od toga.
@@ -76,4 +78,4 @@ Node testovi provjeravaju OWNER/MEMBER katalog, odbijanje anonimnih/legacy/forge
 
 Produkcijski ADC u ovom okruženju nije valjan. Stvarna pravila poznata su samo iz korisnikove potvrde širokog pristupa, nisu izvezena ovim radom; stvarni korisnici, veze, IAM, backend izvan repoa, postojeći javni endpointovi i Laser SC zapis nisu potvrđeni. Fizički Safari/PWA, stvarna Google prijava i ponašanje već objavljenih verzija ostaju ručni preduvjeti. Ne tvrditi da su stvarne uloge već dodijeljene ili anonimni korisnici već opozvani.
 
-Rezultat završne lokalne provjere: **67/67 Node testova**, Firestore matrica **132 dopuštene / 583 odbijenih operacija**, dodatne stvarne transakcije MEMBER/AI i emergency oporavak; Auth emulator i Chromium/WebKit auth/FIS/AI suiteovi prolaze. Sintaksa, CSP, granica tajni, Functions učitavanje i `git diff --check` prolaze. Statički frontend nema build korak.
+Rezultat završne lokalne provjere: **72/72 Node testova**, Firestore matrica **132 dopuštene / 583 odbijenih operacija**, dodatne stvarne transakcije MEMBER/AI i emergency oporavak; Auth emulator i Chromium/WebKit auth/FIS/AI suiteovi prolaze. Sintaksa, CSP, granica tajni, Functions učitavanje i `git diff --check` prolaze. Statički frontend nema build korak.

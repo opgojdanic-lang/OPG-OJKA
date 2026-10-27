@@ -247,4 +247,6 @@ Dva ljudska IAM Ownera potvrđena su **od korisnika**, nisu neovisno provjerena 
 
 Lokalni testovi skripte koriste lažne API odgovore: provjeravaju dozvoljene read/query/test rute, negativne rezultate, paginaciju, privatni output, odbijanje overwritea i izostavljanje tokena/poslovnih uzoraka/osjetljivih konfiguracijskih vrijednosti. Oni nisu dokaz produkcijskih dozvola. Dodatni gateovi ostaju stvarni Google OAuth/iPhone Safari/PWA, runtime/build IAM, vanjski backendovi, provjereno zaustavljanje starih AI putova, privatnost starijih artefakata i OWNER/MEMBER migracija prema zasebnom planu.
 
-Završna lokalna provjera ove dopune: **67/67 Node testova** (8 testova operatorskog preflighta), sintaksa i `git diff --check` prolaze. Firebase CLI 14.27.0 provjeren je s writable lokalnim config storeom i utišanim update notifierom; to ne potvrđuje prijavljeni produkcijski račun. Nema deploya niti produkcijskog izvoza ovim radom.
+Završna lokalna provjera ove dopune: **72/72 Node testova** (8 testova operatorskog preflighta), sintaksa i `git diff --check` prolaze. Firebase CLI 14.27.0 provjeren je s writable lokalnim config storeom i utišanim update notifierom; to ne potvrđuje prijavljeni produkcijski račun. Nema deploya niti produkcijskog izvoza ovim radom.
+
+Dopuna za potvrđenih šest allUsers Cloud Run servisa: [HTTP-ENDPOINT-CONTAINMENT.md](HTTP-ENDPOINT-CONTAINMENT.md). Privatni snapshot sada čuva i v2 Cloud Run routing/ingress/IAM-check metadata; container env vrijednosti se redaktiraju. Ne izvršava HTTP probe niti mijenja invoker IAM.

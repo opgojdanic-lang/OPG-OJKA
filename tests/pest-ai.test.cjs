@@ -75,3 +75,14 @@ test('sample stops at 20 accounted responses while monthly totals keep growing',
 test('new Zagreb month has fresh quota; prior request replay does not consume it',async()=>{
   const {db}=database();const data=input();await analyze(db,'allowed',data,opts());const next={...opts(),now:()=>new Date('2026-11-01T05:00:00Z')};const replay=await analyze(db,'allowed',data,next);assert.equal(replay.replayed,true);assert.equal(replay.usage.attempts,0);assert.equal((await analyze(db,'allowed',input(),next)).usage.attempts,1);
 });
+test('AI shutdown blocks newly admitted requests and usage, but accounts for an already-running provider call',async()=>{
+ const {db,store}=database();let entered,release,calls=0;
+ const started=new Promise(resolve=>entered=resolve),paused=new Promise(resolve=>release=resolve);
+ const options=opts(async()=>{calls++;entered();await paused;return{ok:true,json:async()=>raw()};});
+ const inFlight=analyze(db,'allowed',input(),options);await started;
+ store.set('ai_private/config',{enabled:false,allowedUids:['allowed']});
+ await assert.rejects(analyze(db,'allowed',input(),options),e=>e.code==='failed-precondition');
+ await assert.rejects(status(db,'allowed',options.now()),e=>e.code==='failed-precondition');
+ assert.equal(calls,1);assert.equal(store.get('ai_private/usage_2026-10').attempts,1);
+ release();const done=await inFlight;assert.equal(done.usage.attempts,1);assert.equal(done.usage.accounted,1);assert.ok(done.usage.estimatedUsd>0);
+});

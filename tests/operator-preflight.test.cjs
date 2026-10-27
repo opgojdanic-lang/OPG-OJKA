@@ -8,6 +8,7 @@ function fixture(){
  if(url.includes('openidconnect.googleapis.com'))return{email:'private-fixture@example.test',email_verified:true};
  if(url.endsWith(':testIamPermissions'))return{permissions:url.includes('iam.googleapis.com')?['iam.serviceAccounts.actAs','iam.serviceAccounts.get']:Object.values(PERMISSIONS).flat()};
  if(url.endsWith(':getIamPolicy'))return{version:3,bindings:[{role:'roles/owner',members:['user:private-fixture@example.test']}]};
+ if(url.includes('run.googleapis.com/v2/')&&!url.endsWith(':getIamPolicy'))return{name:'projects/opg-ojka/locations/europe-west1/services/test',ingress:'INGRESS_TRAFFIC_ALL',invokerIamDisabled:true,defaultUriDisabled:false,template:{containers:[{image:'fixture@sha256:abc',env:[{name:'PRIVATE_VALUE',value:'must-not-export'},{name:'BOUND_SECRET',valueSource:{secretKeyRef:{secret:'existing-secret-reference',version:'1'}}}]}]}};
  if(url.includes('accounts:batchGet'))return{users:[{localId:'private-user-not-for-logs'}]};
  if(url.endsWith(':runQuery'))return[{document:{fields:{privateBusinessValue:{stringValue:'private-business-not-for-logs'}}}}];
  if(url.includes('cloudresourcemanager.googleapis.com'))return{projectId:project,projectNumber:'123',lifecycleState:'ACTIVE'};
@@ -42,6 +43,7 @@ test('private snapshot exports active rules/config metadata, omits credential va
  const files=fs.readdirSync(out),all=files.map(n=>fs.readFileSync(path.join(out,n),'utf8')).join('');assert.ok(all.includes('firestore.rules'));assert.ok(all.includes('existing-secret-reference'));assert.ok(!all.includes('must-not-export'));assert.ok(!all.includes('private-business-not-for-logs'));assert.ok(!all.includes('private-user-not-for-logs'));
  for(const file of files)assert.equal(fs.statSync(path.join(out,file)).mode&0o077,0);
  assert.ok(files.includes('sha256-manifest.json'));assert.ok(files.includes('function-v2-invoker-0.json'));
+ const service=JSON.parse(fs.readFileSync(path.join(out,'function-v2-service-0.json'),'utf8'));assert.equal(service.invokerIamDisabled,true);assert.equal(service.ingress,'INGRESS_TRAFFIC_ALL');assert.equal(service.template.containers[0].env[0].value,'[VALUE OMITTED]');assert.equal(service.template.containers[0].env[1].valueSource.secretKeyRef.secret,'existing-secret-reference');
  const s=scrub({hashConfig:{signerKey:'hidden'},refresh_token:'hidden',clientSecret:'hidden'});assert.ok(!JSON.stringify(s).includes('hidden'));
  }finally{fs.rmSync(parent,{recursive:true,force:true});}
 });

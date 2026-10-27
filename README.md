@@ -90,3 +90,5 @@ Google prijava, ovlasti i obavezne provjere prije produkcije: [docs/GOOGLE-AUTH.
 Konačni OWNER/MEMBER model, hitno zatvaranje širokih pravila i oporavak: [docs/ROLE-ROLLOUT.md](docs/ROLE-ROLLOUT.md).
 
 Prije migracije: [operatorske provjere i privatni izvoz](docs/OPERATOR-PREFLIGHT.md), bez deploya i promjene IAM-a.
+
+Pregled šest javnih HTTP servisa i budući postupak privremene karantene: [HTTP-ENDPOINT-CONTAINMENT.md](docs/HTTP-ENDPOINT-CONTAINMENT.md).
