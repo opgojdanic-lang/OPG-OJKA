@@ -37,6 +37,6 @@ test('anonymous, unapproved, disabled and orphaned role callers cannot enter AI 
  assert.equal(f.state.secretReads,0);assert.equal(f.state.providerEntries.length,0);assert.equal(f.state.usageEntries.length,0);assert.equal(f.state.writes,0);
 });
 test('MEMBER or unauthenticated caller cannot use privileged management callable entry points',async()=>{
- const f=fixture();for(const name of ['opgManageMember','opgSecurityControl'])for(const a of [undefined,auth('member')])await assert.rejects(f.exports[name].handler({auth:a,data:{uid:'target',control:'ai',enabled:true}}),e=>['permission-denied','unauthenticated'].includes(e.code));
+ const f=fixture();for(const name of ['opgManageMember','opgSecurityControl','opgGetMemberStatus'])for(const a of [undefined,auth('member')])await assert.rejects(f.exports[name].handler({auth:a,data:name==='opgGetMemberStatus'?{}:{uid:'target',control:'ai',enabled:true}}),e=>['permission-denied','unauthenticated'].includes(e.code));
  assert.equal(f.state.writes,0);assert.equal(f.state.authUserReads,0);assert.equal(f.state.secretReads,0);
 });

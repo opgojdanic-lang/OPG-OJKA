@@ -19,7 +19,15 @@ async function manageMember(db,adminAuth,auth,data){
   });
   return {uid:data.uid,role:'MEMBER',enabled:data.enabled};
 }
-module.exports={manageMember,validUid};
+
+async function getMemberStatus(db,auth,data){
+  await requireRole(db,auth,true);
+  if(data != null && (typeof data !== 'object' || Array.isArray(data) || Object.keys(data).length))
+    throw new RoleError('invalid-argument','Upit ne prima parametre.');
+  const snapshot = await db.doc('access_control/member').get();
+  return {uid: snapshot.exists ? snapshot.data()?.uid || null : null};
+}
+module.exports={manageMember,validUid,getMemberStatus};
 
 async function securityControl(db,auth,data){
   await requireRole(db,auth,true);

@@ -4,7 +4,7 @@ const { defineSecret } = require('firebase-functions/params');
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const {requireRole,RoleError}=require('./roles');
-const {manageMember,securityControl}=require('./administration');
+const {manageMember,getMemberStatus,securityControl}=require('./administration');
 const { getFirestore } = require('firebase-admin/firestore');
 const { AnalysisError, analyze, status } = require('./analysis');
 initializeApp();
@@ -15,4 +15,5 @@ exports.pestPhotoAnalyze=onCall({...options,secrets:[apiKey]},request=>handle(as
 exports.pestPhotoUsage=onCall(options,request=>handle(async()=>{const db=getFirestore();await requireRole(db,request.auth);return status(db,request.auth.uid);}));
 
 exports.opgManageMember=onCall(options,request=>handle(()=>manageMember(getFirestore(),getAuth(),request.auth,request.data)));
+exports.opgGetMemberStatus=onCall(options,request=>handle(()=>getMemberStatus(getFirestore(),request.auth,request.data)));
 exports.opgSecurityControl=onCall(options,request=>handle(()=>securityControl(getFirestore(),request.auth,request.data)));

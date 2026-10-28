@@ -1,12 +1,12 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const {requireRole,BUSINESS_PERMISSIONS,OWNER_PERMISSIONS}=require('../backend/pest-ai/roles');
-const {manageMember,securityControl}=require('../backend/pest-ai/administration');
+const {manageMember,securityControl,getMemberStatus}=require('../backend/pest-ai/administration');
 const {access,PERMISSIONS}=require('../auth');
 const claims=uid=>({uid,token:{firebase:{sign_in_provider:'google.com'},email_verified:true}});
 function database(){
  const store=new Map(Object.entries({'access_members/owner':{role:'OWNER',roleVersion:1,enabled:true},'access_members/member':{role:'MEMBER',roleVersion:1,enabled:true},'access_control/owner':{uid:'owner'},'access_control/member':{uid:'member'},'ai_private/config':{enabled:true,secretMetadata:'preserved'},'ai_private/usage_2026-10':{attempts:42}}));let reads=0,writes=0;
- const doc=path=>({path,get:async()=>({data:()=>structuredClone(store.get(path))})});
+ const doc=path=>({path,get:async()=>({exists:store.has(path),data:()=>structuredClone(store.get(path))})});
  const db={doc,collection:path=>({doc:()=>doc(path+'/'+ ++reads)}),runTransaction:async fn=>{const pending=[];const result=await fn({get:r=>r.get(),set:(r,v,o)=>pending.push(()=>{writes++;store.set(r.path,o?.merge?{...store.get(r.path),...v}:v);}),delete:r=>pending.push(()=>{writes++;store.delete(r.path);})});pending.forEach(f=>f());return result;}};
  return {db,store,writes:()=>writes};
 }
@@ -37,4 +37,28 @@ test('transaction rechecks OWNER after preflight to prevent a revoked owner from
  for(const fn of [db=>manageMember(db,adminAuth,claims('owner'),{uid:'member',enabled:true}),db=>securityControl(db,claims('owner'),{control:'ai',enabled:true})]){
  const {db,store,writes}=database(),run=db.runTransaction;db.runTransaction=cb=>{store.set('access_members/owner',{role:'OWNER',roleVersion:1,enabled:false});return run(cb);};await assert.rejects(fn(db));assert.equal(writes(),0);
  }
+});
+
+
+test('only OWNER can read MEMBER status',async()=>{
+ const {db,store,writes}=database();
+
+ assert.deepEqual(await getMemberStatus(db,claims('owner'),{}),{uid:'member'});
+
+ for(const actor of [
+  claims('member'),
+  claims('stranger'),
+  null,
+  {uid:'owner',token:{firebase:{sign_in_provider:'anonymous'},email_verified:true}}
+ ])await assert.rejects(getMemberStatus(db,actor,{}));
+
+ await assert.rejects(getMemberStatus(db,claims('owner'),{enabled:true}));
+
+ store.delete('access_control/member');
+ assert.deepEqual(await getMemberStatus(db,claims('owner'),{}),{uid:null});
+
+ store.set('access_members/owner',{role:'OWNER',roleVersion:1,enabled:false});
+ await assert.rejects(getMemberStatus(db,claims('owner'),{}));
+
+ assert.equal(writes(),0);
 });
