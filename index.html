@@ -2,7 +2,7 @@
 <html lang="hr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-/QD725p7wG/dMi+vmJEN11JoLsnthxTFbAiF6NSH+es=' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com/js/api.js https://apis.google.com/_/scs/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-XeqQYi2zGoJhrJvL7lIPdFyi227F5HSvT03H+Rt2PhQ=' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com/js/api.js https://apis.google.com/_/scs/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OPG Ojdanić</title>
 <meta name="theme-color" content="#1F3D2B">
@@ -531,7 +531,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
 </style>
 <script src="./security.js"></script>
 <script src="./auth.js"></script>
-<script src="./fis-photo-client.js"></script>
+
 <script src="./fis.js"></script>
 <style>
 #fis-host input { width:100%; padding:12px; font:inherit; font-size:16px; border:1px solid var(--sage-line); border-radius:10px; margin:8px 0; }
@@ -951,11 +951,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
             <select id="calc-parcela"><option value="">— ne računaj po parceli —</option></select>
           </div>
 
-          <button type="button" class="opg-submit plum" id="calc-photo-btn">📷 Slikaj FIS preporuku</button>
-          <input type="file" id="calc-photo-input" accept="image/*" style="display:none;">
-          <div id="calc-photo-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
-          <div id="calc-photo-candidates" style="display:none; margin-top:8px;"></div>
-          <button type="button" class="opg-submit ghost" id="calc-photo-reset" style="display:none; margin-top:8px;">🔄 Poništi i slikaj ponovno</button>
+
           <p class="opg-hint">Ili prepišite brojeve ručno, točno kako pišu na FIS stranici za taj proizvod/štetnika/kulturu.</p>
           <div class="opg-row2">
             <div class="opg-field"><label>Doza po ha — od</label><input type="number" id="calc-ha-doza-min" step="0.001" min="0" placeholder="npr. 0.075"></div>
@@ -4564,124 +4560,6 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     localStorage.setItem('opg_prag_pdv', String(val));
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { prag_pdv: val }, { merge: true }); } catch(e) {} }
   }
-  function getAiUrl(){
-    if (cloudConfigured) return mode==='cloud' ? securitySettings.ai_url||'' : '';
-    return localStorage.getItem('opg_ai_url') || '';
-  }
-  function askAiUrl(){
-    if(!allowWrite('security_manage'))return;
-    const current = getAiUrl();
-    const url = prompt('Zalijepi adresu fisPhotoLookup funkcije (iz README-FIS.md, izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/fisPhotoLookup):', current);
-    if (url && url.trim()) {
-      const trimmed = url.trim();
-      localStorage.setItem('opg_ai_url', trimmed);
-      if (mode === 'cloud') {
-        try { fb.setDoc(fb.doc(fb.db, 'settings', 'security'), { ai_url: trimmed }, { merge: true }); } catch(e) {}
-      }
-      return trimmed;
-    }
-    return null;
-  }
-  function applyFisItem(item){
-    if (item.doza_po_ha_min != null) document.getElementById('calc-ha-doza-min').value = item.doza_po_ha_min;
-    if (item.doza_po_ha_max != null) document.getElementById('calc-ha-doza-max').value = item.doza_po_ha_max;
-    if (item.voda_po_ha_min != null) document.getElementById('calc-ha-voda-min').value = item.voda_po_ha_min;
-    if (item.voda_po_ha_max != null) document.getElementById('calc-ha-voda-max').value = item.voda_po_ha_max;
-    if (item.proizvod) document.getElementById('calc-sredstvo').value = item.proizvod;
-    if (item.karenca_dana != null) document.getElementById('pr-karenca').value = item.karenca_dana;
-    renderCalculator();
-    renderPrskanjePreview();
-
-    const candBox = document.getElementById('calc-photo-candidates');
-    candBox.style.display = 'none';
-    candBox.innerHTML = '';
-
-    const epoch=privateEpoch;
-    const statusEl = document.getElementById('calc-photo-status');
-    statusEl.style.display = 'block';
-    const parts = [];
-    if (item.kultura) parts.push(item.kultura);
-    if (item.stetnik_ili_bolest) parts.push(item.stetnik_ili_bolest);
-    statusEl.textContent = '✓ ' + (item.proizvod ? item.proizvod + ' — ' : '') + parts.join(' · ') +
-      '\nPogledajte "Potrebno sredstva" ispod — uvijek provjerite prije prskanja.';
-    document.getElementById('calc-photo-reset').style.display = 'block';
-    toast('Izračun spreman — provjerite prije prskanja');
-  }
-
-  function renderFisCandidates(items){
-    const epoch=privateEpoch;
-    const statusEl = document.getElementById('calc-photo-status');
-    statusEl.style.display = 'block';
-    statusEl.textContent = 'Prepoznato je više redaka na slici — odaberite koji se odnosi na vaš problem:';
-
-    const box = document.getElementById('calc-photo-candidates');
-    box.style.display = 'block';
-    box.innerHTML = items.map((it, i) => {
-      const label = [it.stetnik_ili_bolest, it.kultura].filter(Boolean).join(' · ') || ('Redak ' + (i+1));
-      return `<button type="button" class="opg-submit ghost" style="margin-bottom:6px; text-align:left;" data-idx="${i}">${window.OpgSecurity.escapeHtml(label)}</button>`;
-    }).join('');
-    box.querySelectorAll('button').forEach((btn) => {
-      btn.addEventListener('click', () => applyFisItem(items[parseInt(btn.dataset.idx, 10)]));
-    });
-    document.getElementById('calc-photo-reset').style.display = 'block';
-  }
-
-  function resetPhotoResult(){
-    document.getElementById('calc-ha-doza-min').value = '';
-    document.getElementById('calc-ha-doza-max').value = '';
-    document.getElementById('calc-ha-voda-min').value = '';
-    document.getElementById('calc-ha-voda-max').value = '';
-    document.getElementById('calc-photo-status').style.display = 'none';
-    const candBox = document.getElementById('calc-photo-candidates');
-    candBox.style.display = 'none';
-    candBox.innerHTML = '';
-    document.getElementById('calc-photo-reset').style.display = 'none';
-    renderCalculator();
-  }
-  document.getElementById('calc-photo-reset').addEventListener('click', ()=>{
-    resetPhotoResult();
-    document.getElementById('calc-photo-input').value = '';
-    document.getElementById('calc-photo-input').click();
-  });
-
-  document.getElementById('calc-photo-btn').addEventListener('click', ()=>{
-    let url = getAiUrl();
-    if (!url) { url = askAiUrl(); if (!url) return; }
-    document.getElementById('calc-photo-input').click();
-  });
-  document.getElementById('calc-photo-input').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if (!file) return;
-    const url = getAiUrl();
-    if (!url) { e.target.value=''; return; }
-
-    const epoch=privateEpoch;
-    const statusEl = document.getElementById('calc-photo-status');
-    document.getElementById('calc-photo-candidates').style.display = 'none';
-    statusEl.style.display = 'block';
-    statusEl.textContent = 'Šaljem sliku i čekam odgovor… (par sekundi)';
-
-    try {
-      const dataUrl = await resizeImageFile(file, 1200, 0.85);
-      const base64 = dataUrl.split(',')[1];
-      const user=fb?.auth?.currentUser,session=window.OpgAuth?.session;
-      const resp = await window.OpgFisPhoto.request({url,user,session,image:base64,mimeType:'image/jpeg',
-        isCurrent:()=>epoch===privateEpoch&&fb?.auth?.currentUser?.uid===user?.uid&&window.OpgAuth?.session?.uid===user?.uid});
-      const data = await resp.json();
-      if(epoch!==privateEpoch)return;
-      if (data.error) { statusEl.textContent = 'Greška: ' + data.error; e.target.value=''; return; }
-      const items = Array.isArray(data.parsed) ? data.parsed.filter(Boolean) : (data.parsed ? [data.parsed] : []);
-      if (!items.length) { statusEl.textContent = 'AI nije uspio pročitati podatke sa slike. Pokušajte jasniju, bolje osvijetljenu fotografiju.'; e.target.value=''; return; }
-
-      if (items.length === 1) { applyFisItem(items[0]); }
-      else { renderFisCandidates(items); }
-    } catch(err) {
-      if(epoch!==privateEpoch)return;
-      statusEl.textContent = 'Greška pri obradi slike: ' + err.message;
-    }
-    e.target.value = '';
-  });
-
   document.getElementById('pr-datum').addEventListener('change', renderPrskanjePreview);
   document.getElementById('pr-karenca').addEventListener('input', renderPrskanjePreview);
   document.getElementById('pr-submit').addEventListener('click', async ()=>{

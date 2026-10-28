@@ -36,17 +36,9 @@ const {chromium,webkit,devices}=require('playwright'),fs=require('node:fs'),path
       export const getDocs=getDocsFromServer;export const setDoc=async(ref,value)=>window.testWrites.push({path:ref.path,value});export const updateDoc=setDoc;export const deleteDoc=async ref=>window.testWrites.push({path:ref.path,deleted:true});
       export const writeBatch=()=>({set:setDoc,commit:async()=>{}});
     `;
-    else if(name==='firebase-functions.js')body=`export const getFunctions=()=>({});export const httpsCallable=(_,name)=>async data=>{if(name==='opgManageMember'&&window.testAuth.currentUser?.uid==='google-admin'){(window.managementCalls||=[]).push({name,data});return{data:{uid:data.uid,role:'MEMBER',enabled:data.enabled}};}throw new Error('No paid AI during auth tests');};`;
+    else if(name==='firebase-functions.js')body=`export const getFunctions=()=>({});export const httpsCallable=(_,name)=>async data=>{if(name==='opgGetMemberStatus'&&window.testAuth.currentUser?.uid==='google-admin')return{data:{uid:'anon-original'}};if(name==='opgManageMember'&&window.testAuth.currentUser?.uid==='google-admin'){(window.managementCalls||=[]).push({name,data});return{data:{uid:data.uid,role:'MEMBER',enabled:data.enabled}};}throw new Error('No paid AI during auth tests');};`;
     else return route.abort();
     return route.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body});
-  });
-  let photoCalls=0,photoDenied=false;
-  await page.route('https://europe-west1-opg-ojka.cloudfunctions.net/fisPhotoLookup',async route=>{
-    const cors={'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'POST,OPTIONS'};
-    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
-    photoCalls++;assert.equal(route.request().headers().authorization,'Bearer synthetic-firebase-token');
-    const payload=route.request().postDataJSON();assert.deepEqual(Object.keys(payload).sort(),['image','mimeType']);assert.equal(payload.mimeType,'image/jpeg');assert.ok(payload.image.length>0);
-    return route.fulfill({status:photoDenied?401:200,headers:cors,json:photoDenied?{error:'private-error-must-not-display'}:{parsed:[{proizvod:'TESTNI ODGOVOR',stetnik_ili_bolest:'<img src=x onerror=alert(1)>'},{proizvod:'TESTNI DRUGI',kultura:'Test'}]}});
   });
   await page.goto('http://127.0.0.1:8768/');
   await page.waitForFunction(()=>window.testAuth?.currentUser?.uid==='anon-original');
@@ -62,12 +54,6 @@ const {chromium,webkit,devices}=require('playwright'),fs=require('node:fs'),path
   for(const name of ['pocetna','plan','financije','proizvodnja','zastita','pregled'])await page.locator('[data-tab="'+name+'"]').click();
   await page.locator('[data-tab="zastita"]').click();
   await page.locator('.protect-tools summary').click();await page.locator('[data-sub="kalkulator"]').click();await page.locator('#kalkulator-toggle').click();
-  const labelImage=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=4;c.height=4;return c.toDataURL('image/png').split(',')[1];});
-  await page.locator('#calc-photo-input').setInputFiles({name:'synthetic-label.png',mimeType:'image/png',buffer:Buffer.from(labelImage,'base64')});
-  await page.locator('#calc-photo-candidates button').first().waitFor();assert.equal(photoCalls,1);assert.equal(await page.locator('#calc-photo-candidates img').count(),0);
-  await page.locator('#calc-photo-candidates button').first().click();assert.equal(await page.locator('#calc-sredstvo').inputValue(),'TESTNI ODGOVOR');
-  photoDenied=true;await page.locator('#calc-photo-input').setInputFiles({name:'synthetic-label.png',mimeType:'image/png',buffer:Buffer.from(labelImage,'base64')});
-  await page.locator('#calc-photo-status').filter({hasText:'Prijava je istekla ili nije prihvaćena'}).waitFor();assert.equal(photoCalls,2);assert.ok(!(await page.locator('#calc-photo-status').textContent()).includes('private-error-must-not-display'));
   await page.locator('[data-sub="zastita-pregled"]').click();
   await page.locator('[data-tab="zastita"]').click();await page.locator('#protect-note').fill('Unsent observation on the same UID');
   await page.evaluate(()=>{window.holdActivities=true;window.OpgAuth.controller.refresh();});
