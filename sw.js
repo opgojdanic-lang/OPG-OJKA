@@ -1,8 +1,10 @@
-const CACHE_NAME = 'opg-evidencija-v25';
+const CACHE_NAME = 'opg-evidencija-v30';
 const ASSETS = [
   './',
   './index.html',
   './fis.js',
+  './security.js',
+  './auth.js',
   './protection.js',
   './pest-ai.js',
   './protection.css',
@@ -21,7 +23,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k.startsWith('opg-evidencija-') && k !== CACHE_NAME).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });

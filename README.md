@@ -17,7 +17,7 @@ jednom (bilo tko od obitelji to može napraviti):
    prijavite se Google računom.
 2. **Add project** → upišite naziv (npr. `opg-ojdanic`) → Continue → Create project.
 3. U lijevom izborniku: **Build → Firestore Database → Create database** → odaberite
-   lokaciju (npr. `europe-west`) → **Start in test mode**.
+   lokaciju (npr. `europe-west`) → **Production mode** (zadano odbijanje pristupa). Ne uključivati javni test mode za stvarne podatke. Prije povezivanja pregledati [sigurnosni plan](docs/SECURITY-RELEASE-PLAN.md) i potvrditi ovlasti stvarnih Firebase UID-ova.
 4. U lijevom izborniku kliknite **⚙ Settings** (odmah ispod "Project Overview") →
    **Project settings** → dolje pod "Your apps" kliknite ikonu **`</>`** (Web) →
    nazovite je "OPG" → Register app.
@@ -28,7 +28,7 @@ kod u ekran za povezivanje koji se sam pojavi. Nakon toga aplikacija se sama pov
 svakom uređaju koji koristi istu poveznicu — ponovno povezivanje / promjenu po potrebi
 radite preko zupčanika (⚙) gore desno u zaglavlju.
 
- > **O sigurnosti:** Firebase web config nije tajna i ne štiti pristup bazi. Pristup određuju Firestore pravila i autentikacija. Ne koristite javno pravilo `allow read, write: if true`. Postojeća aplikacija podržava anonimnu prijavu, ali ona sama ne dokazuje da je korisnik član obitelji. Prije promjene pravila pregledajte postojeće korisnike i način pristupa kako se obitelji ne bi prekinula sinkronizacija.
+ > **O sigurnosti:** Firebase web config nije tajna i ne štiti pristup bazi. Pristup određuju Firestore pravila i autentikacija. Ne koristite javno pravilo `allow read, write: if true`. Anonimni UID može se povezati s Google računom, ali anonimna prijava nema poslovni pristup. Konačni pristup zahtijeva serverski odobrenu Google OWNER/MEMBER ulogu. Prije promjene pravila pregledajte postojeće korisnike i način pristupa kako se obitelji ne bi prekinula sinkronizacija.
 
 ## Nadogradnja Zalihe / FIS
 
@@ -76,7 +76,21 @@ U zaglavlju aplikacije, ispod naziva "OPG Ojdanić", piše status:
 
 ## Sadržaj mape
 
-- `index.html` — sama aplikacija (uključuje već prebačene podatke iz vaše Excel tablice)
+- `index.html` — aplikacija bez ugrađenih privatnih početnih podataka; postojeće evidencije čitaju se iz lokalne pohrane ili odobrene zajedničke baze
 - `manifest.json` — podaci za instalaciju (ime, ikona, boje)
 - `sw.js` — service worker za rad bez interneta
 - `icons/` — ikona aplikacije (vaš logo OPG Ojdanić)
+
+## Kandidat za sigurnu objavu
+
+Aktualni pregled pravila, osjetljivih početnih podataka, povezivanja Laser SC i kontroliranog redoslijeda objave: [SECURITY-RELEASE-PLAN.md](docs/SECURITY-RELEASE-PLAN.md). Kandidat nije produkcijski objavljen.
+
+Google prijava, ovlasti i obavezne provjere prije produkcije: [docs/GOOGLE-AUTH.md](docs/GOOGLE-AUTH.md).
+
+Konačni OWNER/MEMBER model, hitno zatvaranje širokih pravila i oporavak: [docs/ROLE-ROLLOUT.md](docs/ROLE-ROLLOUT.md).
+
+Prije migracije: [operatorske provjere i privatni izvoz](docs/OPERATOR-PREFLIGHT.md), bez deploya i promjene IAM-a.
+
+Pregled šest javnih HTTP servisa i budući postupak privremene karantene: [HTTP-ENDPOINT-CONTAINMENT.md](docs/HTTP-ENDPOINT-CONTAINMENT.md).
+
+Potvrđeni privatni fisPhotoLookup nalaz i pripremljeni autorizacijski sloj (privatna integracija još blokirana): [FIS-PHOTO-AUTH-PATCH.md](docs/FIS-PHOTO-AUTH-PATCH.md).

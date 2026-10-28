@@ -2,12 +2,14 @@
 <html lang="hr">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-XeqQYi2zGoJhrJvL7lIPdFyi227F5HSvT03H+Rt2PhQ=' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com/js/api.js https://apis.google.com/_/scs/ https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js; base-uri 'self'; form-action 'self'; object-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OPG Ojdanić</title>
 <meta name="theme-color" content="#1F3D2B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="OPG Ojdanić">
+<link rel="stylesheet" href="./protection.css">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <link rel="icon" href="./icons/icon-192.png">
@@ -142,8 +144,8 @@ body {
 .opg-loading { text-align: center; padding: 60px 20px; color: var(--sage); font-size: 14px; }
 
 .opg-toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: var(--forest); color: #fff; padding: 10px 18px; border-radius: 30px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 100; max-width: 90%; text-align: center; }
-.opg-pull-indicator { position: fixed; top: 0; left: 50%; transform: translateX(-50%) translateY(-100%); background: var(--forest); color: #fff; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 0 0 14px 14px; z-index: 200; transition: transform 0.15s; }
-.opg-pull-indicator.visible { transform: translateX(-50%) translateY(0); }
+.opg-pull-indicator { position: fixed; top: env(safe-area-inset-top, 0px); opacity: 0; pointer-events: none; left: 50%; transform: translateX(-50%) translateY(-100%); background: var(--forest); color: #fff; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 0 0 14px 14px; z-index: 200; transition: transform 0.15s; }
+.opg-pull-indicator.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 .opg-toast.show { opacity: 1; }
 
 .opg-report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
@@ -342,7 +344,7 @@ body {
 /* ===== NOVI IZGLED ===== */
 body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest:#1E4D35; --forest-2:#2A6347; --sage:#5F7366; --sage-line:#E7E3D6; --ok-bg:#E3EEE5; --ok-ink:#1E4D35; font-family:'Figtree','Inter',-apple-system,sans-serif; }
 #opg-root input, #opg-root select, #opg-root textarea, #opg-root button, .opg-field input, .opg-field select, .opg-field textarea, .opg-chip, .opg-submit { font-family:'Figtree','Inter',-apple-system,sans-serif; }
-#opg-root { padding-bottom: 120px; }
+#opg-root { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
 .opg-header { background: transparent; color: var(--ink); border-radius: 0; padding: calc(16px + env(safe-area-inset-top)) 20px 6px; overflow: visible; }
 .opg-brand-row { margin-bottom: 12px; }
 .opg-brand-logo { width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--sage-line); }
@@ -364,7 +366,7 @@ body { --bg:#F6F4EE; --card:#FFFFFF; --ink:#17231B; --ink-soft:#5C6B61; --forest
 .opg-tab .ic { height: 22px; }
 .opg-tab .ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .opg-tab.active { background: var(--ok-bg); color: var(--forest); font-weight: 700; }
-.opg-toast { bottom: 110px; }
+.opg-toast { bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
 
 .opg-section-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; color: var(--ink); margin: 24px 0 10px; }
 .opg-card, .opg-sum-card, .opg-stock-item, .opg-isk-card, .opg-parcela-card, .opg-cijena-block { border-radius: 20px; border-color: var(--sage-line); background: #fff; }
@@ -527,6 +529,9 @@ details.opg-coll[open] > summary::before { transform: rotate(90deg); }
 details.opg-coll > summary .opg-coll-tot { margin-left: auto; font-size: 15px; font-weight: 700; color: var(--forest); }
 details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px; }
 </style>
+<script src="./security.js"></script>
+<script src="./auth.js"></script>
+
 <script src="./fis.js"></script>
 <style>
 #fis-host input { width:100%; padding:12px; font:inherit; font-size:16px; border:1px solid var(--sage-line); border-radius:10px; margin:8px 0; }
@@ -549,8 +554,8 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       <div class="opg-setup-steps">
         <ol style="margin:0; padding-left:18px;">
           <li>Otvorite <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> i prijavite se Google računom.</li>
-          <li>"Add project" → upišite naziv (npr. <i>opg-ojdanic</i>) → Continue → Create project.</li>
-          <li>U lijevom izborniku: <b>Build → Firestore Database → Create database</b> → odaberite lokaciju (npr. europe-west) → Start in <b>test mode</b>.</li>
+          <li>Odaberi postojeći projekt <b>opg-ojka</b>; ne stvaraj novi projekt za postojeće poslovne podatke.</li>
+          <li>U lijevom izborniku otvori <b>Build → Firestore Database</b> u postojećem projektu <b>opg-ojka</b>. Koristi postojeću bazu i pregledana pravila; ne stvaraj novu bazu i ne uključuj javni test mode.</li>
           <li>U lijevom izborniku kliknite <b>⚙ Settings</b> (ispod "Project Overview") → odaberite <b>Project settings</b> → dolje pod "Your apps" kliknite ikonu <b>&lt;/&gt;</b> (Web) → nazovite je "OPG" → Register app.</li>
           <li>Pojavit će se kod s <code>const firebaseConfig = &#123; ... &#125;</code> — kopirajte cijeli taj dio i zalijepite dolje.</li>
         </ol>
@@ -946,11 +951,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
             <select id="calc-parcela"><option value="">— ne računaj po parceli —</option></select>
           </div>
 
-          <button type="button" class="opg-submit plum" id="calc-photo-btn">📷 Slikaj FIS preporuku</button>
-          <input type="file" id="calc-photo-input" accept="image/*" style="display:none;">
-          <div id="calc-photo-status" class="opg-hint" style="display:none; margin-top:8px;"></div>
-          <div id="calc-photo-candidates" style="display:none; margin-top:8px;"></div>
-          <button type="button" class="opg-submit ghost" id="calc-photo-reset" style="display:none; margin-top:8px;">🔄 Poništi i slikaj ponovno</button>
+
           <p class="opg-hint">Ili prepišite brojeve ručno, točno kako pišu na FIS stranici za taj proizvod/štetnika/kulturu.</p>
           <div class="opg-row2">
             <div class="opg-field"><label>Doza po ha — od</label><input type="number" id="calc-ha-doza-min" step="0.001" min="0" placeholder="npr. 0.075"></div>
@@ -1269,14 +1270,10 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   const KUPAC_LABEL = { RIBOLA: 'Ribola', 'ĐAKULA': 'Đakula', 'BARIČEVIĆ': 'Baričević', VITIĆ: 'Vitić', 'BOKŠIĆ': 'Bokšić', PAUL: 'Paul' };
   const KAT_LABEL = { SJEME: 'Sjeme', GNOJIVO: 'Gnojivo', REPROMATERIJAL: 'Repromaterijal', 'SREDSTVA ZA ZAŠTITU': 'Sredstva za zaštitu', OSTALO: 'Ostalo' };
 
-  const SEED_PRODAJA = [{"id": "p1", "kupac": "RIBOLA", "datum": "2026-06-11", "proizvod": "TIKVICA", "cijena_kg": 0.7, "kg": 67, "placeno": true, "pak": 7}, {"id": "p2", "kupac": "RIBOLA", "datum": "2026-06-14", "proizvod": "TIKVICA", "cijena_kg": 0.7, "kg": 50, "placeno": true, "pak": 5}, {"id": "p3", "kupac": "RIBOLA", "datum": "2026-06-18", "proizvod": "TIKVICA", "cijena_kg": 0.5, "kg": 118, "placeno": true, "pak": 14}, {"id": "p4", "kupac": "RIBOLA", "datum": "2026-06-22", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 180, "placeno": true, "pak": 16}, {"id": "p5", "kupac": "RIBOLA", "datum": "2026-06-25", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 165, "placeno": true, "pak": 11}, {"id": "p6", "kupac": "RIBOLA", "datum": "2026-06-28", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 110, "placeno": true, "pak": 14}, {"id": "p7", "kupac": "RIBOLA", "datum": "2026-07-03", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 202, "placeno": true, "pak": 18}, {"id": "p8", "kupac": "RIBOLA", "datum": "2026-07-07", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 145, "placeno": true, "pak": 21}, {"id": "p9", "kupac": "RIBOLA", "datum": "2026-07-13", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 177, "placeno": true, "pak": 20}, {"id": "p10", "kupac": "RIBOLA", "datum": "2026-07-17", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 158, "placeno": true, "pak": 20}, {"id": "p11", "kupac": "RIBOLA", "datum": "2026-07-22", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 176, "placeno": true, "pak": 30}, {"id": "p12", "kupac": "RIBOLA", "datum": "2026-07-27", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 172, "placeno": true, "pak": 25}, {"id": "p13", "kupac": "RIBOLA", "datum": "2026-08-02", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 203, "placeno": false, "pak": 15}, {"id": "p14", "kupac": "RIBOLA", "datum": "2026-08-06", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 132, "placeno": false, "pak": 12}, {"id": "p15", "kupac": "RIBOLA", "datum": "2026-08-13", "proizvod": "TIKVICA", "cijena_kg": 0.65, "kg": 190, "placeno": false, "pak": 19}, {"id": "p16", "kupac": "RIBOLA", "datum": "2026-08-23", "proizvod": "TIKVICA", "cijena_kg": 0.8, "kg": 58, "placeno": false, "pak": 4}, {"id": "p17", "kupac": "RIBOLA", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 1737, "placeno": true, "pak": 164}, {"id": "p18", "kupac": "RIBOLA", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 1240, "placeno": true, "pak": 120}, {"id": "p19", "kupac": "RIBOLA", "datum": "2026-07-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 850, "placeno": true, "pak": 80}, {"id": "p20", "kupac": "RIBOLA", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 986, "placeno": false, "pak": 98}, {"id": "p21", "kupac": "RIBOLA", "datum": "2026-08-23", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 1792, "placeno": false, "pak": 164}, {"id": "p22", "kupac": "RIBOLA", "datum": "2026-07-27", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.8, "kg": 845, "placeno": true, "pak": null}, {"id": "p23", "kupac": "RIBOLA", "datum": "2026-08-19", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.7, "kg": 1193, "placeno": false, "pak": null}, {"id": "p24", "kupac": "BARIČEVIĆ", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p25", "kupac": "BARIČEVIĆ", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p26", "kupac": "BARIČEVIĆ", "datum": "2026-07-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p27", "kupac": "BARIČEVIĆ", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p28", "kupac": "BARIČEVIĆ", "datum": "2026-07-30", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p29", "kupac": "BARIČEVIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p30", "kupac": "BARIČEVIĆ", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p31", "kupac": "BARIČEVIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p32", "kupac": "BARIČEVIĆ", "datum": "2026-08-20", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p33", "kupac": "BARIČEVIĆ", "datum": "2026-08-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 60, "placeno": true, "pak": 6}, {"id": "p34", "kupac": "BARIČEVIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p35", "kupac": "ĐAKULA", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": false, "pak": 3}, {"id": "p36", "kupac": "ĐAKULA", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p37", "kupac": "ĐAKULA", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p38", "kupac": "ĐAKULA", "datum": "2026-07-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p39", "kupac": "ĐAKULA", "datum": "2026-07-25", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p40", "kupac": "ĐAKULA", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 120, "placeno": false, "pak": 12}, {"id": "p41", "kupac": "ĐAKULA", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p42", "kupac": "ĐAKULA", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 120, "placeno": true, "pak": 12}, {"id": "p43", "kupac": "ĐAKULA", "datum": "2026-08-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p44", "kupac": "ĐAKULA", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p45", "kupac": "ĐAKULA", "datum": "2026-08-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": true, "pak": 10}, {"id": "p46", "kupac": "ĐAKULA", "datum": "2026-08-26", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p47", "kupac": "ĐAKULA", "datum": "2026-08-31", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p48", "kupac": "ĐAKULA", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 100, "placeno": false, "pak": 10}, {"id": "p49", "kupac": "BOKŠIĆ", "datum": "2026-07-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 10, "placeno": true, "pak": 1}, {"id": "p50", "kupac": "BOKŠIĆ", "datum": "2026-07-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p51", "kupac": "BOKŠIĆ", "datum": "2026-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p52", "kupac": "BOKŠIĆ", "datum": "2026-08-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p53", "kupac": "BOKŠIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p54", "kupac": "BOKŠIĆ", "datum": "2026-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p55", "kupac": "BOKŠIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p56", "kupac": "BOKŠIĆ", "datum": "2026-08-24", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p57", "kupac": "BOKŠIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 30, "placeno": true, "pak": 3}, {"id": "p58", "kupac": "VITIĆ", "datum": "2026-07-27", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p59", "kupac": "VITIĆ", "datum": "2026-07-29", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p60", "kupac": "VITIĆ", "datum": "2026-08-02", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p61", "kupac": "VITIĆ", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p62", "kupac": "VITIĆ", "datum": "2026-08-11", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": true, "pak": 5}, {"id": "p63", "kupac": "VITIĆ", "datum": "2026-08-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 20, "placeno": true, "pak": 2}, {"id": "p64", "kupac": "VITIĆ", "datum": "2026-08-19", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p65", "kupac": "VITIĆ", "datum": "2026-08-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 40, "placeno": true, "pak": 4}, {"id": "p66", "kupac": "VITIĆ", "datum": "2026-08-26", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p67", "kupac": "VITIĆ", "datum": "2026-08-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p68", "kupac": "VITIĆ", "datum": "2026-09-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.5, "kg": 50, "placeno": false, "pak": 5}, {"id": "p69", "kupac": "VITIĆ", "datum": "2026-07-27", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p70", "kupac": "VITIĆ", "datum": "2026-07-29", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p71", "kupac": "VITIĆ", "datum": "2026-08-02", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 10, "placeno": true, "pak": 2}, {"id": "p72", "kupac": "VITIĆ", "datum": "2026-08-11", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p73", "kupac": "VITIĆ", "datum": "2026-08-17", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p74", "kupac": "VITIĆ", "datum": "2026-08-19", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p75", "kupac": "VITIĆ", "datum": "2026-08-21", "proizvod": "TIKVICA", "cijena_kg": 1, "kg": 5, "placeno": true, "pak": 1}, {"id": "p76", "kupac": "PAUL", "datum": "2026-06-28", "proizvod": "TIKVICA", "cijena_kg": 0.45, "kg": 200, "placeno": true, "pak": null}, {"id": "p77", "kupac": "PAUL", "datum": "2026-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 200, "placeno": true, "pak": null}, {"id": "p78", "kupac": "PAUL", "datum": "2026-07-17", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 300, "placeno": true, "pak": null}, {"id": "p79", "kupac": "PAUL", "datum": "2026-08-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 400, "placeno": true, "pak": null}, {"id": "p80", "kupac": "PAUL", "datum": "2026-08-06", "proizvod": "TIKVICA", "cijena_kg": 0.55, "kg": 400, "placeno": true, "pak": null}, {"id": "p81", "kupac": "PAUL", "datum": "2026-08-19", "proizvod": "BUTTERNUT TIKVA", "cijena_kg": 0.7, "kg": 250, "placeno": true, "pak": null}, {"id": "p82", "kupac": "PAUL", "datum": "2026-08-19", "proizvod": "TIKVICA", "cijena_kg": 0.8, "kg": 410, "placeno": true, "pak": null}];
-  const SEED_LICENCE = { id: "lic1", ime: "Mira Ojdanić", oib: "54042759810", vrijedi_do: "2026-09-25", modul: "1", barkod_rucno: null };
-  const SEED_PARCELE = [
-    { id: "parc1", naziv: "Mrčeluše", povrsina_ha: null, kulture: {} },
-    { id: "parc2", naziv: "Josina", povrsina_ha: null, kulture: {} },
-    { id: "parc3", naziv: "Koprtluša", povrsina_ha: null, kulture: {} }
-  ];
-  const SEED_HISTORY_2024_2025 = [{"id": "y24_1", "kupac": "RIBOLA", "datum": "2024-06-27", "proizvod": "ZELENE MAHUNE", "cijena_kg": 3, "kg": 186, "placeno": true, "pak": null}, {"id": "y24_2", "kupac": "RIBOLA", "datum": "2024-07-07", "proizvod": "ZELENE MAHUNE", "cijena_kg": 2.2, "kg": 113, "placeno": true, "pak": null}, {"id": "y24_3", "kupac": "RIBOLA", "datum": "2024-07-19", "proizvod": "ZELENE MAHUNE", "cijena_kg": 2.8, "kg": 170, "placeno": true, "pak": null}, {"id": "y24_4", "kupac": "RIBOLA", "datum": "2024-07-21", "proizvod": "ZELENE MAHUNE", "cijena_kg": 2.8, "kg": 200, "placeno": true, "pak": null}, {"id": "y24_5", "kupac": "RIBOLA", "datum": "2024-09-15", "proizvod": "ZELENE MAHUNE", "cijena_kg": 3.8, "kg": 38, "placeno": true, "pak": null}, {"id": "y24_6", "kupac": "RIBOLA", "datum": "2024-07-14", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 475, "placeno": true, "pak": null}, {"id": "y24_7", "kupac": "RIBOLA", "datum": "2024-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 916, "placeno": true, "pak": null}, {"id": "y24_8", "kupac": "RIBOLA", "datum": "2024-07-30", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 727, "placeno": true, "pak": null}, {"id": "y24_9", "kupac": "RIBOLA", "datum": "2024-08-08", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.3, "kg": 1040, "placeno": true, "pak": null}, {"id": "y24_10", "kupac": "RIBOLA", "datum": "2024-08-11", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.3, "kg": 339, "placeno": true, "pak": null}, {"id": "y24_11", "kupac": "RIBOLA", "datum": "2024-08-18", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.3, "kg": 1081, "placeno": true, "pak": null}, {"id": "y24_12", "kupac": "RIBOLA", "datum": "2024-08-25", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 1065, "placeno": true, "pak": null}, {"id": "y24_13", "kupac": "RIBOLA", "datum": "2024-09-01", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.6, "kg": 1130, "placeno": true, "pak": null}, {"id": "y24_14", "kupac": "RIBOLA", "datum": "2024-09-08", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.6, "kg": 1150, "placeno": true, "pak": null}, {"id": "y24_15", "kupac": "RIBOLA", "datum": "2024-09-15", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.6, "kg": 730, "placeno": true, "pak": null}, {"id": "y24_16", "kupac": "RIBOLA", "datum": "2024-09-22", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.6, "kg": 361, "placeno": true, "pak": null}, {"id": "y24_17", "kupac": "RIBOLA", "datum": "2024-09-29", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 308, "placeno": true, "pak": null}, {"id": "y24_18", "kupac": "RIBOLA", "datum": "2024-10-06", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 455, "placeno": true, "pak": null}, {"id": "y24_19", "kupac": "RIBOLA", "datum": "2024-10-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 373, "placeno": true, "pak": null}, {"id": "y24_20", "kupac": "RIBOLA", "datum": "2024-10-18", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 460, "placeno": true, "pak": null}, {"id": "y24_21", "kupac": "RIBOLA", "datum": "2024-10-22", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 260, "placeno": true, "pak": null}, {"id": "y24_22", "kupac": "PAUL", "datum": "2024-07-07", "proizvod": "ZELENE MAHUNE", "cijena_kg": 2.2, "kg": 70, "placeno": true, "pak": null}, {"id": "y24_23", "kupac": "PAUL", "datum": "2024-07-14", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 200, "placeno": true, "pak": null}, {"id": "y24_24", "kupac": "PAUL", "datum": "2024-07-21", "proizvod": "ZELENE MAHUNE", "cijena_kg": 2.8, "kg": 36, "placeno": true, "pak": null}, {"id": "y24_25", "kupac": "PAUL", "datum": "2024-07-28", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 100, "placeno": true, "pak": null}, {"id": "y24_26", "kupac": "PAUL", "datum": "2024-08-08", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.3, "kg": 100, "placeno": true, "pak": null}, {"id": "y24_27", "kupac": "PAUL", "datum": "2024-08-11", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.3, "kg": 200, "placeno": true, "pak": null}, {"id": "y24_28", "kupac": "PAUL", "datum": "2024-08-25", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 100, "placeno": true, "pak": null}, {"id": "y24_29", "kupac": "PAUL", "datum": "2024-09-08", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.6, "kg": 300, "placeno": true, "pak": null}, {"id": "y24_30", "kupac": "PAUL", "datum": "2024-09-30", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 300, "placeno": true, "pak": null}, {"id": "y24_31", "kupac": "PAUL", "datum": "2024-10-09", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.4, "kg": 200, "placeno": true, "pak": null}, {"id": "y25_32", "kupac": "RIBOLA", "datum": "2025-07-13", "proizvod": "PAPRIKA BABURA", "cijena_kg": 0.9, "kg": 468, "placeno": true, "pak": null}, {"id": "y25_33", "kupac": "RIBOLA", "datum": "2025-07-22", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 920, "placeno": true, "pak": null}, {"id": "y25_34", "kupac": "RIBOLA", "datum": "2025-08-03", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 1174, "placeno": true, "pak": null}, {"id": "y25_35", "kupac": "RIBOLA", "datum": "2025-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 843, "placeno": true, "pak": null}, {"id": "y25_36", "kupac": "RIBOLA", "datum": "2025-08-20", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 1730, "placeno": true, "pak": null}, {"id": "y25_37", "kupac": "RIBOLA", "datum": "2025-08-29", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 1250, "placeno": true, "pak": null}, {"id": "y25_38", "kupac": "RIBOLA", "datum": "2025-09-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 2050, "placeno": true, "pak": null}, {"id": "y25_39", "kupac": "RIBOLA", "datum": "2025-09-21", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 1708, "placeno": true, "pak": null}, {"id": "y25_40", "kupac": "RIBOLA", "datum": "2025-10-04", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 1104, "placeno": true, "pak": null}, {"id": "y25_41", "kupac": "PAUL", "datum": "2025-07-22", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1.1, "kg": 500, "placeno": true, "pak": null}, {"id": "y25_42", "kupac": "PAUL", "datum": "2025-08-10", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 400, "placeno": true, "pak": null}, {"id": "y25_43", "kupac": "PAUL", "datum": "2025-08-29", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 300, "placeno": true, "pak": null}, {"id": "y25_44", "kupac": "PAUL", "datum": "2025-10-04", "proizvod": "PAPRIKA BABURA", "cijena_kg": 1, "kg": 500, "placeno": true, "pak": null}];
+
+
+
+
 
   let prodaja = [];       // includes PAUL entries too (kupac === 'PAUL'), excluded from financial totals
   let troskovi = [];
@@ -1304,7 +1301,43 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   let sprayConditions = {};
   let rizikData = null;
   let currentSeason = String(new Date().getFullYear());
-  let firebaseApp = null;
+  let securitySettings = {};
+  let firebaseApp = null, authController = null, cloudSession = null, identityEpoch = 0, dataEpoch = 0, privateEpoch = 0, identityUid = null;
+  let dataStops = [], aclStop = null;
+  let cloudConfigured = !!localStorage.getItem('opg_fb_config');
+  const authHost=document.createElement('section');authHost.id='opg-auth';document.querySelector('.opg-header').append(authHost);
+  const authUi=window.OpgAuth.mount(authHost);
+  function canWrite(permission){return !cloudConfigured || (mode==='cloud' && fb?.auth.currentUser?.uid===cloudSession?.uid && cloudSession.permissions.includes(permission));}
+  function allowWrite(permission){const ok=canWrite(permission);if(!ok)toast('Nema potvrđenog dopuštenja za ovu radnju. Podaci nisu poslani.');return ok;}
+  function stopData(){dataEpoch++;dataStops.splice(0).forEach(stop=>stop());}
+  function clearCloudData(){
+    prodaja=[];troskovi=[];zalihe=[];prskanje=[];licences=[];parcele=[];sjetve=[];rokovi=[];planTasks=[];planStatuses=[];sharedSettings={};securitySettings={};sprayConditions={};rizikData=null;
+  }
+  function lockCloud(clearForms=false){
+    stopData();mode='locked';cloudSession=null;window.OpgAuth.session=null;document.getElementById('opg-root').dataset.access='locked';
+    clearCloudData();setSyncStatus('local');
+    document.getElementById('opg-quick').classList.remove('show');
+    if(clearForms){
+      privateEpoch++;pendingTrosakRacun=null;pendingZalihaPhoto=null;lastCalcResult={value:0,label:'ml'};planOpenMenu=null;
+      ['isk-fullscreen','racun-fullscreen','activity-modal'].forEach(id=>{document.getElementById(id).style.display='none';});
+      document.getElementById('racun-fullscreen-img').removeAttribute('src');
+      ['isk-fullscreen-name','isk-fullscreen-meta','isk-fullscreen-svg','t-racun-preview','z-slika-preview','calc-fis-candidates'].forEach(id=>document.getElementById(id)?.replaceChildren());
+      EDIT.kind=null;EDIT.id=null;EDIT.rec=null;
+      document.querySelectorAll('#opg-content .opg-field input,#opg-content textarea').forEach(input=>{input.value=input.type==='date'?todayStr():'';});
+      ['activity-modal-list','print-report','protect-ai-result'].forEach(id=>document.getElementById(id)?.replaceChildren());
+    }
+    window.dispatchEvent(new CustomEvent('opg:auth-session',{detail:{uid:null,resetPrivate:clearForms}}));renderAll();
+  }
+  window.addEventListener('opg:auth-session',()=>applyWriteControls());
+  function applyWriteControls(){
+    const scopes={'f-prodaja-submit':'finance_write','f-trosak-submit':'finance_write','pa-submit':'finance_write','z-submit':'inventory_write','pr-submit':'treatments_write inventory_write','isk-submit':'licenses_write','parcela-submit':'farm_write','sj-submit':'farm_write','sd-submit':'farm_write','plan-submit':'farm_write','rok-submit':'farm_write','plan-set-save':'settings_manage','rok-prag-save':'settings_manage','vrijeme-save-thresholds':'settings_manage','import-json':'finance_write inventory_write treatments_write'};
+    for(const [id,permission] of Object.entries(scopes)){const button=document.getElementById(id);if(button){button.dataset.requiresWrite=permission;button.disabled=permission.split(' ').some(p=>!canWrite(p));}}
+  }
+  document.addEventListener('click',event=>{
+    const target=event.target.closest('[data-requires-write]');
+    if(target&&target.dataset.requiresWrite.split(' ').some(p=>!canWrite(p))){event.preventDefault();event.stopImmediatePropagation();toast('Ova radnja zahtijeva potvrđena dopuštenja.');}
+  },true);
+
 
   function updateUserChip(){
     document.getElementById('user-name-label').textContent = currentUser || 'Postavi ime';
@@ -1319,6 +1352,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   const fmt = (n) => (Math.round((n||0)*100)/100).toLocaleString('hr-HR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+  const escapeHtml = window.OpgSecurity.escapeHtml;
   const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
   const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
   const dfmt = (d) => { const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('hr-HR', {day:'2-digit', month:'2-digit', year:'2-digit'}); };
@@ -1337,35 +1371,19 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
 
   // ================= STORAGE LAYER =================
   function loadLocal(){
-    try { const p = localStorage.getItem('opg_prodaja'); prodaja = p ? JSON.parse(p) : SEED_PRODAJA.slice(); if(!p) localStorage.setItem('opg_prodaja', JSON.stringify(prodaja)); }
-    catch(e){ prodaja = SEED_PRODAJA.slice(); }
+    try { const p = localStorage.getItem('opg_prodaja'); prodaja = p ? JSON.parse(p) : []; if(!p) localStorage.setItem('opg_prodaja', JSON.stringify(prodaja)); }
+    catch(e){ prodaja = []; }
     try { const t = localStorage.getItem('opg_troskovi'); troskovi = t ? JSON.parse(t) : []; }
     catch(e){ troskovi = []; }
     // jednokratno nadopunjavanje: ako Paulovi povijesni podaci iz Excela još nisu tu, dodaj ih
-    if (!prodaja.some(r => r.kupac === 'PAUL')) {
-      const paulSeed = SEED_PRODAJA.filter(r => r.kupac === 'PAUL');
-      if (paulSeed.length) { prodaja = prodaja.concat(paulSeed); saveLocalProdaja(); }
-    }
     try { const z = localStorage.getItem('opg_zalihe'); zalihe = z ? JSON.parse(z) : []; }
     catch(e){ zalihe = []; }
     try { const pr = localStorage.getItem('opg_prskanje'); prskanje = pr ? JSON.parse(pr) : []; }
     catch(e){ prskanje = []; }
     try { const lc = localStorage.getItem('opg_licences'); licences = lc ? JSON.parse(lc) : []; }
     catch(e){ licences = []; }
-    if (!licences.some(l => l.oib === SEED_LICENCE.oib)) {
-      licences = licences.concat([SEED_LICENCE]);
-      saveLocalLicences();
-    }
-    if (!prodaja.some(r => (r.id||'').startsWith('y24_') || (r.id||'').startsWith('y25_'))) {
-      prodaja = prodaja.concat(SEED_HISTORY_2024_2025);
-      saveLocalProdaja();
-    }
     try { const pc = localStorage.getItem('opg_parcele'); parcele = pc ? JSON.parse(pc) : []; }
     catch(e){ parcele = []; }
-    if (!parcele.length) {
-      parcele = SEED_PARCELE.slice();
-      saveLocalParcele();
-    }
     try { const sj = localStorage.getItem('opg_sjetve'); sjetve = sj ? JSON.parse(sj) : []; }
     catch(e){ sjetve = []; }
     try { const rk = localStorage.getItem('opg_rokovi'); rokovi = rk ? JSON.parse(rk) : []; }
@@ -1393,160 +1411,70 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
 
   async function initCloud(config){
     try {
-      const [{ initializeApp }, fsMod, authMod] = await Promise.all([
+      cloudConfigured=true;identityEpoch++;aclStop?.();aclStop=null;authController?.dispose();authController=null;window.OpgAuth.controller=null;authUi.bind(null);lockCloud();
+      const [apps,fs,authSdk]=await Promise.all([
         import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
         import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'),
         import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js')
       ]);
-      const app = initializeApp(config);
-      firebaseApp = app;
-      // Tiha (bez ikakve forme za prijavu) anonimna autentikacija — potrebna
-      // da Firestore pravila mogu tražiti "prijavljenog" korisnika umjesto da
-      // baza ostane potpuno otvorena bilo kome na internetu.
-      const auth = authMod.getAuth(app);
-      await new Promise((resolve) => {
-        const unsub = authMod.onAuthStateChanged(auth, (user) => {
-          unsub();
-          if (user) { resolve(); }
-          else { authMod.signInAnonymously(auth).then(resolve).catch(resolve); }
-        });
-      });
-      const db = fsMod.getFirestore(app);
-      try { await fsMod.enableIndexedDbPersistence(db); } catch(e) {}
-      fb = { db, ...fsMod };
-
-      // Početni (probni) podaci upisuju se SAMO kad je poslužitelj izričito potvrdio da je kolekcija prazna.
-      // Nikad na temelju lokalne predmemorije — inače bi slaba veza mogla prepisati prave podatke probnima.
-      const serverEmpty = async (col) => {
-        try {
-          const snap = await fb.getDocsFromServer(fb.collection(db, col));
-          return snap.empty === true && snap.metadata.fromCache === false;
-        } catch (e) { return false; }
-      };
-      if (await serverEmpty('prodaja')) {
-        const batch = fb.writeBatch(db);
-        SEED_PRODAJA.forEach(r => batch.set(fb.doc(db, 'prodaja', r.id), r));
-        SEED_HISTORY_2024_2025.forEach(r => batch.set(fb.doc(db, 'prodaja', r.id), r));
-        await batch.commit();
+      const existing=apps.getApps()[0];
+      if(existing&&(existing.options.projectId!==config.projectId||existing.options.authDomain!==config.authDomain))throw new Error('project-change');
+      const app=existing||apps.initializeApp(config);firebaseApp=app;
+      const auth=authSdk.getAuth(app),db=fs.getFirestore(app);
+      // Use memory cache. Retain old IndexedDB files without reading, clearing or migrating them across identities.
+      fb={db,...fs,auth};localStorage.setItem('opg_fb_config',JSON.stringify(config));
+      authController?.dispose();aclStop?.();
+      async function session(user){
+        const generation=++identityEpoch,changed=identityUid!==(user?.uid||null);identityUid=user?.uid||null;
+        aclStop?.();aclStop=null;lockCloud(changed);authUi.access(null);
+        if(!user)return;
+        const active=()=>generation===identityEpoch&&auth.currentUser?.uid===user.uid;
+        let accessSignature=null;
+        function applyAccess(record){
+          if(!active())return;
+          const rights=window.OpgAuth.access(record,user),sig=JSON.stringify(rights);if(sig===accessSignature)return;accessSignature=sig;
+          lockCloud();authUi.access(rights);if(!rights.enabled)return;
+          cloudSession=Object.freeze({uid:user.uid,...rights,permissions:Object.freeze([...rights.permissions])});window.OpgAuth.session=cloudSession;mode='cloud';
+          document.getElementById('opg-root').dataset.access='authorized';
+          const ticket=dataEpoch,valid=()=>active()&&ticket===dataEpoch;
+          const listen=(ref,callback)=>dataStops.push(fs.onSnapshot(ref,snap=>{if(valid()&&!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites)callback(snap);},()=>{if(valid()){lockCloud();authUi.access(null);authUi.message('Baza je odbila pristup. Provjeri dopuštenja pa osvježi provjeru ovlasti.');}}));
+          const rows=[['prodaja','finance_read',v=>prodaja=v],['troskovi','finance_read',v=>troskovi=v],['zalihe','inventory_read',v=>zalihe=v],['prskanje','treatments_read',v=>prskanje=v],['licences','licenses_read',v=>licences=v],['parcele','farm_read',v=>parcele=v],['sjetva_sadnja','farm_read',v=>sjetve=v],['plan','farm_read',v=>planTasks=v],['plan_status','farm_read',v=>planStatuses=v],['rokovi','farm_read',v=>rokovi=v]];
+          for(const [name,permission,assign] of rows)if(rights.permissions.includes(permission))listen(fs.collection(db,name),snap=>{assign(snap.docs.map(d=>({...d.data(),id:d.id})));setSyncStatus('live');scheduleRenderAll();});
+          if(rights.permissions.includes('settings_read'))listen(fs.doc(db,'settings','app'),snap=>{sharedSettings=snap.exists()?snap.data():{};});
+          if(rights.enabled)listen(fs.doc(db,'settings','security'),snap=>{securitySettings=snap.exists()?snap.data():{};});
+          if(rights.permissions.includes('protection_read')){
+            listen(fs.doc(db,'settings','rizik'),snap=>{rizikData=snap.exists()?snap.data():null;scheduleRenderAll();});
+            listen(fs.doc(db,'settings','spray_conditions'),snap=>{sprayConditions=snap.exists()?snap.data():{};scheduleRenderAll();});
+          }
+          const activities=['activities_read','finance_read','licenses_read','inventory_read','treatments_read','farm_read'];
+          if(activities.every(p=>rights.permissions.includes(p)))fs.getDocsFromServer(fs.collection(db,'aktivnosti')).then(snap=>{
+            if(!valid())return;const key='opg_last_seen:'+user.uid,lastSeen=Number(localStorage.getItem(key)||0);
+            const items=snap.docs.map(d=>d.data()).filter(a=>a.ts>lastSeen&&a.auth_uid!==user.uid).sort((a,b)=>a.ts-b.ts);
+            if(items.length)showActivityModal(items);localStorage.setItem(key,String(Date.now()));
+          }).catch(()=>{});
+          window.dispatchEvent(new CustomEvent('opg:auth-session',{detail:{...cloudSession,resetPrivate:false}}));renderAll();applyWriteControls();
+        }
+        try{
+          const ref=fs.doc(db,'access_members',user.uid),snapshot=await fs.getDocFromServer(ref);
+          if(!active())return;if(snapshot.metadata?.fromCache||snapshot.metadata?.hasPendingWrites)throw new Error('unverified-acl');applyAccess(snapshot.exists()?snapshot.data():null);
+          aclStop=fs.onSnapshot(ref,{includeMetadataChanges:true},snap=>{if(active()&&!snap.metadata?.fromCache&&!snap.metadata?.hasPendingWrites)applyAccess(snap.exists()?snap.data():null);},()=>{if(active()){lockCloud();authUi.access(null);authUi.message('Ovlasti nije moguće potvrditi. Pristup ostaje zatvoren.');}});
+        }catch(_){if(active()){lockCloud();authUi.access(null);authUi.message('Ovlasti nisu potvrđene na serveru. Lokalni podaci ostaju sačuvani, bez automatskog prijenosa.');}}
       }
-      if (await serverEmpty('licences')) {
-        await fb.setDoc(fb.doc(db, 'licences', SEED_LICENCE.id), SEED_LICENCE);
-      }
-      if (await serverEmpty('parcele')) {
-        const batch = fb.writeBatch(db);
-        SEED_PARCELE.forEach(p => batch.set(fb.doc(db, 'parcele', p.id), p));
-        await batch.commit();
-      }
-
-      fb.onSnapshot(fb.collection(db, 'prodaja'), (snap) => {
-        prodaja = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setSyncStatus('live');
-        scheduleRenderAll();
-      }, () => setSyncStatus('local'));
-
-      fb.onSnapshot(fb.collection(db, 'troskovi'), (snap) => {
-        troskovi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'zalihe'), (snap) => {
-        zalihe = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'prskanje'), (snap) => {
-        prskanje = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'licences'), (snap) => {
-        licences = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'parcele'), (snap) => {
-        parcele = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'sjetva_sadnja'), (snap) => {
-        sjetve = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'plan'), (snap) => {
-        planTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'plan_status'), (snap) => {
-        planStatuses = snap.docs.map(d => ({ ...d.data(), id: d.id }));
-        scheduleRenderAll();
-      });
-
-      fb.onSnapshot(fb.collection(db, 'rokovi'), (snap) => {
-        rokovi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        scheduleRenderAll();
-      });
-
-      (async () => {
-        try {
-          // Namjerno getDocs (jednokratno, sa servera) umjesto onSnapshot —
-          // onSnapshot bi na uređaju s puno lokalnog cachea (IndexedDB) prvi put
-          // gotovo uvijek okinuo ODMAH iz cachea, prije nego stignu najnoviji
-          // unosi drugih ukućana, pa bi se ta obavijest tiho izgubila zauvijek.
-          const snap = await fb.getDocs(fb.collection(db, 'aktivnosti'));
-          const lastSeen = parseInt(localStorage.getItem('opg_last_seen')||'0', 10);
-          const myName = (currentUser||'').trim().toLowerCase();
-          const noviji = snap.docs
-            .map(d => d.data())
-            .filter(a => a.ts > lastSeen && (a.unio||'').trim().toLowerCase() !== myName)
-            .sort((a,b)=>a.ts-b.ts);
-          if (noviji.length) showActivityModal(noviji);
-          localStorage.setItem('opg_last_seen', String(Date.now()));
-        } catch(e) {}
-      })();
-
-      fb.onSnapshot(fb.doc(db, 'settings', 'app'), (snap) => {
-        sharedSettings = snap.exists() ? snap.data() : {};
-        if (sharedSettings.ai_url) localStorage.setItem('opg_ai_url', sharedSettings.ai_url);
-      });
-
-      fb.onSnapshot(fb.doc(db, 'settings', 'rizik'), (snap) => {
-        rizikData = snap.exists() ? snap.data() : null;
-        renderRizik(); renderPocetna(); renderPlan();
-      });
-
-      fb.onSnapshot(fb.doc(db, 'settings', 'spray_conditions'), (snap) => {
-        sprayConditions = snap.exists() ? snap.data() : {};
-        renderVrijeme();
-        renderPocetna();
-      });
-
-      mode = 'cloud';
-      localStorage.setItem('opg_fb_config', JSON.stringify(config));
-      setSyncStatus('connecting');
-      return true;
-    } catch(e) {
-      console.error(e);
-      return false;
-    }
+      let redirectStorage=null;try{redirectStorage=window.sessionStorage;}catch(_){}
+      authController=window.OpgAuth.createController({sdk:authSdk,auth,origin:location.origin,authDomain:config.authDomain,storage:redirectStorage,onSession:session,onUser:authUi.user,onMessage:authUi.message,onBusy:authUi.busy});
+      window.OpgAuth.controller=authController;authUi.bind(authController);return await authController.start()!==false;
+    }catch(_){lockCloud();authUi.message('Firebase nije povezan. Provjeri konfiguraciju; promjena projekta ne prenosi podatke ili ovlasti.');return false;}
   }
 
   function showActivityModal(items){
     const listEl = document.getElementById('activity-modal-list');
-    listEl.innerHTML = items.map(a=>{
-      const dt = new Date(a.ts);
-      return `<div style="padding:10px 0; border-bottom:1px solid var(--sage-line);">
-        <div style="font-size:14px; color:var(--ink); line-height:1.4;">${a.tekst}</div>
-        <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">${a.unio||'Netko'} · ${dt.toLocaleString('hr-HR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
-      </div>`;
-    }).join('');
+    window.OpgSecurity.renderActivityItems(listEl,items);
     document.getElementById('activity-modal').style.display = 'flex';
   }
-  async function logActivity(text){
+  async function logActivity(text, activityEpoch){
+    if(activityEpoch!==privateEpoch)return;
     if (mode !== 'cloud') return;
-    try { await fb.setDoc(fb.doc(fb.db, 'aktivnosti', uid('act')), { tekst: text, unio: currentUser || 'Netko', ts: Date.now() }); }
+    try { await fb.setDoc(fb.doc(fb.db, 'aktivnosti', uid('act')), { tekst: text, unio: currentUser || 'Netko', ts: Date.now(), auth_uid: fb.auth.currentUser.uid }); }
     catch(e) {}
   }
   // Provjera dupliciranih unosa — ista kombinacija podataka koju bi lako bilo
@@ -1569,14 +1497,17 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     );
   }
   async function addProdaja(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('finance_write'))return;
     prodaja.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prodaja', entry.id), entry); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
     else { saveLocalProdaja(); }
-    if (entry.kupac === 'PAUL') logActivity(`Nova isplata (Paul): ${entry.proizvod||''} ${entry.kg||0}kg`);
-    else logActivity(`Nova prodaja: ${KUPAC_LABEL[entry.kupac]||entry.kupac} — ${entry.proizvod||''} ${entry.kg||0}kg`);
+    if (entry.kupac === 'PAUL') logActivity(`Nova isplata (Paul): ${entry.proizvod||''} ${entry.kg||0}kg`, activityEpoch);
+    else logActivity(`Nova prodaja: ${KUPAC_LABEL[entry.kupac]||entry.kupac} — ${entry.proizvod||''} ${entry.kg||0}kg`, activityEpoch);
   }
   async function toggleProdajaPlaceno(id){
+    if(!allowWrite('finance_write'))return;
     const row = prodaja.find(r=>r.id===id);
     if (!row) return;
     row.placeno = !row.placeno;
@@ -1585,19 +1516,23 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalProdaja(); }
   }
   async function deleteProdaja(id){
+    if(!allowWrite('finance_write'))return;
     prodaja = prodaja.filter(r=>r.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'prodaja', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalProdaja(); }
   }
   async function addTrosak(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('finance_write'))return;
     troskovi.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'troskovi', entry.id), entry); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
     else { saveLocalTroskovi(); }
-    logActivity(`Novi trošak: ${entry.naziv||''} (${fmt((entry.kolicina||0)*(entry.cijena||0))})`);
+    logActivity(`Novi trošak: ${entry.naziv||''} (${fmt((entry.kolicina||0)*(entry.cijena||0))})`, activityEpoch);
   }
   async function deleteTrosak(id){
+    if(!allowWrite('finance_write'))return;
     troskovi = troskovi.filter(r=>r.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'troskovi', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
@@ -1605,16 +1540,20 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   async function saveZalihaDoc(item){
+    if(!allowWrite('inventory_write'))return;
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'zalihe', item.id), item); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalZalihe(); }
   }
   async function addZaliha(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('inventory_write'))return;
     zalihe.push(entry);
     renderAll();
     await saveZalihaDoc(entry);
-    logActivity(`Nova zaliha: ${entry.naziv||''}`);
+    logActivity(`Nova zaliha: ${entry.naziv||''}`, activityEpoch);
   }
   async function updateZalihaQty(id, newQty){
+    if(!allowWrite('inventory_write'))return;
     const item = zalihe.find(z=>z.id===id);
     if (!item) return;
     item.trenutna_kolicina = Math.max(0, newQty);
@@ -1622,48 +1561,59 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     await saveZalihaDoc(item);
   }
   async function deleteZaliha(id){
+    if(!allowWrite('inventory_write'))return;
     zalihe = zalihe.filter(z=>z.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'zalihe', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalZalihe(); }
   }
   async function addLicenca(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('licenses_write'))return;
     licences.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'licences', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalLicences(); }
-    logActivity(`Nova vjerodajnica: ${entry.ime||''}`);
+    logActivity(`Nova vjerodajnica: ${entry.ime||''}`, activityEpoch);
   }
   async function deleteLicenca(id){
+    if(!allowWrite('licenses_write'))return;
     licences = licences.filter(l=>l.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'licences', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalLicences(); }
   }
   async function addParcela(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('farm_write'))return;
     parcele.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'parcele', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalParcele(); }
-    logActivity(`Nova parcela: ${entry.naziv||''}`);
+    logActivity(`Nova parcela: ${entry.naziv||''}`, activityEpoch);
   }
   async function saveParcela(id, updates){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('farm_write'))return;
     const p = parcele.find(x=>x.id===id);
     if (!p) return;
     Object.assign(p, updates);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'parcele', id), p); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalParcele(); }
-    logActivity(`Ažurirana parcela: ${p.naziv||''}`);
+    logActivity(`Ažurirana parcela: ${p.naziv||''}`, activityEpoch);
   }
   async function addSjetva(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('farm_write'))return;
     sjetve.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'sjetva_sadnja', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalSjetve(); }
-    logActivity(entry.tip==='sjetva' ? `Nova sjetva: ${entry.vrsta||''}` : `Nova sadnja: ${entry.kultura||''}`);
+    logActivity(entry.tip==='sjetva' ? `Nova sjetva: ${entry.vrsta||''}` : `Nova sadnja: ${entry.kultura||''}`, activityEpoch);
   }
   async function updateSjetva(id, updates){
+    if(!allowWrite('farm_write'))return;
     const s = sjetve.find(x=>x.id===id);
     if (!s) return;
     Object.assign(s, updates);
@@ -1672,18 +1622,21 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalSjetve(); }
   }
   async function deleteSjetva(id){
+    if(!allowWrite('farm_write'))return;
     sjetve = sjetve.filter(s=>s.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'sjetva_sadnja', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
     else { saveLocalSjetve(); }
   }
   async function addRok(entry){
+    if(!allowWrite('farm_write'))return;
     rokovi.push(entry);
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'rokovi', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalRokovi(); }
   }
   async function toggleRokZavrsen(id){
+    if(!allowWrite('farm_write'))return;
     const r = rokovi.find(x=>x.id===id);
     if (!r) return;
     r.zavrseno = !r.zavrseno;
@@ -1692,6 +1645,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalRokovi(); }
   }
   async function deleteRok(id){
+    if(!allowWrite('farm_write'))return;
     rokovi = rokovi.filter(r=>r.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'rokovi', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
@@ -1719,6 +1673,8 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     return Math.round((d-now)/86400000);
   }
   async function addPrskanje(entry){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('treatments_write')||!allowWrite('inventory_write'))return;
     const match = zalihe.find(z => (z.naziv||'').trim().toLowerCase() === (entry.sredstvo||'').trim().toLowerCase());
     if (match) {
       match.trenutna_kolicina = Math.max(0, (match.trenutna_kolicina||0) - (entry.kolicina||0));
@@ -1728,9 +1684,10 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     renderAll();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'prskanje', entry.id), entry); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalPrskanje(); }
-    logActivity(`Novo tretiranje: ${entry.sredstvo||''} na ${entry.kultura||''}`);
+    logActivity(`Novo tretiranje: ${entry.sredstvo||''} na ${entry.kultura||''}`, activityEpoch);
   }
   async function deletePrskanje(id){
+    if(!allowWrite('treatments_write'))return;
     prskanje = prskanje.filter(r=>r.id!==id);
     renderAll();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'prskanje', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
@@ -1749,7 +1706,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
 
   function renderProizvodList(){
     const set = new Set(prodaja.map(r=>r.proizvod).filter(Boolean));
-    document.getElementById('proizvod-list').innerHTML = [...set].map(p=>`<option value="${p}">`).join('');
+    document.getElementById('proizvod-list').innerHTML = [...set].map(p=>`<option value="${escapeHtml(p)}">`).join('');
   }
 
   const _selectSig = {};
@@ -1759,7 +1716,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     if (_selectSig[id] !== sig) {
       _selectSig[id] = sig;
       const allLabel = select.__allLabel || 'Sve';
-      select.innerHTML = options.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+      select.innerHTML = options.map(([v,l])=>`<option value="${escapeHtml(v)}">${escapeHtml(l)}</option>`).join('');
     }
     if (select.value !== currentValue) select.value = currentValue;
   }
@@ -1827,7 +1784,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
 
     const kupacBars = allKupci.map(k=>`
       <div class="pr-bar-row">
-        <div class="pr-bar-name">${KUPAC_LABEL[k]||k}</div>
+        <div class="pr-bar-name">${escapeHtml(KUPAC_LABEL[k]||k)}</div>
         <div class="pr-bar-track"><div class="pr-bar-a" style="width:${Math.round((A.byKupac[k]||0)/maxKupacVal*100)}%"></div></div>
         <div class="pr-bar-val">${fmt(A.byKupac[k]||0)}</div>
       </div>
@@ -2043,14 +2000,14 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
 
   function entryRow(r, kind){
     const neto = (r.cijena_kg||0)*(r.kg||0);
-    const del = kind==='prodaja' ? `data-del-prodaja="${r.id}"` : `data-del-paul="${r.id}"`;
-    const toggle = kind==='prodaja' ? `data-toggle-id="${r.id}"` : `data-toggle-paul="${r.id}"`;
-    const title = kind==='prodaja' ? `${KUPAC_LABEL[r.kupac]||r.kupac} · ${r.proizvod||''}` : (r.proizvod||'');
-    const unioTxt = r.unio ? ` · unio: ${r.unio}` : '';
+    const del = kind==='prodaja' ? `data-del-prodaja="${escapeHtml(r.id)}"` : `data-del-paul="${escapeHtml(r.id)}"`;
+    const toggle = kind==='prodaja' ? `data-toggle-id="${escapeHtml(r.id)}"` : `data-toggle-paul="${escapeHtml(r.id)}"`;
+    const title = kind==='prodaja' ? `${escapeHtml(KUPAC_LABEL[r.kupac]||r.kupac)} · ${escapeHtml(r.proizvod||'')}` : escapeHtml(r.proizvod||'');
+    const unioTxt = r.unio ? ` · unio: ${escapeHtml(r.unio)}` : '';
     return `<div class="opg-entry">
       <div class="opg-entry-main">
         <div class="opg-entry-top">${title}</div>
-        <div class="opg-entry-sub">${dfmt(r.datum)} · ${r.kg||0} kg × ${(r.cijena_kg||0).toLocaleString('hr-HR',{minimumFractionDigits:2})} €${unioTxt}</div>
+        <div class="opg-entry-sub">${dfmt(r.datum)} · ${escapeHtml(r.kg||0)} kg × ${(r.cijena_kg||0).toLocaleString('hr-HR',{minimumFractionDigits:2})} €${unioTxt}</div>
       </div>
       <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
         <div class="opg-entry-amt">${fmt(neto)}</div>
@@ -2088,20 +2045,20 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     if (!sorted.length){ card.innerHTML = '<div class="opg-empty">Nema troškova za odabrani filter.</div>'; return; }
     card.innerHTML = sorted.slice(0,60).map(r=>{
       const trosak = (r.kolicina||0)*(r.cijena||0);
-      const unioTxt = r.unio ? ` · unio: ${r.unio}` : '';
+      const unioTxt = r.unio ? ` · unio: ${escapeHtml(r.unio)}` : '';
       const racunThumb = r.racun
         ? (isPdfDataUrl(r.racun)
-            ? `<div data-view-racun="${r.id}" style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; margin-left:8px; flex-shrink:0;">📄</div>`
-            : `<img src="${r.racun}" data-view-racun="${r.id}" style="width:40px; height:40px; object-fit:cover; border-radius:8px; cursor:pointer; margin-left:8px; flex-shrink:0;">`)
+            ? `<div data-view-racun="${escapeHtml(r.id)}" style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; margin-left:8px; flex-shrink:0;">📄</div>`
+            : `<img src="${escapeHtml(r.racun)}" data-view-racun="${escapeHtml(r.id)}" style="width:40px; height:40px; object-fit:cover; border-radius:8px; cursor:pointer; margin-left:8px; flex-shrink:0;">`)
         : '';
       return `<div class="opg-entry">
         <div class="opg-entry-main">
-          <div class="opg-entry-top">${r.naziv||KAT_LABEL[r.kategorija]}</div>
-          <div class="opg-entry-sub">${KAT_LABEL[r.kategorija]||r.kategorija}${r.kultura?' · '+r.kultura:''}${r.trgovac?' · '+r.trgovac:''} · ${dfmt(r.datum)}${unioTxt}</div>
+          <div class="opg-entry-top">${escapeHtml(r.naziv||KAT_LABEL[r.kategorija])}</div>
+          <div class="opg-entry-sub">${escapeHtml(KAT_LABEL[r.kategorija]||r.kategorija)}${r.kultura?' · '+escapeHtml(r.kultura):''}${r.trgovac?' · '+escapeHtml(r.trgovac):''} · ${dfmt(r.datum)}${unioTxt}</div>
         </div>
         <div class="opg-entry-amt">${fmt(trosak)}</div>
         ${racunThumb}
-        ${editBtn('trosak', r.id)}<button class="opg-del" data-del-trosak="${r.id}">✕</button>
+        ${editBtn('trosak', r.id)}<button class="opg-del" data-del-trosak="${escapeHtml(r.id)}">✕</button>
       </div>`;
     }).join('');
   }
@@ -2162,12 +2119,12 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       const proizvodi = Object.entries(byKupacProizvod[k]||{}).sort((a,b)=>b[1]-a[1]);
       const subRows = proizvodi.map(([p,val])=>`
         <div class="opg-sum-subrow">
-          <div class="opg-sum-subname">${p}</div>
+          <div class="opg-sum-subname">${escapeHtml(p)}</div>
           <div class="opg-sum-subval">${fmt(val)}</div>
         </div>`).join('');
       return `
       <div class="opg-sum-row">
-        <div class="opg-sum-name" style="min-width:88px;">${KUPAC_LABEL[k]||k}</div>
+        <div class="opg-sum-name" style="min-width:88px;">${escapeHtml(KUPAC_LABEL[k]||k)}</div>
         <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKupac[k]/totalPrihod*100)}%"></div></div>
         <div class="opg-sum-val">${fmt(byKupac[k])}</div>
       </div>
@@ -2189,12 +2146,12 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       const proizvodi = Object.entries(byKupacProizvodKg[k]||{}).sort((a,b)=>b[1]-a[1]);
       const subRows = proizvodi.map(([p,val])=>`
         <div class="opg-sum-subrow">
-          <div class="opg-sum-subname">${p}</div>
+          <div class="opg-sum-subname">${escapeHtml(p)}</div>
           <div class="opg-sum-subval">${val.toLocaleString('hr-HR')} kg</div>
         </div>`).join('');
       return `
       <div class="opg-sum-row">
-        <div class="opg-sum-name" style="min-width:88px;">${KUPAC_LABEL[k]||k}</div>
+        <div class="opg-sum-name" style="min-width:88px;">${escapeHtml(KUPAC_LABEL[k]||k)}</div>
         <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKupacKg[k]/totalKgKupac*100)}%; background:var(--squash);"></div></div>
         <div class="opg-sum-val">${byKupacKg[k].toLocaleString('hr-HR')} kg</div>
       </div>
@@ -2221,7 +2178,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const ukupnoDug = Object.values(dugovi).reduce((a,b)=>a+b,0);
     setTot('tot-dug', ukupnoDug ? fmt(ukupnoDug) : '');
     dugCard.innerHTML = dugKeys.length ? dugKeys.map(k=>`
-      <div class="opg-sum-row"><div class="opg-sum-name">${KUPAC_LABEL[k]||k}</div><div class="opg-sum-val" style="color:var(--warn-ink);">${fmt(dugovi[k])}</div></div>`).join('')
+      <div class="opg-sum-row"><div class="opg-sum-name">${escapeHtml(KUPAC_LABEL[k]||k)}</div><div class="opg-sum-val" style="color:var(--warn-ink);">${fmt(dugovi[k])}</div></div>`).join('')
       + ukRow(fmt(ukupnoDug))
       : '<div class="opg-empty">Sve je plaćeno 🎉</div>';
   }
@@ -2320,14 +2277,14 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       const historyTxt = kultureSezone.filter(y=>y!==currentSeason).map(y=>`${y}: ${kulturaLabel(p.kulture[y])||'–'}`).join(' · ');
       const d = (typeof trenutnaObj === 'object' && trenutnaObj) ? trenutnaObj : {};
       const grupe = (d.duljine && d.duljine.length) ? d.duljine : [{}];
-      return `<div class="opg-parcela-card" data-parcela="${p.id}">
-        <div class="opg-parcela-head" data-toggle-parcela="${p.id}">
-          <div class="opg-parcela-name">${p.naziv}</div>
+      return `<div class="opg-parcela-card" data-parcela="${escapeHtml(p.id)}">
+        <div class="opg-parcela-head" data-toggle-parcela="${escapeHtml(p.id)}">
+          <div class="opg-parcela-name">${escapeHtml(p.naziv)}</div>
           <div class="opg-parcela-area">${trenutnaOpis || (p.povrsina_ha ? fmtM2(p.povrsina_ha) : '<span class="opg-parcela-area-empty">+ dodaj podatke</span>')}</div>
         </div>
         <div class="opg-parcela-kultura">${currentSeason}: <b>${trenutnaLabel || 'nije uneseno'}</b></div>
         ${historyTxt ? `<div class="opg-parcela-history">Prijašnje sezone: ${historyTxt}</div>` : ''}
-        <div class="opg-parcela-edit" id="parcela-edit-${p.id}">
+        <div class="opg-parcela-edit" id="parcela-edit-${escapeHtml(p.id)}">
           <div class="opg-field"><label>Naziv parcele</label><input type="text" class="parcela-edit-naziv" value="${planEsc(p.naziv||'')}"></div>
           <div class="opg-field"><label>Kultura za sezonu ${currentSeason}</label>${kulturaSelectHtml(trenutnaLabel)}</div>
 
@@ -2347,13 +2304,13 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
           <div class="opg-field"><label>Razmak sadnje biljka–biljka (cm)</label><input type="number" class="pcalc-razmak-sadnje" min="0" step="1" value="${d.razmak_sadnje||''}" placeholder="npr. 40"></div>
           <p class="opg-hint" style="margin-top:0;">Ukupno sadnica: <b class="pcalc-out-sadnica">0</b></p>
 
-          <button class="opg-submit" data-save-parcela="${p.id}">Spremi</button>
-          <button class="opg-isk-del" data-del-parcela="${p.id}" style="margin-top:6px;">Obriši parcelu ✕</button>
+          <button class="opg-submit" data-save-parcela="${escapeHtml(p.id)}">Spremi</button>
+          <button class="opg-isk-del" data-del-parcela="${escapeHtml(p.id)}" style="margin-top:6px;">Obriši parcelu ✕</button>
         </div>
       </div>`;
     }).join('');
     parcele.forEach(p=>{
-      const card = el.querySelector(`[data-parcela="${p.id}"]`);
+      const card = el.querySelector(`[data-parcela="${escapeHtml(p.id)}"]`);
       if (card) computeParcelaCalc(card);
     });
   }
@@ -2390,15 +2347,15 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   function populateParcelaSelects(){
-    const opts = '<option value="">— nije vezano uz parcelu —</option>' + parcele.map(p=>`<option value="${p.id}">${p.naziv}</option>`).join('');
+    const opts = '<option value="">— nije vezano uz parcelu —</option>' + parcele.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.naziv)}</option>`).join('');
     ['sj-parcela','sd-parcela'].forEach(id=>{
       const sel = document.getElementById(id);
       if (sel && sel.dataset.built !== opts) { const cur=sel.value; sel.innerHTML = opts; sel.value = cur; sel.dataset.built = opts; }
     });
-    const calcOpts = '<option value="">— ne računaj po parceli —</option>' + parcele.map(p=>`<option value="${p.id}">${p.naziv}</option>`).join('');
+    const calcOpts = '<option value="">— ne računaj po parceli —</option>' + parcele.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.naziv)}</option>`).join('');
     const calcSel = document.getElementById('calc-parcela');
     if (calcSel && calcSel.dataset.built !== calcOpts) { const cur=calcSel.value; calcSel.innerHTML = calcOpts; calcSel.value = cur; calcSel.dataset.built = calcOpts; }
-    const sjOpts = '<option value="">— nije iz sjetve u aplikaciji —</option>' + sjetve.filter(s=>s.tip==='sjetva').map(s=>`<option value="${s.id}">${dfmt(s.datum)} — ${s.vrsta||''}${s.sorta?' ('+s.sorta+')':''}</option>`).join('');
+    const sjOpts = '<option value="">— nije iz sjetve u aplikaciji —</option>' + sjetve.filter(s=>s.tip==='sjetva').map(s=>`<option value="${escapeHtml(s.id)}">${dfmt(s.datum)} — ${escapeHtml(s.vrsta||'')}${s.sorta?' ('+s.sorta+')':''}</option>`).join('');
     const sdSel = document.getElementById('sd-sjetva-ref');
     if (sdSel && sdSel.dataset.built !== sjOpts) { const cur=sdSel.value; sdSel.innerHTML = sjOpts; sdSel.value = cur; sdSel.dataset.built = sjOpts; }
   }
@@ -2417,31 +2374,31 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
           : '';
         return `<div class="opg-entry">
           <div class="opg-entry-main">
-            <div class="opg-entry-top">🌱 ${s.vrsta||''}${s.sorta?' — '+s.sorta:''}</div>
-            <div class="opg-entry-sub">${dfmt(s.datum)}${parcelaTxt?' · '+parcelaTxt:''} · ${s.broj_kontejnera||0} kontejnera × ${s.mjesta_po_kontejneru||0} = ${(s.ukupno_mjesta||0).toLocaleString('hr-HR')} mjesta${s.unio?' · unio: '+s.unio:''}</div>
-            ${nicanjeTxt ? `<div class="opg-entry-sub">${nicanjeTxt}</div>` : `<button class="opg-submit ghost" data-nicanje-toggle="${s.id}" style="margin-top:6px; padding:7px 10px; font-size:12.5px;">+ Zabilježi nicanje</button>`}
-            ${s.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${s.komentar}</div>` : ''}
-            <div class="opg-nicanje-edit" id="nicanje-edit-${s.id}" style="display:none; margin-top:8px; padding-top:8px; border-top:1px solid var(--sage-line);">
+            <div class="opg-entry-top">🌱 ${escapeHtml(s.vrsta||'')}${s.sorta?' — '+s.sorta:''}</div>
+            <div class="opg-entry-sub">${dfmt(s.datum)}${parcelaTxt?' · '+parcelaTxt:''} · ${escapeHtml(s.broj_kontejnera||0)} kontejnera × ${escapeHtml(s.mjesta_po_kontejneru||0)} = ${(s.ukupno_mjesta||0).toLocaleString('hr-HR')} mjesta${s.unio?' · unio: '+s.unio:''}</div>
+            ${nicanjeTxt ? `<div class="opg-entry-sub">${nicanjeTxt}</div>` : `<button class="opg-submit ghost" data-nicanje-toggle="${escapeHtml(s.id)}" style="margin-top:6px; padding:7px 10px; font-size:12.5px;">+ Zabilježi nicanje</button>`}
+            ${s.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${escapeHtml(s.komentar)}</div>` : ''}
+            <div class="opg-nicanje-edit" id="nicanje-edit-${escapeHtml(s.id)}" style="display:none; margin-top:8px; padding-top:8px; border-top:1px solid var(--sage-line);">
               <div class="opg-row2">
                 <div class="opg-field"><label>Datum nicanja</label><input type="date" class="nicanje-datum"></div>
-                <div class="opg-field"><label>Broj proklijalih</label><input type="number" class="nicanje-broj" min="0" step="1" placeholder="npr. ${s.ukupno_mjesta||''}"></div>
+                <div class="opg-field"><label>Broj proklijalih</label><input type="number" class="nicanje-broj" min="0" step="1" placeholder="npr. ${escapeHtml(s.ukupno_mjesta||'')}"></div>
               </div>
-              <button class="opg-submit" data-nicanje-save="${s.id}" style="padding:9px;">Spremi nicanje</button>
+              <button class="opg-submit" data-nicanje-save="${escapeHtml(s.id)}" style="padding:9px;">Spremi nicanje</button>
             </div>
           </div>
-          ${editBtn('sjetva', s.id)}<button class="opg-del" data-del-sjetva="${s.id}">✕</button>
+          ${editBtn('sjetva', s.id)}<button class="opg-del" data-del-sjetva="${escapeHtml(s.id)}">✕</button>
         </div>`;
       }
       const parcelaTxt = parcelaNaziv(s.parcela_id);
       const sjetvaRef = sjetve.find(x=>x.id===s.sjetva_ref);
       return `<div class="opg-entry">
         <div class="opg-entry-main">
-          <div class="opg-entry-top">🌾 ${s.kultura||''}</div>
+          <div class="opg-entry-top">🌾 ${escapeHtml(s.kultura||'')}</div>
           <div class="opg-entry-sub">${dfmt(s.datum)}${parcelaTxt?' · '+parcelaTxt:''}${s.broj_sadnica?' · '+s.broj_sadnica.toLocaleString('hr-HR')+' sadnica':''}${s.unio?' · unio: '+s.unio:''}</div>
           ${sjetvaRef ? `<div class="opg-entry-sub">Iz sjetve: ${dfmt(sjetvaRef.datum)} — ${sjetvaRef.vrsta||''}</div>` : ''}
-          ${s.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${s.komentar}</div>` : ''}
+          ${s.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${escapeHtml(s.komentar)}</div>` : ''}
         </div>
-        ${editBtn('sadnja', s.id)}<button class="opg-del" data-del-sjetva="${s.id}">✕</button>
+        ${editBtn('sadnja', s.id)}<button class="opg-del" data-del-sjetva="${escapeHtml(s.id)}">✕</button>
       </div>`;
     }).join('');
   }
@@ -2454,7 +2411,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       const dana = daysUntil(r.datum);
       const hitno = dana <= 14;
       return `<div class="opg-sum-row">
-        <div class="opg-sum-name" style="min-width:0; flex:1;">${r.naziv}<div style="font-size:11px; color:var(--sage); font-weight:400;">${r.izvor}</div></div>
+        <div class="opg-sum-name" style="min-width:0; flex:1;">${escapeHtml(r.naziv)}<div style="font-size:11px; color:var(--sage); font-weight:400;">${escapeHtml(r.izvor)}</div></div>
         <div class="opg-sum-val" style="text-align:right;">
           <div>${r.datum.toLocaleDateString('hr-HR')}</div>
           <div style="font-size:11.5px; font-weight:400; color:${hitno?'var(--warn-ink)':'var(--ink-soft)'};">za ${dana} ${dana===1?'dan':'dana'}</div>
@@ -2483,13 +2440,13 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       const dana = daysUntil(new Date(r.datum));
       return `<div class="opg-entry">
         <div class="opg-entry-main">
-          <div class="opg-entry-top" style="${r.zavrseno?'text-decoration:line-through; color:var(--sage);':''}">${r.naziv}</div>
+          <div class="opg-entry-top" style="${r.zavrseno?'text-decoration:line-through; color:var(--sage);':''}">${escapeHtml(r.naziv)}</div>
           <div class="opg-entry-sub">${dfmt(r.datum)}${!r.zavrseno ? ' · za '+dana+' dana' : ' · riješeno'}</div>
-          ${r.komentar ? `<div class="opg-entry-sub" style="font-style:italic;">💬 ${r.komentar}</div>` : ''}
+          ${r.komentar ? `<div class="opg-entry-sub" style="font-style:italic;">💬 ${escapeHtml(r.komentar)}</div>` : ''}
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-          <button class="opg-submit ghost" data-toggle-rok="${r.id}" style="padding:6px 10px; font-size:12px;">${r.zavrseno?'Vrati':'Riješeno'}</button>
-          <span style="display:flex; align-items:center;">${editBtn('rok', r.id)}<button class="opg-del" data-del-rok="${r.id}">✕</button></span>
+          <button class="opg-submit ghost" data-toggle-rok="${escapeHtml(r.id)}" style="padding:6px 10px; font-size:12px;">${r.zavrseno?'Vrati':'Riješeno'}</button>
+          <span style="display:flex; align-items:center;">${editBtn('rok', r.id)}<button class="opg-del" data-del-rok="${escapeHtml(r.id)}">✕</button></span>
         </div>
       </div>`;
     }).join('');
@@ -2502,12 +2459,12 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const today = todayStr();
     el.innerHTML = licences.map(l=>{
       const expired = l.vrijedi_do && l.vrijedi_do < today;
-      return `<div class="opg-isk-card" data-open-isk="${l.id}">
+      return `<div class="opg-isk-card" data-open-isk="${escapeHtml(l.id)}">
         <div>
-          <div class="opg-isk-name">${l.ime||''}</div>
-          <div class="opg-isk-meta ${expired?'opg-isk-expired':''}">${expired?'Isteklo':'Vrijedi do'} ${l.vrijedi_do ? dfmt(l.vrijedi_do) : '–'} · OIB ${l.oib||''}</div>
+          <div class="opg-isk-name">${escapeHtml(l.ime||'')}</div>
+          <div class="opg-isk-meta ${expired?'opg-isk-expired':''}">${expired?'Isteklo':'Vrijedi do'} ${l.vrijedi_do ? dfmt(l.vrijedi_do) : '–'} · OIB ${escapeHtml(l.oib||'')}</div>
         </div>
-        <span style="display:flex; align-items:center; gap:4px;">${editBtn('isk', l.id)}<button class="opg-isk-del" data-del-isk="${l.id}">✕</button></span>
+        <span style="display:flex; align-items:center; gap:4px;">${editBtn('isk', l.id)}<button class="opg-isk-del" data-del-isk="${escapeHtml(l.id)}">✕</button></span>
       </div>`;
     }).join('');
   }
@@ -2533,6 +2490,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       host: document.getElementById('fis-host'),
       getStock: () => zalihe,
       saveLink: async (id, fields) => {
+        if(!canWrite('inventory_write'))throw new Error('permission-denied');
         const item = zalihe.find(z => z.id === id);
         if (!item) throw new Error('Zaliha više ne postoji');
         if (mode === 'cloud') await fb.updateDoc(fb.doc(fb.db, 'zalihe', id), fields);
@@ -2552,26 +2510,26 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       const low = pct <= 20;
       const photo = z.slika
         ? (isPdfDataUrl(z.slika)
-            ? `<div class="opg-stock-photo" data-view-pdf-zaliha="${z.id}" style="display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer;">📄</div>`
-            : `<img class="opg-stock-photo" src="${z.slika}" alt="">`)
+            ? `<div class="opg-stock-photo" data-view-pdf-zaliha="${escapeHtml(z.id)}" style="display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer;">📄</div>`
+            : `<img class="opg-stock-photo" src="${escapeHtml(z.slika)}" alt="">`)
         : `<div class="opg-stock-photo empty">🧴</div>`;
       return `<div class="opg-stock-item">
         ${photo}
         <div class="opg-stock-main">
-          <div class="opg-stock-name">${z.naziv}</div>
-          <div class="opg-stock-qty">Preostalo: ${(z.trenutna_kolicina||0).toLocaleString('hr-HR')} / ${(z.pocetna_kolicina||0).toLocaleString('hr-HR')} ${z.jedinica||''}</div>
+          <div class="opg-stock-name">${escapeHtml(z.naziv)}</div>
+          <div class="opg-stock-qty">Preostalo: ${(z.trenutna_kolicina||0).toLocaleString('hr-HR')} / ${(z.pocetna_kolicina||0).toLocaleString('hr-HR')} ${escapeHtml(z.jedinica||'')}</div>
           <div class="opg-stock-bar-wrap"><div class="opg-stock-bar ${low?'low':''}" style="width:${pct}%"></div></div>
         </div>
         <div class="opg-stock-actions">
-          <button class="opg-icon-btn" data-edit-zaliha="${z.id}">✎</button>
-          <button class="opg-icon-btn" data-del-zaliha="${z.id}">✕</button>
+          <button class="opg-icon-btn" data-edit-zaliha="${escapeHtml(z.id)}">✎</button>
+          <button class="opg-icon-btn" data-del-zaliha="${escapeHtml(z.id)}">✕</button>
         </div>
       </div>`;
     }).join('');
   }
 
   function populateZaliheDatalist(){
-    document.getElementById('zalihe-list-dl').innerHTML = zalihe.map(z=>`<option value="${z.naziv}">`).join('');
+    document.getElementById('zalihe-list-dl').innerHTML = zalihe.map(z=>`<option value="${escapeHtml(z.naziv)}">`).join('');
   }
 
   function computeBerbaDate(datum, karencaDana){
@@ -2605,30 +2563,31 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       }
       return `<div class="opg-entry">
         <div class="opg-entry-main">
-          <div class="opg-entry-top">${r.sredstvo||''} · ${r.kultura||''}</div>
-          <div class="opg-entry-sub">${dfmt(r.datum)} · ${r.kolicina||0}${r.unio?' · unio: '+r.unio:''}</div>
-          ${r.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${r.komentar}</div>` : ''}
+          <div class="opg-entry-top">${escapeHtml(r.sredstvo||'')} · ${escapeHtml(r.kultura||'')}</div>
+          <div class="opg-entry-sub">${dfmt(r.datum)} · ${escapeHtml(r.kolicina||0)}${r.unio?' · unio: '+escapeHtml(r.unio):''}</div>
+          ${r.komentar ? `<div class="opg-entry-sub" style="font-style:italic; margin-top:3px;">💬 ${escapeHtml(r.komentar)}</div>` : ''}
         </div>
         <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           ${badge}
         </div>
-        ${editBtn('prskanje', r.id)}<button class="opg-del" data-del-prskanje="${r.id}">✕</button>
+        ${editBtn('prskanje', r.id)}<button class="opg-del" data-del-prskanje="${escapeHtml(r.id)}">✕</button>
       </div>`;
     }).join('');
   }
 
   let lastCalcResult = { value: 0, label: 'ml' };
+  const privateLocalKey=key=>cloudConfigured?key+':'+(cloudSession?.uid||'locked'):key;
   function loadSprayDose(name){
     if (!name) return null;
-    try { const map = JSON.parse(localStorage.getItem('opg_spray_doses')||'{}'); return map[name.trim().toLowerCase()] || null; }
+    try { const map = JSON.parse(localStorage.getItem(privateLocalKey('opg_spray_doses'))||'{}'); return map[name.trim().toLowerCase()] || null; }
     catch(e){ return null; }
   }
   function saveSprayDose(name, data){
     if (!name) return;
     try {
-      const map = JSON.parse(localStorage.getItem('opg_spray_doses')||'{}');
+      const map = JSON.parse(localStorage.getItem(privateLocalKey('opg_spray_doses'))||'{}');
       map[name.trim().toLowerCase()] = data;
-      localStorage.setItem('opg_spray_doses', JSON.stringify(map));
+      localStorage.setItem(privateLocalKey('opg_spray_doses'), JSON.stringify(map));
     } catch(e){}
   }
   function renderCalculator(){
@@ -2768,12 +2727,12 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       if (!kupacKeys.length) { top.style.display = 'none'; return; }
       const k = kupacKeys[0];
       top.style.display = '';
-      top.innerHTML = `<span class="pt-lbl">Najbolji kupac ove sezone</span><span class="pt-val">${KUPAC_LABEL[k]||k} · ${fmt(byKupac[k])}</span><span class="pt-sub">Više u tabu Pregled →</span>`;
+      top.innerHTML = `<span class="pt-lbl">Najbolji kupac ove sezone</span><span class="pt-val">${escapeHtml(KUPAC_LABEL[k]||k)} · ${fmt(byKupac[k])}</span><span class="pt-sub">Više u tabu Pregled →</span>`;
     })();
     const kupciEl = document.getElementById('pocetna-kupci');
     kupciEl.innerHTML = kupacKeys.length ? kupacKeys.map(k=>`
       <div class="opg-sum-row">
-        <div class="opg-sum-name" style="min-width:88px;">${KUPAC_LABEL[k]||k}</div>
+        <div class="opg-sum-name" style="min-width:88px;">${escapeHtml(KUPAC_LABEL[k]||k)}</div>
         <div class="opg-sum-bar-wrap"><div class="opg-sum-bar" style="width:${Math.round(byKupac[k]/totalP*100)}%"></div></div>
         <div class="opg-sum-val">${fmt(byKupac[k])}</div>
       </div>`).join('') + `<div class="opg-sum-row opg-sum-total"><div class="opg-sum-name">Ukupno</div><div class="opg-sum-val">${fmt(Object.values(byKupac).reduce((a,b)=>a+b,0))}</div></div>` : '<div class="opg-empty">Još nema podataka.</div>';
@@ -2894,19 +2853,19 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     licences.forEach(l=>{
       if (l.vrijedi_do) {
         const daysLeft = Math.ceil((new Date(l.vrijedi_do) - today) / 86400000);
-        if (daysLeft <= 30 && daysLeft >= 0) notices.push({ icon:'🪪', text:`Vjerodajnica (${l.ime}) ističe ${dfmt(l.vrijedi_do)}.` });
-        else if (daysLeft < 0) notices.push({ icon:'🪪', text:`Vjerodajnica (${l.ime}) je istekla.` });
+        if (daysLeft <= 30 && daysLeft >= 0) notices.push({ icon:'🪪', text:`Vjerodajnica (${escapeHtml(l.ime)}) ističe ${dfmt(l.vrijedi_do)}.` });
+        else if (daysLeft < 0) notices.push({ icon:'🪪', text:`Vjerodajnica (${escapeHtml(l.ime)}) je istekla.` });
       }
     });
 
     // rokovi i propisi
     getFixedRokovi().forEach(r=>{
       const d = daysUntil(r.datum);
-      if (d <= 14) notices.push({ icon:'📋', text:`${r.naziv} — za ${d} ${d===1?'dan':'dana'} (${r.datum.toLocaleDateString('hr-HR')}).` });
+      if (d <= 14) notices.push({ icon:'📋', text:`${escapeHtml(r.naziv)} — za ${d} ${d===1?'dan':'dana'} (${r.datum.toLocaleDateString('hr-HR')}).` });
     });
     rokovi.filter(r=>!r.zavrseno).forEach(r=>{
       const d = daysUntil(new Date(r.datum));
-      if (d <= 14) notices.push({ icon:'📌', text:`${r.naziv} — za ${d} ${d===1?'dan':'dana'} (${dfmt(r.datum)}).` });
+      if (d <= 14) notices.push({ icon:'📌', text:`${escapeHtml(r.naziv)} — za ${d} ${d===1?'dan':'dana'} (${dfmt(r.datum)}).` });
     });
     const pragPct = getPragPdv() ? Math.round(pFiltered.reduce((s,r)=>s+(r.cijena_kg||0)*(r.kg||0),0)/getPragPdv()*100) : 0;
     if (pragPct >= 100) notices.push({ icon:'💶', text:`Dosegnut je prag za PDV (${pragPct}%) — provjerite obveze s knjigovođom.` });
@@ -3015,31 +2974,33 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   function getSprayCheckUrl(){
-    if (mode === 'cloud' && sharedSettings.spray_check_url) return sharedSettings.spray_check_url;
+    if (cloudConfigured) return mode==='cloud' ? securitySettings.spray_check_url||'' : '';
     return localStorage.getItem('opg_spray_check_url') || '';
   }
   function askSprayCheckUrl(){
+    if(!allowWrite('security_manage'))return;
     const current = getSprayCheckUrl();
     const url = prompt('Zalijepi adresu checkSprayConditionsNow funkcije (izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/checkSprayConditionsNow):', current);
     if (url && url.trim()) {
       const trimmed = url.trim();
       localStorage.setItem('opg_spray_check_url', trimmed);
-      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { spray_check_url: trimmed }, { merge: true }); } catch(e) {} }
+      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'security'), { spray_check_url: trimmed }, { merge: true }); } catch(e) {} }
       return trimmed;
     }
     return null;
   }
   function getVapidKey(){
-    if (mode === 'cloud' && sharedSettings.vapid_key) return sharedSettings.vapid_key;
+    if (cloudConfigured) return mode==='cloud' ? securitySettings.vapid_key||'' : '';
     return localStorage.getItem('opg_vapid_key') || '';
   }
   function askVapidKey(){
+    if(!allowWrite('security_manage'))return;
     const current = getVapidKey();
     const key = prompt('Zalijepi VAPID ključ (Firebase konzola → Project settings → Cloud Messaging → Web configuration → Generate key pair):', current);
     if (key && key.trim()) {
       const trimmed = key.trim();
       localStorage.setItem('opg_vapid_key', trimmed);
-      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { vapid_key: trimmed }, { merge: true }); } catch(e) {} }
+      if (mode === 'cloud') { try { fb.setDoc(fb.doc(fb.db, 'settings', 'security'), { vapid_key: trimmed }, { merge: true }); } catch(e) {} }
       return trimmed;
     }
     return null;
@@ -3054,6 +3015,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     try {
       const resp = await fetch(url);
       const data = await resp.json();
+      if(epoch!==privateEpoch)return;
       if (data.error) { statusEl.textContent = 'Greška: ' + data.error; return; }
       statusEl.textContent = `Gotovo: ${data.temp}°C, vjetar ${data.wind} m/s → ${data.status}${data.notified ? ' (poslana obavijest)' : ''}`;
     } catch(e) {
@@ -3062,6 +3024,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   async function enableWeatherNotifications(){
+    if(!allowWrite('notifications_write'))return;
     if (!('Notification' in window)) { toast('Ovaj preglednik ne podržava obavijesti'); return; }
     if (mode !== 'cloud') { toast('Prvo se poveži s Firebase-om (⚙ gore desno)'); return; }
     let vapidKey = getVapidKey();
@@ -3079,7 +3042,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: reg });
       if (!token) { toast('Nije uspjelo dobiti token za obavijesti'); return; }
 
-      await fb.setDoc(fb.doc(fb.db, 'fcm_tokens', token), { token, user: currentUser || null, created_at: Date.now() });
+      await fb.setDoc(fb.doc(fb.db, 'fcm_tokens', token), { token, user: currentUser || null, created_at: Date.now(), auth_uid: fb.auth.currentUser.uid }, { merge: true });
 
       toast('Obavijesti uključene na ovom telefonu! 🔔');
     } catch(e) {
@@ -3088,6 +3051,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   }
 
   function renderAll(){
+    applyWriteControls();
     populateSeasonSelect();
     applySeasonMode();
     populateCompareSelects();
@@ -3163,8 +3127,11 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     toast('Sigurnosna kopija spremljena');
   }
   function importJSON(file){
+    if(!allowWrite('finance_write')||!allowWrite('inventory_write')||!allowWrite('treatments_write'))return;
+    const importEpoch=privateEpoch;
     const reader = new FileReader();
     reader.onload = async () => {
+      if(importEpoch!==privateEpoch)return;
       try {
         const data = JSON.parse(reader.result);
         if (!Array.isArray(data.prodaja) || !Array.isArray(data.troskovi)) throw new Error('bad format');
@@ -3571,13 +3538,16 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   function saveLocalPlanStatus(){ try { localStorage.setItem('opg_plan_status', JSON.stringify(planStatuses)); } catch(e){} }
 
   async function addPlanTask(t){
+    const activityEpoch=privateEpoch;
+    if(!allowWrite('farm_write'))return;
     planTasks.push(t);
     renderPlan();
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'plan', t.id), t); } catch(e){ toast('Spremljeno lokalno — greška pri slanju u oblak'); } }
     else { saveLocalPlan(); }
-    logActivity(`Novi zadatak: ${t.naziv} (${planDmy(t.datum)}${t.vrijeme ? ' ' + t.vrijeme : ''})${t.ponavljanje ? ' — ponavlja se' : ''}`);
+    logActivity(`Novi zadatak: ${t.naziv} (${planDmy(t.datum)}${t.vrijeme ? ' ' + t.vrijeme : ''})${t.ponavljanje ? ' — ponavlja se' : ''}`, activityEpoch);
   }
   async function deletePlanTask(id){
+    if(!allowWrite('farm_write'))return;
     planTasks = planTasks.filter(t=>t.id!==id);
     renderPlan();
     if (mode === 'cloud') { try { await fb.deleteDoc(fb.doc(fb.db, 'plan', id)); } catch(e){ toast('Greška pri brisanju u oblaku'); } }
@@ -3588,6 +3558,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
       dodijeljeno:o.dodijeljeno||null, napomena:o.napomena||null, ikona:o.ikona||null, auto:!!o.auto, taskId:o.taskId||null, akcija:o.akcija||null };
   }
   async function setPlanStatus(o, status, extra){
+    if(!allowWrite('farm_write'))return;
     const id = PlanLogic.statusId(o.key);
     const doc = Object.assign({ id, key:o.key, datum:o.datum, status, by:currentUser||null, ts:Date.now(), snapshot:planSnapshot(o) }, extra||{});
     planStatuses = planStatuses.filter(s=>s.key!==o.key);
@@ -3597,6 +3568,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalPlanStatus(); }
   }
   async function clearPlanStatus(o){
+    if(!allowWrite('farm_write'))return;
     const id = PlanLogic.statusId(o.key);
     planStatuses = planStatuses.filter(s=>s.key!==o.key);
     renderPlan();
@@ -3604,6 +3576,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     else { saveLocalPlanStatus(); }
   }
   async function setPlanSetting(k, v){
+    if(!allowWrite('settings_manage'))return;
     if (v === '' || v == null || Number.isNaN(v)) { localStorage.removeItem('opg_plan_'+k); return; }
     localStorage.setItem('opg_plan_'+k, String(v));
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { ['plan_'+k]: v }, { merge: true }); } catch(e) {} }
@@ -3953,30 +3926,35 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   const $id = (i) => document.getElementById(i);
   const setV = (i, v) => { const el = $id(i); if (el) el.value = (v == null ? '' : v); };
   function editBtn(kind, id){
-    return isArchiveSeason() ? '' : `<button type="button" class="opg-edit" data-edit="${kind}" data-id="${id}" aria-label="Uredi">✎</button>`;
+    return isArchiveSeason() ? '' : `<button type="button" data-requires-write="${({prodaja:'finance_write',paul:'finance_write',trosak:'finance_write',zaliha:'inventory_write',prskanje:'treatments_write inventory_write',licenca:'licenses_write'}[kind]||'farm_write')}" class="opg-edit" data-edit="${kind}" data-id="${escapeHtml(id)}" aria-label="Uredi">✎</button>`;
   }
   function stampEdit(o){ o.uredio = currentUser || null; o.uredeno_ts = Date.now(); }
   async function persistDoc(col, obj, saveLocalFn){
+    const permission={prodaja:'finance_write',troskovi:'finance_write',zalihe:'inventory_write',prskanje:'treatments_write',licences:'licenses_write'}[col]||'farm_write';
+    if(!allowWrite(permission))return;
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, col, obj.id), obj); } catch(e){ toast('Greška pri spremanju u oblak'); } }
     else { saveLocalFn(); }
   }
   const normNm = (x) => (x || '').trim().toLowerCase();
 
   async function updateProdaja(id, f){
+    const activityEpoch=privateEpoch;
     const row = prodaja.find(r=>r.id===id); if (!row) return;
     Object.assign(row, f); stampEdit(row);
     renderAll();
     await persistDoc('prodaja', row, saveLocalProdaja);
-    logActivity(`Uređeno: ${row.kupac==='PAUL' ? 'isplata (Paul)' : (KUPAC_LABEL[row.kupac]||row.kupac)} — ${row.proizvod||''} ${row.kg||0}kg`);
+    logActivity(`Uređeno: ${row.kupac==='PAUL' ? 'isplata (Paul)' : (KUPAC_LABEL[row.kupac]||row.kupac)} — ${row.proizvod||''} ${row.kg||0}kg`, activityEpoch);
   }
   async function updateTrosak(id, f){
+    const activityEpoch=privateEpoch;
     const row = troskovi.find(r=>r.id===id); if (!row) return;
     Object.assign(row, f); stampEdit(row);
     renderAll();
     await persistDoc('troskovi', row, saveLocalTroskovi);
-    logActivity(`Uređen trošak: ${row.naziv||''}`);
+    logActivity(`Uređen trošak: ${row.naziv||''}`, activityEpoch);
   }
   async function updatePrskanje(id, f){
+    const activityEpoch=privateEpoch;
     const row = prskanje.find(r=>r.id===id); if (!row) return;
     // zalihe: vrati staru potrošnju pa oduzmi novu
     const oldM = zalihe.find(z=>normNm(z.naziv)===normNm(row.sredstvo));
@@ -3988,9 +3966,10 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     renderAll();
     for (const z of touched) await saveZalihaDoc(z);
     await persistDoc('prskanje', row, saveLocalPrskanje);
-    logActivity(`Uređeno tretiranje: ${row.sredstvo||''} na ${row.kultura||''}`);
+    logActivity(`Uređeno tretiranje: ${row.sredstvo||''} na ${row.kultura||''}`, activityEpoch);
   }
   async function updateZaliha(id, f){
+    const activityEpoch=privateEpoch;
     const z = zalihe.find(x=>x.id===id); if (!z) return;
     const stara = z.trenutna_kolicina || 0, delta = f.trenutna_kolicina - stara;
     const untouched = Math.abs((z.pocetna_kolicina||0) - stara) < 1e-9;
@@ -4000,7 +3979,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     stampEdit(z);
     renderAll();
     await saveZalihaDoc(z);
-    logActivity(`Uređena zaliha: ${z.naziv||''}`);
+    logActivity(`Uređena zaliha: ${z.naziv||''}`, activityEpoch);
   }
   async function updateRok(id, f){
     const r = rokovi.find(x=>x.id===id); if (!r) return;
@@ -4009,26 +3988,29 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     await persistDoc('rokovi', r, saveLocalRokovi);
   }
   async function updateLicenca(id, f){
+    const activityEpoch=privateEpoch;
     const l = licences.find(x=>x.id===id); if (!l) return;
     Object.assign(l, f); stampEdit(l);
     renderAll();
     await persistDoc('licences', l, saveLocalLicences);
-    logActivity(`Uređena vjerodajnica: ${l.ime||''}`);
+    logActivity(`Uređena vjerodajnica: ${l.ime||''}`, activityEpoch);
   }
   async function updateSjetvaFull(id, f){
+    const activityEpoch=privateEpoch;
     const x = sjetve.find(v=>v.id===id); if (!x) return;
     Object.assign(x, f); stampEdit(x);
     renderAll();
     await persistDoc('sjetva_sadnja', x, saveLocalSjetve);
-    logActivity(x.tip==='sjetva' ? `Uređena sjetva: ${x.vrsta||''}` : `Uređena sadnja: ${x.kultura||''}`);
+    logActivity(x.tip==='sjetva' ? `Uređena sjetva: ${x.vrsta||''}` : `Uređena sadnja: ${x.kultura||''}`, activityEpoch);
   }
   async function updatePlanTask(id, f){
+    const activityEpoch=privateEpoch;
     const t = planTasks.find(x=>x.id===id); if (!t) return;
     Object.assign(t, f); stampEdit(t);
     planSel = t.datum; planMonth = t.datum.slice(0,7);
     renderPlan();
     await persistDoc('plan', t, saveLocalPlan);
-    logActivity(`Uređen zadatak: ${t.naziv} (${planDmy(t.datum)})`);
+    logActivity(`Uređen zadatak: ${t.naziv} (${planDmy(t.datum)})`, activityEpoch);
   }
 
   const EDIT_CFG = {
@@ -4444,7 +4426,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const file = e.target.files[0];
     if (!file) return;
     try {
-      pendingTrosakRacun = await readAttachment(file, 900, 0.7);
+      const epoch=privateEpoch,prepared=await readAttachment(file,900,0.7);if(epoch!==privateEpoch)return;pendingTrosakRacun=prepared;
       document.getElementById('t-racun-preview').innerHTML = isPdfDataUrl(pendingTrosakRacun)
         ? `<div style="display:flex; align-items:center; gap:8px; margin-top:6px; font-size:13px; color:var(--ink-soft);"><span style="font-size:28px;">📄</span> PDF priložen</div>`
         : `<img src="${pendingTrosakRacun}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; margin-top:6px;">`;
@@ -4516,7 +4498,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const file = e.target.files[0];
     if (!file) return;
     try {
-      pendingZalihaPhoto = await readAttachment(file, 480, 0.7);
+      const epoch=privateEpoch,prepared=await readAttachment(file,480,0.7);if(epoch!==privateEpoch)return;pendingZalihaPhoto=prepared;
       document.getElementById('z-slika-preview').innerHTML = isPdfDataUrl(pendingZalihaPhoto)
         ? `<div style="display:flex; align-items:center; gap:8px; margin-top:6px; font-size:13px; color:var(--ink-soft);"><span style="font-size:28px;">📄</span> PDF priložen</div>`
         : `<img src="${pendingZalihaPhoto}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; margin-top:6px;">`;
@@ -4574,123 +4556,10 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     return local != null ? parseFloat(local) : 60000;
   }
   async function setPragPdv(val){
+    if(!allowWrite('settings_manage'))return;
     localStorage.setItem('opg_prag_pdv', String(val));
     if (mode === 'cloud') { try { await fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { prag_pdv: val }, { merge: true }); } catch(e) {} }
   }
-  function getAiUrl(){
-    if (mode === 'cloud' && sharedSettings.ai_url) return sharedSettings.ai_url;
-    return localStorage.getItem('opg_ai_url') || '';
-  }
-  function askAiUrl(){
-    const current = getAiUrl();
-    const url = prompt('Zalijepi adresu fisPhotoLookup funkcije (iz README-FIS.md, izgleda kao\nhttps://europe-west1-tvoj-projekt.cloudfunctions.net/fisPhotoLookup):', current);
-    if (url && url.trim()) {
-      const trimmed = url.trim();
-      localStorage.setItem('opg_ai_url', trimmed);
-      if (mode === 'cloud') {
-        try { fb.setDoc(fb.doc(fb.db, 'settings', 'app'), { ai_url: trimmed }, { merge: true }); } catch(e) {}
-      }
-      return trimmed;
-    }
-    return null;
-  }
-  function applyFisItem(item){
-    if (item.doza_po_ha_min != null) document.getElementById('calc-ha-doza-min').value = item.doza_po_ha_min;
-    if (item.doza_po_ha_max != null) document.getElementById('calc-ha-doza-max').value = item.doza_po_ha_max;
-    if (item.voda_po_ha_min != null) document.getElementById('calc-ha-voda-min').value = item.voda_po_ha_min;
-    if (item.voda_po_ha_max != null) document.getElementById('calc-ha-voda-max').value = item.voda_po_ha_max;
-    if (item.proizvod) document.getElementById('calc-sredstvo').value = item.proizvod;
-    if (item.karenca_dana != null) document.getElementById('pr-karenca').value = item.karenca_dana;
-    renderCalculator();
-    renderPrskanjePreview();
-
-    const candBox = document.getElementById('calc-photo-candidates');
-    candBox.style.display = 'none';
-    candBox.innerHTML = '';
-
-    const statusEl = document.getElementById('calc-photo-status');
-    statusEl.style.display = 'block';
-    const parts = [];
-    if (item.kultura) parts.push(item.kultura);
-    if (item.stetnik_ili_bolest) parts.push(item.stetnik_ili_bolest);
-    statusEl.textContent = '✓ ' + (item.proizvod ? item.proizvod + ' — ' : '') + parts.join(' · ') +
-      '\nPogledajte "Potrebno sredstva" ispod — uvijek provjerite prije prskanja.';
-    document.getElementById('calc-photo-reset').style.display = 'block';
-    toast('Izračun spreman — provjerite prije prskanja');
-  }
-
-  function renderFisCandidates(items){
-    const statusEl = document.getElementById('calc-photo-status');
-    statusEl.style.display = 'block';
-    statusEl.textContent = 'Prepoznato je više redaka na slici — odaberite koji se odnosi na vaš problem:';
-
-    const box = document.getElementById('calc-photo-candidates');
-    box.style.display = 'block';
-    box.innerHTML = items.map((it, i) => {
-      const label = [it.stetnik_ili_bolest, it.kultura].filter(Boolean).join(' · ') || ('Redak ' + (i+1));
-      return `<button type="button" class="opg-submit ghost" style="margin-bottom:6px; text-align:left;" data-idx="${i}">${label}</button>`;
-    }).join('');
-    box.querySelectorAll('button').forEach((btn) => {
-      btn.addEventListener('click', () => applyFisItem(items[parseInt(btn.dataset.idx, 10)]));
-    });
-    document.getElementById('calc-photo-reset').style.display = 'block';
-  }
-
-  function resetPhotoResult(){
-    document.getElementById('calc-ha-doza-min').value = '';
-    document.getElementById('calc-ha-doza-max').value = '';
-    document.getElementById('calc-ha-voda-min').value = '';
-    document.getElementById('calc-ha-voda-max').value = '';
-    document.getElementById('calc-photo-status').style.display = 'none';
-    const candBox = document.getElementById('calc-photo-candidates');
-    candBox.style.display = 'none';
-    candBox.innerHTML = '';
-    document.getElementById('calc-photo-reset').style.display = 'none';
-    renderCalculator();
-  }
-  document.getElementById('calc-photo-reset').addEventListener('click', ()=>{
-    resetPhotoResult();
-    document.getElementById('calc-photo-input').value = '';
-    document.getElementById('calc-photo-input').click();
-  });
-
-  document.getElementById('calc-photo-btn').addEventListener('click', ()=>{
-    let url = getAiUrl();
-    if (!url) { url = askAiUrl(); if (!url) return; }
-    document.getElementById('calc-photo-input').click();
-  });
-  document.getElementById('calc-photo-input').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if (!file) return;
-    const url = getAiUrl();
-    if (!url) { e.target.value=''; return; }
-
-    const statusEl = document.getElementById('calc-photo-status');
-    document.getElementById('calc-photo-candidates').style.display = 'none';
-    statusEl.style.display = 'block';
-    statusEl.textContent = 'Šaljem sliku i čekam odgovor… (par sekundi)';
-
-    try {
-      const dataUrl = await resizeImageFile(file, 1200, 0.85);
-      const base64 = dataUrl.split(',')[1];
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' })
-      });
-      const data = await resp.json();
-      if (data.error) { statusEl.textContent = 'Greška: ' + data.error; e.target.value=''; return; }
-      const items = Array.isArray(data.parsed) ? data.parsed.filter(Boolean) : (data.parsed ? [data.parsed] : []);
-      if (!items.length) { statusEl.textContent = 'AI nije uspio pročitati podatke sa slike. Pokušajte jasniju, bolje osvijetljenu fotografiju.'; e.target.value=''; return; }
-
-      if (items.length === 1) { applyFisItem(items[0]); }
-      else { renderFisCandidates(items); }
-    } catch(err) {
-      statusEl.textContent = 'Greška pri obradi slike: ' + err.message;
-    }
-    e.target.value = '';
-  });
-
   document.getElementById('pr-datum').addEventListener('change', renderPrskanjePreview);
   document.getElementById('pr-karenca').addEventListener('input', renderPrskanjePreview);
   document.getElementById('pr-submit').addEventListener('click', async ()=>{
@@ -5091,17 +4960,12 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     if (!raw){ toast('Zalijepi firebaseConfig kod'); return; }
     const setStatus = (t)=>{ const e=document.getElementById('setup-status'); if (e) e.textContent = t || ''; };
     setStatus('');
-    // izvuci samo objekt {...}; ostalo (import redovi, komentari) ignoriraj
-    const mm = raw.match(/firebaseConfig\s*=\s*(\{[\s\S]*?\})/) || raw.match(/(\{[\s\S]*?\})/);
-    let jsSrc = mm ? mm[1] : raw;
-    jsSrc = jsSrc.replace(/^\s*\/\/.*$/gm, '');
     let cfg;
-    try { cfg = new Function('return (' + jsSrc + ')')(); }
-    catch(e){ setStatus('Nije prepoznat format — zalijepi cijeli objekt od "const firebaseConfig = {" do "};".'); toast('Nije prepoznat format'); return; }
-    if (!cfg || !cfg.apiKey || !cfg.projectId) { setStatus('U kodu nedostaju apiKey ili projectId — kopiraj cijeli blok iz Firebase konzole.'); toast('Config nije potpun'); return; }
+    try { cfg = window.OpgSecurity.parseFirebaseConfig(raw); }
+    catch(e){ setStatus(e.message+' Kopiraj JSON ili firebaseConfig iz Firebase konzole.'); toast('Nije prepoznat format'); return; }
     setSyncStatus('connecting'); setStatus('Povezivanje…');
     const ok = await initCloud(cfg);
-    if (ok){ setStatus(''); closeSetup(); toast('Povezano! Sinkronizacija uživo aktivna.'); }
+    if (ok){ setStatus(''); closeSetup(); toast('Firebase je povezan. Prijava i ovlasti provjeravaju se zasebno.'); }
     else { setSyncStatus('local'); setStatus('Povezivanje nije uspjelo — provjeri config i internet pa pokušaj ponovno.'); toast('Povezivanje nije uspjelo'); }
   });
 
@@ -5116,7 +4980,8 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
   document.getElementById('pa-datum').value = todayStr();
   document.getElementById('pr-datum').value = todayStr();
 
-  loadLocal();
+  if(!cloudConfigured)loadLocal();
+  else document.getElementById('opg-root').dataset.access='locked';
   document.getElementById('opg-loading').style.display = 'none';
   document.getElementById('opg-content').style.display = 'block';
   renderAll();
@@ -5140,6 +5005,7 @@ details.opg-coll > .opg-sum-card, details.opg-coll > .opg-card { margin-top: 4px
     const indicator = document.getElementById('opg-pull-indicator');
     let startY = null, pulling = false;
     const THRESHOLD = 70;
+    document.addEventListener('touchcancel', ()=>{ indicator.classList.remove('visible'); pulling=false; startY=null; }, {passive:true});
     document.addEventListener('touchstart', (e)=>{
       if (window.scrollY <= 0 && !document.querySelector('#opg-setup.show')) {
         startY = e.touches[0].clientY;

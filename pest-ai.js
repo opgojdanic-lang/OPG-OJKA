@@ -15,7 +15,8 @@
     const analyze=makeButton('Analiziraj fotografije',run);analyze.id='protect-ai-analyze';
     const newAttempt=makeButton('Novi pokušaj — koristi novi zahtjev',()=>{requestId=null;lastInput=null;current=null;result.replaceChildren();newAttempt.hidden=true;status.textContent='Spreman novi pokušaj. I on ulazi u mjesečni limit.';});newAttempt.hidden=true;
     controls.append(check,analyze,newAttempt);box.append(hint,consentLabel,controls,status,usage,result,setup);photo.append(box);
-    let busy=false,requestId=null,lastInput=null,current=null,functions=null;
+    let busy=false,requestId=null,lastInput=null,current=null,functions=null,authEpoch=0;
+    window.addEventListener('opg:auth-session',event=>{if(event.detail?.resetPrivate===false)return;authEpoch++;current=null;requestId=null;lastInput=null;result.replaceChildren();usage.textContent='';consent.checked=false;uidText.textContent='Provjeri identitet prijavljenog računa.';newAttempt.hidden=true;status.textContent='Identitet ili ovlasti su promijenjeni. Prethodni AI rezultat nije prenesen.';});
     const snapshot=()=>JSON.stringify({culture:crop.value,note:note.value.trim(),photos:getPhotos()});
     function setBusy(value){busy=value;[check,analyze,newAttempt,crop,note,upload,save,consent].forEach(e=>e.disabled=value);}
     function reset(){if(busy)return;requestId=null;lastInput=null;current=null;result.replaceChildren();newAttempt.hidden=true;consent.checked=false;}
@@ -24,6 +25,7 @@
       if(!localStorage.getItem('opg_fb_config'))throw new Error('Poveži aplikaciju s Firebaseom prije AI analize.');
       const [apps,auth,fn]=await Promise.all([import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'),import('https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js')]);
       const app=apps.getApps()[0],user=app&&auth.getAuth(app).currentUser;
+      if(scope.OpgAuth&&(!scope.OpgAuth.session||scope.OpgAuth.session.uid!==user?.uid))throw new Error('Prijava i poslovne ovlasti nisu potvrđene.');
       if(!user)throw new Error('Pričekaj da se dovrši prijava u Firebase.');
       uidText.textContent='Firebase UID ovog uređaja: '+user.uid+'. Dodaje se u dopuštene uređaje pri postavljanju.';
       functions={fn,instance:fn.getFunctions(app,'europe-west1')};return functions;
@@ -46,37 +48,50 @@
     }
     async function loadUsage(){
       if(busy||isPreparing())return;setBusy(true);
-      try{showUsage(await call('pestPhotoUsage',{}));status.textContent='AI je dostupan. Provjeri fotografije i opis prije slanja.';}
-      catch(e){status.textContent=errorMessage(e);}
+      const epoch=authEpoch;
+      try{const response=await call('pestPhotoUsage',{});if(epoch!==authEpoch)return;showUsage(response);status.textContent='AI je dostupan. Provjeri fotografije i opis prije slanja.';}
+      catch(e){if(epoch===authEpoch)status.textContent=errorMessage(e);}
       finally{setBusy(false);}
     }
     function renderResult(r){
-      result.replaceChildren(el('h4','Rezultat AI analize — mogući uzroci'),el('p',r.summary));
+      result.replaceChildren(el('h4','Rezultat AI analize — mogući uzroci'));
+      const summary=el('details');summary.append(el('summary','Sažetak analize'),el('p',r.summary));result.append(summary);
       result.append(el('p','Ovo nije potvrđena dijagnoza niti preporuka prskanja.','protect-disclaimer'));
       const addList=(title,items)=>{if(!items?.length)return;result.append(el('h4',title));const list=el('ul');items.forEach(x=>list.append(el('li',x)));result.append(list);};
-      addList('Vidljivi znakovi',r.visibleSigns);
-      (r.possibleCauses||[]).forEach(c=>{
-        const d=el('div',null,'protect-candidate');d.append(el('h4',c.name+' · '+(c.confidence==='moderate'?'umjerena':'niska')+' sigurnost'),el('p',c.evidence),el('p','Provjeri u nasadu: '+c.check));
+      const causes=r.possibleCauses||[], primary=causes[0];
+      result.append(el('h4','1. Najvjerojatniji uzrok'),el('p',primary?primary.name+' — AI pretpostavka, nije potvrđena dijagnoza.':'Nije moguće izdvojiti uzrok iz fotografija.'));
+      result.append(el('h4','2. Razina pouzdanosti'),el('p',primary?(primary.confidence==='moderate'?'Umjerena':'Niska')+' — procjena AI-ja, bez potvrde u nasadu.':'Nedovoljno podataka za procjenu.'));
+      addList('3. Vidljivi simptomi — opažanja AI-ja na fotografiji',r.visibleSigns.length?r.visibleSigns:['Nema jasno izdvojenih vidljivih simptoma.']);
+      addList('4. Što provjeriti u nasadu',[...new Set([...causes.map(c=>c.check),...(r.fieldChecks?.length?r.fieldChecks:['Pregledaj više biljaka i zabilježi razvoj simptoma.'])])]);
+      const hypothesis=(c,parent)=>{
+        const d=el('div',null,'protect-candidate');d.append(el('h4',c.name+' · '+(c.confidence==='moderate'?'umjerena':'niska')+' sigurnost'),el('p','AI pretpostavka i obrazloženje: '+c.evidence));
         if(c.kind!=='abiotic'){
           const label=el('label',null,'protect-ai-consent'),confirmed=el('input');confirmed.type='checkbox';label.append(confirmed,el('span','Pregledao sam nasad i želim provjeriti FIS zapise za ovaj mogući uzrok.'));
           const open=makeButton('Pretraži FIS za: '+c.name,()=>{if(!confirmed.checked)return;const input=document.getElementById('protect-problem');input.value=c.name;input.dispatchEvent(new Event('input'));document.querySelector('#zastita-subnav [data-sub="zastita-prijedlozi"]')?.click();});open.disabled=true;confirmed.addEventListener('change',()=>open.disabled=!confirmed.checked);d.append(label,open);
-        }result.append(d);
-      });
-      addList('Što još fotografirati',r.nextPhotos);addList('Što pregledati u nasadu',r.fieldChecks);
+        }parent.append(d);
+      };
+      const alternatives=el('details');alternatives.append(el('summary','5. Alternativni mogući uzroci'));
+      if(causes.length<2)alternatives.append(el('p','Analiza nije izdvojila dodatne uzroke. To ih ne isključuje.'));
+      causes.slice(1).forEach(c=>hypothesis(c,alternatives));result.append(alternatives);
+      result.append(el('h4','6. Sljedeći preporučeni korak'),el('p','Pregledaj više biljaka i provjeri navedene znakove. Ako uzrok ostane nejasan, zatraži stručni pregled. FIS pretraga nakon potvrde opažanja nije automatska preporuka za prskanje.'));
+      if(primary)hypothesis(primary,result);
+      const more=el('details');more.append(el('summary','Dodatne fotografije za provjeru'));(r.nextPhotos||[]).forEach(x=>more.append(el('p',x)));result.append(more);
     }
     async function run(){
       if(busy||isPreparing())return;
       if(!getPhotos().length){status.textContent='Dodaj barem jednu fotografiju problema.';return;}
       if(!note.value.trim()){status.textContent='Kratko opiši što primjećuješ.';return;}
       if(!consent.checked){status.textContent='Potvrdi slanje fotografija i opisa na AI analizu.';return;}
+      const epoch=authEpoch;
       const encoded=snapshot();if(encoded!==lastInput){requestId=crypto.randomUUID();lastInput=encoded;current=null;result.replaceChildren();}
       setBusy(true);newAttempt.hidden=true;status.textContent='Analiziram fotografije… Nemoj zatvoriti aplikaciju.';
       try{
         const response=await call('pestPhotoAnalyze',{...JSON.parse(encoded),requestId});
+        if(epoch!==authEpoch)return;
         if(!response?.result)throw new Error('Nije dobiven rezultat analize.');
         current=response.result;renderResult(current);showUsage(response.usage);status.textContent=response.replayed?'Prikazan je već dobiven rezultat, bez nove AI analize.':'Analiza je završena. Provjeri moguće uzroke u nasadu; rezultat možeš spremiti uz opažanje.';
-      }catch(e){status.textContent=errorMessage(e)+' Ponovno slanje istog zahtjeva neće pokrenuti novu analizu ako je već zaprimljen.';newAttempt.hidden=false;
-        try{showUsage(await call('pestPhotoUsage',{}));}catch(_){}
+      }catch(e){if(epoch!==authEpoch)return;status.textContent=errorMessage(e)+' Ponovno slanje istog zahtjeva neće pokrenuti novu analizu ako je već zaprimljen.';newAttempt.hidden=false;
+        try{const fallback=await call('pestPhotoUsage',{});if(epoch===authEpoch)showUsage(fallback);}catch(_){}
       }finally{setBusy(false);}
     }
     return {reset,current:()=>lastInput===snapshot()?current:null};

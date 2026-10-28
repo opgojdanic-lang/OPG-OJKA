@@ -9,7 +9,7 @@ const input=()=>({requestId:randomUUID(),culture:'PAPRIKA BABURA',note:'Srebrnka
 const result={assessment:'possible_causes',summary:'Moguć je napad tripsa; potreban pregled.',visibleSigns:['Srebrnkasti tragovi'],possibleCauses:[{name:'Trips',kind:'pest',confidence:'low',evidence:'Tragovi na listu',check:'Pregledaj cvijet i donju stranu lista.'}],nextPhotos:['Makro fotografija kukca'],fieldChecks:['Pregledaj više biljaka.']};
 const raw=(r=result)=>({status:'completed',usage:{input_tokens:1000,output_tokens:200,input_tokens_details:{cached_tokens:100}},output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(r)}]}]});
 function database(seed={}){
-  const store=new Map(Object.entries({'ai_private/config':{enabled:true,allowedUids:['allowed']},...seed}));
+  const store=new Map(Object.entries({'access_members/allowed':{enabled:true,role:'MEMBER',roleVersion:1},'access_control/member':{uid:'allowed'},'ai_private/config':{enabled:true,allowedUids:['allowed']},...seed}));
   let queue=Promise.resolve();
   const doc=path=>({path,get:async()=>({data:()=>structuredClone(store.get(path))})});
   const db={doc,runTransaction:fn=>{
@@ -29,12 +29,12 @@ test('request has structured uncertain results, image inputs, no storage and bou
 });
 test('disabled, unauthenticated and unapproved users cannot call paid API',async()=>{
   let calls=0;const options=opts(async()=>{calls++;});
-  for(const [uid,config,code]of [[undefined,{enabled:true,allowedUids:['allowed']},'unauthenticated'],['stranger',{enabled:true,allowedUids:['allowed']},'permission-denied'],['allowed',{enabled:false,allowedUids:['allowed']},'failed-precondition']]){
+  for(const [uid,config,code]of [[undefined,{enabled:true,allowedUids:['allowed']},'unauthenticated'],['stranger',{enabled:true,allowedUids:['allowed']},'permission-denied'],['allowed',{enabled:false,allowedUids:['allowed']},'failed-precondition'],['allowed',undefined,'failed-precondition']]){
     const {db}=database({'ai_private/config':config});await assert.rejects(analyze(db,uid,input(),options),e=>e.code===code);
   }assert.equal(calls,0);
 });
 test('missing key and invalid image never reserve quota',async()=>{
-  const {db,store}=database();await assert.rejects(analyze(db,'allowed',input(),{apiKey:''}),e=>e.code==='failed-precondition');await assert.rejects(analyze(db,'allowed',{...input(),photos:['bad']},opts()));assert.equal(store.size,1);
+  const {db,store}=database();await assert.rejects(analyze(db,'allowed',input(),{apiKey:''}),e=>e.code==='failed-precondition');await assert.rejects(analyze(db,'allowed',{...input(),photos:['bad']},opts()));assert.equal(store.size,3);
 });
 test('one successful request is charged once; replay and changed-payload ID are safe',async()=>{
   const {db,store}=database();let calls=0;const options=opts(async()=>{calls++;return{ok:true,json:async()=>raw()};});const data=input();
@@ -74,4 +74,15 @@ test('sample stops at 20 accounted responses while monthly totals keep growing',
 });
 test('new Zagreb month has fresh quota; prior request replay does not consume it',async()=>{
   const {db}=database();const data=input();await analyze(db,'allowed',data,opts());const next={...opts(),now:()=>new Date('2026-11-01T05:00:00Z')};const replay=await analyze(db,'allowed',data,next);assert.equal(replay.replayed,true);assert.equal(replay.usage.attempts,0);assert.equal((await analyze(db,'allowed',input(),next)).usage.attempts,1);
+});
+test('AI shutdown blocks newly admitted requests and usage, but accounts for an already-running provider call',async()=>{
+ const {db,store}=database();let entered,release,calls=0;
+ const started=new Promise(resolve=>entered=resolve),paused=new Promise(resolve=>release=resolve);
+ const options=opts(async()=>{calls++;entered();await paused;return{ok:true,json:async()=>raw()};});
+ const inFlight=analyze(db,'allowed',input(),options);await started;
+ store.set('ai_private/config',{enabled:false,allowedUids:['allowed']});
+ await assert.rejects(analyze(db,'allowed',input(),options),e=>e.code==='failed-precondition');
+ await assert.rejects(status(db,'allowed',options.now()),e=>e.code==='failed-precondition');
+ assert.equal(calls,1);assert.equal(store.get('ai_private/usage_2026-10').attempts,1);
+ release();const done=await inFlight;assert.equal(done.usage.attempts,1);assert.equal(done.usage.accounted,1);assert.ok(done.usage.estimatedUsd>0);
 });
